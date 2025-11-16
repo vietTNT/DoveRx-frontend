@@ -17,7 +17,7 @@ const getAvatarUrl = (contact) => {
       return contact.avatar;
     }
     // ✅ Nếu avatar là relative path
-    const baseUrl = process.env.REACT_APP_API_BASE || "http://localhost:8000";
+    const baseUrl = process.env.REACT_APP_API_BASE;
     return `${baseUrl}${contact.avatar}`;
   }
   // ✅ Fallback icon

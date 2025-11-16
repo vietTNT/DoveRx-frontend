@@ -29,7 +29,8 @@ class ChatWebSocketService {
     const baseUrl = process.env.REACT_APP_API_BASE || "http://localhost:8000";
     const wsProtocol = baseUrl.startsWith("https") ? "wss" : "ws";
     const wsHost = baseUrl.replace(/^https?:\/\//, "");
-    const wsUrl = `${wsProtocol}://${wsHost}/ws/chat/?token=${token}`;
+    // const wsUrl = `${wsProtocol}://${wsHost}/ws/chat/?token=${token}`; local
+    const wsUrl = `${process.env.REACT_APP_WS_BASE}/ws/chat/?token=${token}`;
 
     console.log("🔌 [chatWebSocket] Connecting to:", wsUrl);
     console.log(

@@ -1,10 +1,9 @@
 // src/api/api.js
 import axios from "axios";
 
-// const API_BASE =
-//   process.env.REACT_APP_API_BASE || "https://doverx-backend.onrender.com"; // server
+const API_BASE = process.env.REACT_APP_API_BASE;
 
-const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:8000"; // local
+// const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:8000"; // local
 // 🔹 Hàm lấy access token từ localStorage
 const getAccessToken = () => {
   const raw = localStorage.getItem("user");

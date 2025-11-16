@@ -1,6 +1,6 @@
 import api from "../api/api";
 
-const API_URL = "http://localhost:8000/api/chat";
+const API_URL = `${process.env.REACT_APP_API_BASE}/api/chat`;
 
 // ===== Conversations =====
 export const fetchConversations = async () => {

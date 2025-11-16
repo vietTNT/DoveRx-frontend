@@ -1,8 +1,8 @@
 import axios from "axios";
 
-// const API_BASE =
-//   process.env.REACT_APP_API_BASE || "https://doverx-backend.onrender.com"; // server
-const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:8000"; // local
+const API_BASE = process.env.REACT_APP_API_BASE;
+
+// const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:8000"; // local
 export async function refreshTokenIfNeeded() {
   const access = localStorage.getItem("access");
   const refresh = localStorage.getItem("refresh");
