@@ -10,7 +10,7 @@ class WebSocketService {
     // if (this.ws?.readyState === WebSocket.OPEN) return;
 
     // ✅ Lấy base URL từ env
-    const baseUrl = process.env.REACT_APP_API_BASE || "http://localhost:8000";
+    const baseUrl = process.env.REACT_APP_API_BASE;
     const wsProtocol = baseUrl.startsWith("https") ? "wss" : "ws";
     const wsHost = baseUrl.replace(/^https?:\/\//, "");
     const wsUrl = `${wsProtocol}://${wsHost}/ws/feed/?token=${token}`;
