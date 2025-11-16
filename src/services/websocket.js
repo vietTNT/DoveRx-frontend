@@ -6,16 +6,58 @@ class WebSocketService {
     this.maxReconnectAttempts = 5;
   }
 
+  // connect(token) {
+  //   // if (this.ws?.readyState === WebSocket.OPEN) return;
+
+  //   // ✅ Lấy base URL từ env
+  //   const baseUrl = process.env.REACT_APP_API_BASE;
+  //   const wsProtocol = baseUrl.startsWith("https") ? "wss" : "ws";
+  //   const wsHost = baseUrl.replace(/^https?:\/\//, "");
+  //   const wsUrl = `${wsProtocol}://${wsHost}/ws/feed/?token=${token}`;
+
+  //   console.log("🔌 Connecting to WebSocket:", wsUrl);
+  //   this.ws = new WebSocket(wsUrl);
+
+  //   this.ws.onopen = () => {
+  //     console.log("✅ WebSocket connected");
+  //     this.reconnectAttempts = 0;
+  //   };
+
+  //   this.ws.onmessage = (event) => {
+  //     try {
+  //       const data = JSON.parse(event.data);
+  //       this.notifyListeners(data.type, data);
+  //     } catch (err) {
+  //       console.error("WebSocket message error:", err);
+  //     }
+  //   };
+
+  //   this.ws.onerror = (error) => {
+  //     console.error("❌ WebSocket error:", error);
+  //   };
+
+  //   this.ws.onclose = () => {
+  //     console.log("🔌 WebSocket closed");
+  //     this.reconnect(token);
+  //   };
+  // }
   connect(token) {
+    // Nếu ws đã mở thì không kết nối lại
     // if (this.ws?.readyState === WebSocket.OPEN) return;
 
-    // ✅ Lấy base URL từ env
-    const baseUrl = process.env.REACT_APP_API_BASE;
-    const wsProtocol = baseUrl.startsWith("https") ? "wss" : "ws";
-    const wsHost = baseUrl.replace(/^https?:\/\//, "");
-    const wsUrl = `${wsProtocol}://${wsHost}/ws/feed/?token=${token}`;
+    // 🔥 Lấy URL WebSocket từ ENV (đúng chuẩn)
+    const wsBase = process.env.REACT_APP_WS_BASE;
+
+    if (!wsBase) {
+      console.error("❌ Missing REACT_APP_WS_BASE env variable!");
+      return;
+    }
+
+    // Không cần tự detect protocol nữa, ENV đã quyết định: ws:// hoặc wss://
+    const wsUrl = `${wsBase}/ws/feed/?token=${token}`;
 
     console.log("🔌 Connecting to WebSocket:", wsUrl);
+
     this.ws = new WebSocket(wsUrl);
 
     this.ws.onopen = () => {
