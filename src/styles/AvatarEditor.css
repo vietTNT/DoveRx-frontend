@@ -1,0 +1,266 @@
+/* 🎨 Overlay phủ toàn màn hình */
+.avatar-editor-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.3s ease;
+  padding: 20px;
+}
+
+/* 🎨 Modal chứa editor */
+.avatar-editor-modal {
+  background: white;
+  border-radius: 20px;
+  padding: 30px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  text-align: center;
+  animation: slideUp 0.3s ease;
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.avatar-editor-modal h3 {
+  color: #1f2937;
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+/* 🎨 Cropper Container - QUAN TRỌNG */
+.cropper-container {
+  position: relative;
+  width: 100%;
+  height: 400px; /* ✅ TĂNG CHIỀU CAO */
+  background: #f9fafb;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+/* 🎨 Thanh điều khiển zoom */
+.editor-controls {
+  padding: 0 10px;
+}
+
+.editor-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.zoom-label {
+  color: #6b7280;
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.editor-controls i {
+  color: #2563eb;
+}
+
+.editor-controls input[type="range"] {
+  width: 100%;
+  height: 8px;
+  border-radius: 10px;
+  background: #e5e7eb;
+  outline: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+.editor-controls input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #2563eb;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
+  transition: 0.2s;
+}
+
+.editor-controls input[type="range"]::-webkit-slider-thumb:hover {
+  background: #1d4ed8;
+  transform: scale(1.15);
+}
+
+.editor-controls input[type="range"]::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #2563eb;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
+}
+
+/* 🎨 Nút hành động */
+.editor-actions {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn-cancel,
+.btn-save {
+  padding: 14px 40px;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: 1;
+  max-width: 200px;
+}
+
+.btn-cancel {
+  background: #f3f4f6;
+  color: #374151;
+  border: 2px solid #e5e7eb;
+}
+
+.btn-cancel:hover {
+  background: #e5e7eb;
+  border-color: #d1d5db;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-save {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+}
+
+.btn-save:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5);
+}
+
+.btn-save:active,
+.btn-cancel:active {
+  transform: translateY(0);
+}
+
+/* 🎨 Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* 🎨 Dark Mode */
+@media (prefers-color-scheme: dark) {
+  .avatar-editor-modal {
+    background: #1f2937;
+    color: white;
+  }
+
+  .avatar-editor-modal h3 {
+    color: #f9fafb;
+  }
+
+  .cropper-container {
+    background: #111827;
+  }
+
+  .zoom-label {
+    color: #d1d5db;
+  }
+
+  .editor-controls input[type="range"] {
+    background: #374151;
+  }
+
+  .editor-controls input[type="range"]::-webkit-slider-thumb {
+    background: #60a5fa;
+  }
+
+  .btn-cancel {
+    background: #374151;
+    color: #f9fafb;
+    border-color: #4b5563;
+  }
+
+  .btn-cancel:hover {
+    background: #4b5563;
+  }
+}
+
+/* 🎨 Responsive */
+@media (max-width: 640px) {
+  .avatar-editor-modal {
+    padding: 20px;
+    max-width: 95%;
+  }
+
+  .avatar-editor-modal h3 {
+    font-size: 20px;
+  }
+
+  .cropper-container {
+    height: 300px; /* ✅ GIẢM CHIỀU CAO TRÊN MOBILE */
+  }
+
+  .btn-cancel,
+  .btn-save {
+    padding: 12px 30px;
+    font-size: 14px;
+    min-width: 120px;
+  }
+
+  .editor-actions {
+    flex-direction: column;
+  }
+
+  .btn-cancel,
+  .btn-save {
+    max-width: none;
+    width: 100%;
+  }
+}
+
+/* 🎨 Tablet */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .cropper-container {
+    height: 350px;
+  }
+}

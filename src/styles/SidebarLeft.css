@@ -1,0 +1,99 @@
+/* 🟦 Sidebar trái */
+.fixed-side {
+  position: sticky;
+  top: 85px;
+  align-self: flex-start;
+}
+
+.sidebar-left {
+  width: 260px; /* ✅ Tăng từ 220px lên 260px */
+  background: white;
+  border-radius: 15px;
+  padding: 20px 15px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  height: fit-content;
+  max-height: calc(100vh - 110px); /* ✅ Thêm max-height */
+  overflow-y: auto; /* ✅ Thêm scroll khi cần */
+}
+
+.sidebar-left ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sidebar-left li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  cursor: pointer;
+  border-radius: 10px;
+  color: #333;
+  transition: background 0.3s;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.sidebar-left li:hover {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.sidebar-left i {
+  font-size: 18px;
+  color: #2563eb;
+  width: 36px; /* ✅ Fixed width cho icon */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ✅ Scrollbar cho sidebar trái */
+.sidebar-left::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-left::-webkit-scrollbar-track {
+  background: #f0f2f5;
+  border-radius: 3px;
+}
+
+.sidebar-left::-webkit-scrollbar-thumb {
+  background: #b0b3b8;
+  border-radius: 3px;
+}
+
+/* ✅ Responsive */
+@media (min-width: 1600px) {
+  .sidebar-left {
+    width: 280px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .sidebar-left {
+    width: 240px;
+  }
+
+  .sidebar-left li {
+    font-size: 14px;
+    padding: 8px;
+  }
+}
+
+@media (max-width: 992px) {
+  .sidebar-left {
+    width: 220px;
+  }
+
+  .sidebar-left li {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebar-left {
+    display: none;
+  }
+}

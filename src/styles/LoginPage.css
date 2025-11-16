@@ -1,0 +1,302 @@
+.login-container,
+.dashboard-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: linear-gradient(135deg, #5ec6ca, #2563eb);
+  font-family: "Segoe UI", sans-serif;
+}
+
+.login-card,
+.dashboard-card {
+  background: white;
+  border-radius: 20px;
+  padding: 50px 40px;
+  width: 400px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  text-align: center;
+  animation: fadeIn 0.6s ease-in-out;
+}
+/* Nút đăng nhập Google */
+.login-button {
+  display: flex;
+  justify-content: center; /* căn giữa ngang */
+  align-items: center; /* căn giữa dọc */
+  margin-bottom: 20px;
+}
+
+/* Khi Google render iframe nút login */
+.login-button iframe {
+  transform: scale(1.05); /* phóng to nhẹ cho cân đối */
+  margin: 0 auto;
+  display: block;
+  border-radius: 8px !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* Ẩn margin lệch mặc định của Google One Tap */
+div[role="button"][aria-haspopup="dialog"] {
+  margin: 0 auto !important;
+}
+
+.logo-img {
+  width: 90px;
+  margin-bottom: 15px;
+}
+
+h2 {
+  color: #333;
+  margin-bottom: 10px;
+}
+
+p {
+  color: #666;
+  margin-bottom: 30px;
+  font-size: 0.95em;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #ddd;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  margin: 0 auto 30px;
+  animation: spin 0.8s linear infinite;
+}
+
+.logout-btn {
+  margin-top: 15px;
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  padding: 10px 25px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.logout-btn:hover {
+  background-color: #1e40af;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+/* 🩺 Khu vực dành cho bác sĩ */
+.doctor-login-section {
+  margin-top: 25px;
+  text-align: center;
+}
+
+.doctor-login-section p {
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.doctor-btn,
+.doctor-btn-outline {
+  display: block;
+  width: 100%;
+  max-width: 250px;
+  margin: 6px auto;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: 0.3s ease;
+}
+
+/* Nút chính (đăng nhập) */
+.doctor-btn {
+  background-color: #2563eb;
+  color: white;
+  border: none;
+}
+
+.doctor-btn:hover {
+  background-color: #1e40af;
+}
+
+/* Nút viền (đăng ký) */
+.doctor-btn-outline {
+  background-color: transparent;
+  color: #2563eb;
+  border: 2px solid #2563eb;
+}
+
+.doctor-btn-outline:hover {
+  background-color: #e0f2fe;
+}
+
+/* css cho form bác sĩ đăng kí và đăng nhập */
+
+/* 🩺 Form đăng nhập / đăng ký bác sĩ */
+.doctor-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 20px;
+}
+
+/* Ô nhập dữ liệu */
+.doctor-form input {
+  padding: 12px 15px;
+  border-radius: 10px;
+  border: 1.5px solid #cbd5e1;
+  font-size: 15px;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.doctor-form input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 6px rgba(37, 99, 235, 0.25);
+}
+
+/* Nút chính */
+.doctor-form button {
+  background: linear-gradient(135deg, #2563eb, #5ec6ca);
+  color: white;
+  font-weight: 600;
+  border: none;
+  padding: 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 10px;
+}
+
+.doctor-form button:hover {
+  background: linear-gradient(135deg, #1e40af, #5ec6ca);
+  transform: translateY(-1px);
+}
+
+/* 🔹 Đoạn chữ gợi ý bên dưới */
+.login-card p span {
+  color: #2563eb;
+  cursor: pointer;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.login-card p span:hover {
+  color: #1e40af;
+}
+
+/* Trạng thái loading */
+.doctor-form button:disabled {
+  background: #93c5fd;
+  cursor: not-allowed;
+}
+
+/* Responsive cho màn nhỏ */
+@media (max-width: 480px) {
+  .login-card {
+    width: 90%;
+    padding: 30px 25px;
+  }
+
+  .doctor-form input {
+    font-size: 14px;
+    padding: 10px 12px;
+  }
+
+  .doctor-form button {
+    padding: 10px;
+    font-size: 14px;
+  }
+}
+/* 🩺 Nhóm chọn loại tài khoản bác sĩ */
+.doctor-type-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0 5px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.doctor-type-group label {
+  display: flex;
+  align-items: center;
+  font-size: 15px;
+  color: #333;
+  cursor: pointer;
+  gap: 8px;
+}
+
+.doctor-type-group input[type="radio"] {
+  accent-color: #2563eb;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+/* Hiệu ứng hover */
+.doctor-type-group label:hover {
+  background: #eff6ff;
+  border-radius: 8px;
+  transition: 0.3s;
+}
+
+/* Mobile responsive */
+@media (max-width: 480px) {
+  .doctor-type-group {
+    padding: 8px;
+  }
+
+  .doctor-type-group label {
+    font-size: 14px;
+  }
+}
+
+/* Form xác minh OTP */
+.doctor-form input[type="text"] {
+  letter-spacing: 3px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.doctor-form button:disabled {
+  background-color: #93c5fd;
+  cursor: not-allowed;
+}
+
+/* 🔙 Nút quay lại */
+.back-btn {
+  background-color: transparent;
+  color: #2563eb;
+  border: 2px solid #2563eb;
+  border-radius: 8px;
+  padding: 10px;
+  width: 100%;
+  max-width: 250px;
+  margin: 10px auto 0;
+  cursor: pointer;
+  font-weight: 500;
+  transition: 0.3s ease;
+  display: block;
+}
+
+.back-btn:hover {
+  background-color: #e0f2fe;
+  transform: translateY(-1px);
+}

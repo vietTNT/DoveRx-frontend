@@ -1,0 +1,206 @@
+/* 🪟 Popup đăng bài */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+.modal-content {
+  background: white;
+  width: 500px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  animation: fadeIn 0.3s ease;
+  padding: 15px;
+}
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 10px;
+}
+.modal-header h3 {
+  font-size: 18px;
+  color: #111;
+}
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  color: #666;
+}
+.modal-body {
+  margin-top: 15px;
+}
+.modal-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.modal-user img {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+}
+.modal-user strong {
+  font-size: 15px;
+}
+.modal-body textarea {
+  width: 100%;
+  height: 120px;
+  border: none;
+  outline: none;
+  resize: none;
+  font-size: 15px;
+  color: #333;
+}
+.modal-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 15px;
+}
+.modal-action {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  background: #f9fafb;
+  padding: 8px;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  transition: 0.2s;
+  margin: 0 5px;
+}
+.modal-action:hover {
+  background: #eff6ff;
+}
+.modal-post-btn {
+  width: 100%;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px;
+  margin-top: 15px;
+  cursor: pointer;
+  font-size: 15px;
+  transition: all 0.2s ease;
+}
+.modal-post-btn:hover:not(.disabled) {
+  background: #1d4ed8;
+}
+.modal-post-btn.disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* === Preview ảnh/video khi tạo bài === */
+.image-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+.preview-item {
+  position: relative;
+}
+.preview-media {
+  width: 160px;
+  height: 120px;
+  object-fit: cover;
+  background: #000;
+}
+.remove-btn {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 18px;
+  text-align: center;
+  transition: background 0.2s;
+}
+.remove-btn:hover {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+/* === 🩺 Form "Hỏi bác sĩ" cuộn gọn trong modal === */
+.scrollable-form {
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 8px;
+  margin-top: 10px;
+  margin-bottom: 15px;
+  scrollbar-width: thin;
+  scrollbar-color: #93c5fd #f3f4f6;
+}
+.scrollable-form::-webkit-scrollbar {
+  width: 6px;
+}
+.scrollable-form::-webkit-scrollbar-thumb {
+  background: #93c5fd;
+  border-radius: 10px;
+}
+.scrollable-form::-webkit-scrollbar-track {
+  background: #f3f4f6;
+}
+
+/* Cấu trúc nhóm tiêu đề và ô nhập */
+.medical-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.medical-form h4 {
+  margin-top: 8px;
+  margin-bottom: 4px;
+  color: #2563eb;
+  font-size: 15px;
+  font-weight: 600;
+}
+.medical-form textarea {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 14px;
+  color: #333;
+  resize: none;
+  min-height: 55px;
+  transition: all 0.2s ease;
+}
+.medical-form textarea:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 3px rgba(37, 99, 235, 0.3);
+}

@@ -1,0 +1,109 @@
+.dashboard-layout {
+  display: flex;
+  justify-content: space-between; /* ✅ Căn giữa thay vì flex-start */
+  gap: 25px;
+  margin-top: 85px;
+  padding: 10px 20px; /* ✅ Thay 40vh thành 20px */
+  height: calc(100vh - 85px);
+  font-family: "Segoe UI", sans-serif;
+  max-width: 1920px; /* ✅ Giới hạn width tối đa */
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.dashboard-page {
+  background: linear-gradient(135deg, #5ec6ca, #2563eb);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* =================== FEED GIỮA CUỘN ĐỘC LẬP =================== */
+.feed {
+  flex: 1;
+  max-width: 680px; /* ✅ Giảm từ 700px xuống 680px giống Facebook */
+  height: calc(100vh - 100px);
+  overflow-y: auto;
+  padding-right: 10px;
+  scroll-behavior: smooth;
+  position: relative;
+  z-index: 1;
+}
+
+.feed::-webkit-scrollbar {
+  width: 8px; /* ✅ Tăng từ 6px lên 8px cho dễ thấy */
+}
+
+.feed::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.feed::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3); /* ✅ Đổi màu để dễ nhìn */
+  border-radius: 4px;
+}
+
+.feed::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.feed.scrollable {
+  padding-bottom: 25px;
+  scroll-behavior: smooth;
+}
+
+/* 🌐 Responsive */
+@media (min-width: 1600px) {
+  .dashboard-layout {
+    gap: 30px;
+    padding: 10px 40px;
+  }
+
+  .feed {
+    max-width: 850px; /* ✅ Tăng width cho màn hình lớn */
+  }
+}
+
+@media (max-width: 1400px) {
+  .dashboard-layout {
+    gap: 20px;
+  }
+
+  .feed {
+    max-width: 650px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .feed {
+    max-width: 500px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .dashboard-layout {
+    gap: 15px;
+  }
+
+  .feed {
+    max-width: 550px;
+  }
+}
+
+@media (max-width: 992px) {
+  .feed {
+    max-width: 500px;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-layout {
+    padding: 10px;
+    gap: 0;
+  }
+
+  .feed {
+    max-width: 100%;
+    height: auto;
+  }
+}

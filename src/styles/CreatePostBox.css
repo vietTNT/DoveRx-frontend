@@ -1,0 +1,126 @@
+/* 📝 Ô tạo bài viết giống Facebook */
+.create-post-box {
+  background: white;
+  border-radius: 15px;
+  padding: 15px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  margin-bottom: 20px;
+  transition: all 0.25s ease;
+  cursor: pointer;
+  transform-origin: center;
+}
+/* .create-post-box:hover {
+  background: #f9fafb;
+  transform: scale(1.02);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
+} */
+
+/* 🔹 Input giả trong ô đăng bài */
+.create-input {
+  flex: 1;
+  background: #f0f2f5;
+  border: none;
+  border-radius: 25px;
+  padding: 10px 15px;
+  font-size: 15px;
+  color: #333;
+  outline: none;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s;
+}
+.create-input::placeholder {
+  color: #666;
+}
+.create-input:hover {
+  background: #e5e7eb;
+}
+.create-post-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.create-avatar {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.create-post-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+.action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  border-radius: 10px;
+  padding: 10px;
+  font-weight: 500;
+  background: none;
+  color: #555;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+.action-btn:hover {
+  background: #f3f4f6;
+}
+.live i {
+  color: #f43f5e;
+}
+.photo i {
+  color: #22c55e;
+}
+.feeling i {
+  color: #facc15;
+}
+
+/* Ô đăng bài mở rộng + nút đăng */
+.post-box {
+  background: white;
+  border-radius: 15px;
+  padding: 15px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+.post-box textarea {
+  width: 100%;
+  border: none;
+  border-radius: 10px;
+  padding: 10px;
+  resize: none;
+  background: #f3f4f6;
+  font-size: 15px;
+  color: #333;
+}
+.post-btn {
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 18px;
+  margin-top: 8px;
+  float: right;
+  cursor: pointer;
+}
+.post-btn:hover {
+  background: #1d4ed8;
+}
+
+/* Nút đăng bài hiển thị khi có nội dung (trùng nội dung gốc) */
+.post-btn {
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 18px;
+  margin-top: 10px;
+  float: right;
+  cursor: pointer;
+}
+.post-btn:hover {
+  background: #1d4ed8;
+}

@@ -1,0 +1,549 @@
+/* ===== Comment Modal Overlay ===== */
+.comment-modal-overlay {
+  position: fixed;
+  top: 50px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: fadeIn 0.2s ease;
+  padding: 20px; /* ✅ Thêm padding cho mobile */
+}
+
+/* ✅ Làm mờ và vô hiệu hóa sidebar khi modal mở */
+body:has(.comment-modal-overlay) .sidebar-left,
+body:has(.comment-modal-overlay) .sidebar-right {
+  opacity: 0.2; /* ✅ Làm mờ 30% */
+  filter: blur(2px); /* ✅ Thêm hiệu ứng blur */
+  pointer-events: none; /* ✅ Không thể click */
+  transition: all 0.3s ease;
+}
+
+/* ===== Comment Modal Container ===== */
+.comment-modal-container {
+  background: white;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 700px; /* ✅ Desktop lớn */
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease;
+}
+
+/* ===== Header ===== */
+.comment-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e4e6eb;
+  background: #f7f8fa;
+  flex-shrink: 0; /* ✅ Không cho header co lại */
+}
+
+.comment-modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #050505;
+}
+
+.modal-close-btn {
+  background: #e4e6eb;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.modal-close-btn:hover {
+  background: #d8dadf;
+}
+
+/* ===== Body (Content + Comments) ===== */
+.comment-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden; /* ✅ Ẩn scroll ngang */
+  padding: 20px;
+  background: #f0f2f5;
+  scroll-behavior: smooth;
+  min-height: 0; /* ✅ Cho phép flex shrink */
+}
+
+/* Scrollbar */
+.comment-modal-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.comment-modal-body::-webkit-scrollbar-track {
+  background: #f0f2f5;
+}
+
+.comment-modal-body::-webkit-scrollbar-thumb {
+  background: #b0b3b8;
+  border-radius: 4px;
+}
+
+.comment-modal-body::-webkit-scrollbar-thumb:hover {
+  background: #8a8d91;
+}
+
+/* Bài viết gốc */
+.modal-post-content {
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.modal-post-content .post-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.modal-post-content .post-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.modal-post-content .post-info {
+  flex: 1;
+  min-width: 0; /* ✅ Cho phép text truncate */
+}
+
+.modal-post-content .post-info strong {
+  font-size: 15px;
+  color: #050505;
+  display: block;
+}
+
+.modal-post-content .post-info span {
+  font-size: 13px;
+  color: #65676b;
+}
+
+.modal-post-content .post-content {
+  font-size: 15px;
+  color: #050505;
+  line-height: 1.5;
+  margin-bottom: 12px;
+  word-wrap: break-word; /* ✅ Ngắt dòng khi quá dài */
+}
+
+/* Medical post content */
+.modal-post-content .medical-post {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.modal-post-content .medical-post p {
+  margin: 8px 0;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* Post images */
+.modal-post-content .post-images {
+  margin-top: 12px;
+  display: grid;
+  gap: 4px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.modal-post-content .post-images.multiple {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.modal-post-content .post-images img,
+.modal-post-content .post-images video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  max-height: 400px; /* ✅ Giới hạn chiều cao */
+}
+
+.modal-post-content .post-images .image-wrapper {
+  position: relative;
+  overflow: hidden;
+  background: #f0f2f5;
+}
+
+.modal-post-content .post-images .overlay-more {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 700;
+}
+
+/* Stats */
+.modal-post-content .post-stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 12px;
+  border-top: 1px solid #e4e6eb;
+  margin-top: 12px;
+  font-size: 14px;
+  color: #65676b;
+}
+
+.modal-post-content .reaction-summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.modal-post-content .reaction-icons {
+  display: flex;
+  gap: 2px;
+}
+
+.modal-post-content .reaction-icons span {
+  font-size: 16px;
+}
+
+/* ✅ Actions buttons */
+.modal-post-content .post-buttons {
+  display: flex;
+  border-top: 1px solid #e4e6eb;
+  padding-top: 4px;
+  margin-top: 8px;
+  gap: 4px;
+}
+
+.modal-post-content .post-action-group {
+  flex: 1;
+  position: relative;
+}
+
+.modal-post-content .post-action-group button {
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  color: #65676b;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.modal-post-content .post-action-group button:hover {
+  background: #f0f2f5;
+}
+
+.modal-post-content .post-action-group button.active {
+  color: #2563eb;
+}
+
+.modal-post-content .reaction-wrapper {
+  position: relative;
+}
+
+.modal-post-content .reaction-icon-btn {
+  font-size: 20px;
+}
+
+/* Reaction popup */
+.modal-post-content .reaction-popup {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  border-radius: 30px;
+  padding: 8px 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  display: flex;
+  gap: 6px;
+  z-index: 100;
+  animation: popupIn 0.2s ease;
+}
+
+.modal-post-content .reaction-icon {
+  font-size: 32px;
+  cursor: pointer;
+  transition: transform 0.2s;
+  display: inline-block;
+}
+
+.modal-post-content .reaction-icon:hover {
+  transform: scale(1.3);
+}
+
+/* Danh sách bình luận */
+.modal-comment-list {
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.no-comments {
+  text-align: center;
+  color: #65676b;
+  font-size: 15px;
+  padding: 40px 20px;
+}
+
+/* ===== Footer (Input bình luận) ===== */
+.comment-modal-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  border-top: 1px solid #e4e6eb;
+  background: white;
+  flex-shrink: 0; /* ✅ Không cho footer co lại */
+}
+
+.comment-user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  object-fit: cover;
+}
+
+.comment-modal-footer .comment-input {
+  flex: 1;
+  margin: 0;
+  min-width: 0; /* ✅ Cho phép shrink */
+}
+
+/* ===== Responsive ===== */
+
+/* Desktop lớn (1200px+) */
+@media (min-width: 1200px) {
+  .comment-modal-container {
+    max-width: 800px;
+  }
+}
+
+/* Laptop (992px - 1200px) */
+@media (min-width: 992px) and (max-width: 1199px) {
+  .comment-modal-container {
+    max-width: 700px;
+  }
+}
+
+/* Tablet ngang (768px - 992px) */
+@media (max-width: 991px) {
+  .comment-modal-overlay {
+    padding: 15px;
+    align-items: flex-start; /* ✅ Căn trên để tránh che navbar */
+    padding-top: 80px; /* ✅ Đẩy xuống dưới navbar */
+  }
+
+  .comment-modal-container {
+    max-width: 90%;
+    max-height: calc(100vh - 100px); /* ✅ Trừ navbar */
+  }
+
+  .comment-modal-body {
+    padding: 14px;
+  }
+
+  .modal-post-content {
+    padding: 14px;
+  }
+
+  .modal-post-content .post-images img,
+  .modal-post-content .post-images video {
+    max-height: 300px;
+  }
+}
+
+/* Tablet dọc (600px - 768px) */
+@media (max-width: 767px) {
+  .comment-modal-overlay {
+    padding: 10px;
+    padding-top: 70px; /* ✅ Đẩy xuống */
+  }
+
+  .comment-modal-container {
+    max-width: 95%;
+    max-height: calc(100vh - 90px);
+  }
+
+  .comment-modal-header {
+    padding: 12px 16px;
+  }
+
+  .comment-modal-header h3 {
+    font-size: 16px;
+  }
+
+  .modal-close-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 18px;
+  }
+
+  .comment-modal-body {
+    padding: 12px;
+  }
+
+  .modal-post-content {
+    padding: 12px;
+  }
+
+  .modal-post-content .post-avatar {
+    width: 36px;
+    height: 36px;
+  }
+
+  .modal-post-content .post-info strong {
+    font-size: 14px;
+  }
+
+  .modal-post-content .post-content {
+    font-size: 14px;
+  }
+
+  .modal-post-content .post-action-group button {
+    font-size: 14px;
+    padding: 6px;
+  }
+
+  .modal-post-content .reaction-popup {
+    padding: 6px 10px;
+    gap: 4px;
+  }
+
+  .modal-post-content .reaction-icon {
+    font-size: 28px;
+  }
+
+  .comment-modal-footer {
+    padding: 10px 16px;
+  }
+
+  .comment-user-avatar {
+    width: 32px;
+    height: 32px;
+  }
+
+  .modal-post-content .post-images img,
+  .modal-post-content .post-images video {
+    max-height: 250px;
+  }
+}
+
+/* Mobile ngang và nhỏ hơn (< 600px) */
+@media (max-width: 599px) {
+  .comment-modal-overlay {
+    padding: 0;
+    align-items: stretch;
+  }
+
+  .comment-modal-container {
+    width: 100%;
+    max-width: 100%;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .comment-modal-header {
+    border-radius: 0;
+    padding: 12px 16px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .comment-modal-body {
+    padding: 10px;
+  }
+
+  .modal-post-content {
+    padding: 10px;
+    border-radius: 6px;
+  }
+
+  .modal-post-content .post-images.multiple {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-post-content .post-images img,
+  .modal-post-content .post-images video {
+    max-height: 200px;
+  }
+
+  .modal-comment-list {
+    padding: 10px;
+  }
+
+  .comment-modal-footer {
+    border-radius: 0;
+  }
+}
+/* ===== Animations ===== */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(80px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes popupIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+}

@@ -1,0 +1,275 @@
+/* 🟨 Sidebar phải (Liên hệ) */
+.sidebar-right {
+  width: 280px;
+  background: white;
+  padding: 16px;
+  position: sticky;
+  right: 20px;
+  top: 90px;
+  height: calc(100vh - 110px);
+  overflow-y: auto; /* ✅ Đã có scroll vertical */
+  overflow-x: hidden; /* ✅ Ẩn scroll horizontal */
+  border: 1px solid #e4e6eb;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 100; /* ✅ Đảm bảo hiển thị trên các element khác */
+}
+
+/* Header - Cố định ở đầu khi scroll */
+.contacts-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 0 12px;
+  border-bottom: 1px solid #e4e6eb;
+  margin-bottom: 12px;
+  background: white; /* ✅ Nền trắng khi scroll */
+  position: sticky; /* ✅ Cố định khi scroll */
+  top: -16px; /* ✅ Offset bằng padding của .sidebar-right */
+  margin: -16px -16px 12px -16px; /* ✅ Loại bỏ padding để full width */
+  padding: 16px; /* ✅ Thêm padding riêng cho header */
+  z-index: 10;
+}
+
+.sidebar-right h4 {
+  font-size: 17px;
+  font-weight: 600;
+  color: #65676b;
+  margin: 0;
+}
+
+.contacts-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.contacts-actions i {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: #65676b;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-size: 16px;
+}
+
+.contacts-actions i:hover {
+  background: #f0f2f5;
+}
+
+/* Contact List */
+.sidebar-right ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sidebar-right li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-size: 15px;
+  font-weight: 500;
+  color: #050505;
+}
+
+.sidebar-right li:hover {
+  background: #f0f2f5;
+}
+
+.sidebar-right li.no-contacts {
+  justify-content: center;
+  color: #65676b;
+  cursor: default;
+  padding: 40px 20px;
+}
+
+.sidebar-right li.no-contacts:hover {
+  background: transparent;
+}
+
+/* Avatar */
+.avatar-wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.sidebar-right img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.online-indicator {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  background: #31a24c;
+  border: 2px solid white;
+  border-radius: 50%;
+}
+
+.contact-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+/* ✅ Responsive cho màn hình lớn */
+@media (min-width: 1600px) {
+  .sidebar-right {
+    width: 320px;
+    right: 30px;
+  }
+}
+
+/* ✅ Responsive cho desktop */
+@media (max-width: 1400px) {
+  .sidebar-right {
+    width: 260px;
+    right: 15px;
+  }
+}
+
+/* ✅ Responsive cho màn hình vừa */
+@media (max-width: 1300px) {
+  .sidebar-right {
+    width: 240px;
+    right: 10px;
+    top: 80px;
+    padding: 12px;
+    height: calc(100vh - 100px);
+  }
+
+  .contacts-header {
+    margin: -12px -12px 12px -12px;
+    padding: 12px;
+  }
+
+  .sidebar-right h4 {
+    font-size: 16px;
+  }
+
+  .contacts-actions i {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
+
+  .sidebar-right img {
+    width: 32px;
+    height: 32px;
+  }
+
+  .sidebar-right li {
+    font-size: 14px;
+    padding: 6px;
+    gap: 10px;
+  }
+
+  .online-indicator {
+    width: 10px;
+    height: 10px;
+  }
+}
+
+/* ✅ Responsive cho tablet nhỏ */
+@media (max-width: 1100px) {
+  .sidebar-right {
+    width: 220px;
+    right: 8px;
+    padding: 10px;
+    top: 75px;
+    height: calc(100vh - 90px);
+  }
+
+  .contacts-header {
+    margin: -10px -10px 10px -10px;
+    padding: 10px;
+  }
+
+  .sidebar-right h4 {
+    font-size: 15px;
+  }
+
+  .contacts-actions {
+    gap: 4px;
+  }
+
+  .contacts-actions i {
+    width: 26px;
+    height: 26px;
+    font-size: 13px;
+  }
+
+  .sidebar-right img {
+    width: 30px;
+    height: 30px;
+  }
+
+  .sidebar-right li {
+    font-size: 13px;
+    padding: 5px;
+    gap: 8px;
+  }
+
+  .contact-name {
+    font-size: 14px;
+  }
+}
+
+/* ✅ Ẩn hoàn toàn trên màn hình nhỏ (mobile/tablet) */
+@media (max-width: 992px) {
+  .sidebar-right {
+    display: none;
+  }
+}
+
+/* ✅ Scrollbar custom - Đẹp hơn và rõ hơn */
+.sidebar-right::-webkit-scrollbar {
+  width: 8px;
+}
+
+.sidebar-right::-webkit-scrollbar-track {
+  background: #f0f2f5;
+  border-radius: 4px;
+}
+
+.sidebar-right::-webkit-scrollbar-thumb {
+  background: #b0b3b8;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.sidebar-right::-webkit-scrollbar-thumb:hover {
+  background: #8a8d91;
+}
+
+/* ✅ Scrollbar cho Firefox */
+.sidebar-right {
+  scrollbar-width: thin;
+  scrollbar-color: #b0b3b8 #f0f2f5;
+}
+
+/* ✅ Smooth scroll */
+.sidebar-right {
+  scroll-behavior: smooth;
+}
+
+/* ✅ Thêm padding dưới để tránh bị che */
+.sidebar-right ul::after {
+  content: "";
+  display: block;
+  height: 20px;
+}
