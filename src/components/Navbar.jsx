@@ -48,10 +48,18 @@ const Navbar = ({ user, onLogout }) => {
   })();
 
   // 📌 Đặt ảnh mặc định nếu avatar null hoặc trống
-  const avatarUrl =
-    user?.avatar && user.avatar !== ""
-      ? user.avatar
-      : "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
+  const avatarUrl = (() => {
+    const defaultAvatar =
+      "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
+    const a = user?.avatar || "";
+    if (!a) return defaultAvatar;
+    // Nếu đã là full URL thì dùng luôn
+    if (a.startsWith("http")) return a;
+    // Ngược lại prefix API base (đảm bảo REACT_APP_API_BASE cấu hình)
+    const base = (process.env.REACT_APP_API_BASE || "").replace(/\/$/, "");
+    const path = a.startsWith("/") ? a : `/${a}`;
+    return base ? `${base}${path}` : path;
+  })();
 
   // 🧩 Dữ liệu mẫu
   const notifications = [
@@ -306,15 +314,6 @@ const Navbar = ({ user, onLogout }) => {
           <h1 className="navbar-title">DoveRx</h1>
         </div>
 
-        {/* <form className="navbar-search" onSubmit={handleSearchSubmit}>
-          <i className="fas fa-search search-icon"></i>
-          <input
-            type="text"
-            placeholder="Tìm kiếm..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </form> */}
         {/* ✅ Search với dropdown results */}
         <div className="search-wrapper">
           <form className="navbar-search" onSubmit={handleSearchSubmit}>

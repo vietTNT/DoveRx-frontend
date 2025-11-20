@@ -6,6 +6,23 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+// ✅ Helper: build full avatar URL (same logic as CreatePostBox / SidebarRight)
+const getAvatarUrl = (a) => {
+  const defaultAvatar = "https://cdn-icons-png.flaticon.com/512/847/847969.png";
+  const avatar = a || "";
+  if (!avatar) return defaultAvatar;
+  // giữ nguyên nếu là blob/data hoặc đã là full URL
+  if (
+    avatar.startsWith("http") ||
+    avatar.startsWith("blob:") ||
+    avatar.startsWith("data:")
+  )
+    return avatar;
+  const base = (process.env.REACT_APP_API_BASE || "").replace(/\/$/, "");
+  const path = avatar.startsWith("/") ? avatar : `/${avatar}`;
+  return base ? `${base}${path}` : path;
+};
+
 const ProfilePage = ({ onLogout, user: appUser, setUser: setAppUser }) => {
   const [user, setUser] = useState(appUser || null);
   const [isEditing, setIsEditing] = useState(false);
@@ -45,7 +62,10 @@ const ProfilePage = ({ onLogout, user: appUser, setUser: setAppUser }) => {
         bio: storedUser.bio || "",
         avatar: "", // only store File here when user selects new image
       });
-      setAvatarPreview(storedUser.avatar || "");
+      // convert relative avatar -> full URL; keep blob/data as-is
+      setAvatarPreview(
+        storedUser.avatar ? getAvatarUrl(storedUser.avatar) : ""
+      );
     }
   }, [appUser]);
 
@@ -155,7 +175,7 @@ const ProfilePage = ({ onLogout, user: appUser, setUser: setAppUser }) => {
       setUser(finalUser);
       if (setAppUser) setAppUser(finalUser);
       setFormData({ ...finalUser, avatar: "" });
-      setAvatarPreview(finalUser.avatar || "");
+      setAvatarPreview(finalUser.avatar ? getAvatarUrl(finalUser.avatar) : "");
 
       setIsEditing(false);
       window.dispatchEvent(new CustomEvent("user:updated"));
@@ -185,11 +205,7 @@ const ProfilePage = ({ onLogout, user: appUser, setUser: setAppUser }) => {
         <div className="profile-card">
           <div className="avatar-section">
             <img
-              src={
-                avatarPreview ||
-                user?.avatar ||
-                "https://cdn-icons-png.flaticon.com/512/847/847969.png"
-              }
+              src={getAvatarUrl(avatarPreview || user?.avatar)}
               alt="Avatar"
               className="profile-avatar"
             />

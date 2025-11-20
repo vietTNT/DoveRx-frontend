@@ -8,7 +8,8 @@ import React, {
 import "../../styles/chat/Chatpopup.css";
 import chatWebSocketService from "../../services/chatWebSocket";
 import { fetchMessages, markAsRead } from "../../services/chatApi";
-
+import { v4 as uuidv4 } from "uuid";
+import like from "../../assets/icons/like.png";
 // ✅ Helper function: Lấy avatar URL hoặc fallback
 const getAvatarUrl = (contact) => {
   if (contact?.avatar) {
@@ -46,6 +47,13 @@ const getCurrentUserId = () => {
     console.error("Error getting current user:", error);
   }
   return null;
+};
+// ✅ Tạo ID nội bộ để React dùng làm key (ổn định, duy nhất)
+const normalizeMessage = (msg) => {
+  return {
+    ...msg,
+    _local_id: msg.id || uuidv4(), // nếu msg.id null/undefined → tạo uuid
+  };
 };
 
 const ChatPopup = ({
@@ -117,7 +125,9 @@ const ChatPopup = ({
         const data = await fetchMessages(conversation.id);
         console.log(`✅ [ChatPopup] Loaded ${data.length} messages`);
 
-        setMessages(data);
+        // setMessages(data);
+        setMessages(data.map(normalizeMessage));
+
         hasLoadedRef.current = true;
 
         if (!isMinimized) {
@@ -157,9 +167,15 @@ const ChatPopup = ({
     const handleNewMessage = (data) => {
       if (Number(data.message?.conversation) === Number(conversation?.id)) {
         setMessages((prev) => {
-          const exists = prev.some((msg) => msg.id === data.message.id);
+          const newMsg = normalizeMessage(data.message);
+
+          const exists = prev.some((msg) => msg._local_id === newMsg._local_id);
           if (exists) return prev;
-          return [...prev, data.message];
+
+          const sorted = [...prev, newMsg].sort(
+            (a, b) => new Date(a.created_at) - new Date(b.created_at)
+          );
+          return sorted;
         });
 
         if (!isMinimized) {
@@ -171,9 +187,15 @@ const ChatPopup = ({
     const handleMessageSent = (data) => {
       if (Number(data.message?.conversation) === Number(conversation?.id)) {
         setMessages((prev) => {
-          const exists = prev.some((msg) => msg.id === data.message.id);
+          const newMsg = normalizeMessage(data.message);
+
+          const exists = prev.some((msg) => msg._local_id === newMsg._local_id);
           if (exists) return prev;
-          return [...prev, data.message];
+
+          const sorted = [...prev, newMsg].sort(
+            (a, b) => new Date(a.created_at) - new Date(b.created_at)
+          );
+          return sorted;
         });
       }
     };
@@ -310,7 +332,8 @@ const ChatPopup = ({
 
               return (
                 <div
-                  key={msg.id}
+                  // key={msg.id}
+                  key={msg._local_id}
                   className={`message ${isMine ? "me" : "them"}`}
                 >
                   {!isMine && (
@@ -376,7 +399,7 @@ const ChatPopup = ({
           </button>
         ) : (
           <button type="button" className="like-btn">
-            <i className="far fa-thumbs-up"></i>
+            <img src={like} alt="Like" />
           </button>
         )}
       </form>

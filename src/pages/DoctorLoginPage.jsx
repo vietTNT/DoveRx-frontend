@@ -15,12 +15,8 @@ const DoctorLoginPage = ({ onLoginSuccess }) => {
     setLoading(true);
 
     try {
-      // const res = await axios.post(
-      //   "https://doverx-backend.onrender.com/api/accounts/login/", // server
-      //   { email, password }
-      // );
       const res = await axios.post(
-        `${process.env.REACT_APP_API_BASE}/api/accounts/login/`, // local
+        `${process.env.REACT_APP_API_BASE}/api/accounts/login/`,
         { email, password }
       );
 

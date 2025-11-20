@@ -86,8 +86,15 @@ function App() {
     //   console.log("📢 New post:", data);
     // });
 
-    websocketService.on("post_reacted", (data) => {
-      console.log("❤️ Post reacted:", data);
+    // Listen đúng event name mà backend broadcast ('post_react' / 'post_change_react' / 'post_unreact')
+    websocketService.on("post_react", (data) => {
+      console.log("❤️ Post reacted (WS):", data);
+    });
+    websocketService.on("post_change_react", (data) => {
+      console.log("🔁 Post reaction changed (WS):", data);
+    });
+    websocketService.on("post_unreact", (data) => {
+      console.log("💨 Post unreact (WS):", data);
     });
 
     // Connect Chat WebSocket

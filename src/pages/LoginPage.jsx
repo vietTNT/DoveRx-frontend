@@ -22,7 +22,7 @@ const LoginPage = ({ onLoginSuccess }) => {
       if (user) {
         navigate("/dashboard");
       } else {
-        alert("Đăng nhập thất bại, vui lòng thử lại!");
+        // alert("Đăng nhập thất bại, vui lòng thử lại!");
         setLoading(false);
       }
     }, 1200);
@@ -44,7 +44,7 @@ const LoginPage = ({ onLoginSuccess }) => {
           <div className="login-button">
             <GoogleLogin
               onSuccess={handleSuccess}
-              onError={() => alert("Đăng nhập thất bại, vui lòng thử lại!")}
+              // onError={() => alert("Đăng nhập thất bại, vui lòng thử lại!")}
             />
           </div>
         )}

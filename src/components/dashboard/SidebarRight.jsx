@@ -1,8 +1,26 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
 import ChatPopup from "../Chat/Chatpopup";
 import "../../styles/SidebarRight.css";
 import { getOrCreateConversation } from "../../services/chatApi";
 import { getFriends } from "../../services/friendApi"; // ✅ Import
+
+// ✅ Helper: build full avatar URL (same logic as CreatePostBox)
+const getAvatarUrl = (a) => {
+  const defaultAvatar =
+    "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
+  const avatar = a || "";
+  if (!avatar) return defaultAvatar;
+  if (avatar.startsWith("http")) return avatar;
+  const base = (process.env.REACT_APP_API_BASE || "").replace(/\/$/, "");
+  const path = avatar.startsWith("/") ? avatar : `/${avatar}`;
+  return base ? `${base}${path}` : path;
+};
 
 const SidebarRight = ({ contacts, onContactClick }) => {
   const [openChats, setOpenChats] = useState([]);
@@ -350,13 +368,7 @@ const SidebarRight = ({ contacts, onContactClick }) => {
             displayContacts.map((contact) => (
               <li key={contact.id} onClick={() => handleClick(contact)}>
                 <div className="avatar-wrapper">
-                  <img
-                    src={
-                      contact.avatar ||
-                      "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
-                    }
-                    alt={contact.name}
-                  />
+                  <img src={getAvatarUrl(contact.avatar)} alt={contact.name} />
                   {contact.online && <span className="online-indicator"></span>}
                 </div>
                 <div className="contact-info">

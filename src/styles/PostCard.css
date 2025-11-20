@@ -1,557 +1,563 @@
-/* Bài đăng */
+/* ================================================= */
+/* 📦 1. CẤU TRÚC THẺ BÀI VIẾT (BASE CARD)           */
+/* ================================================= */
 .post-card {
   background: white;
   border-radius: 15px;
   padding: 15px;
-  margin-bottom: 15px;
+  margin-bottom: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  width: 100%;
+  box-sizing: border-box;
+  position: relative;
+  transition: box-shadow 0.2s ease;
 }
+
+/* Header: Avatar, Tên, Thời gian */
 .post-header {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  margin-bottom: 12px;
 }
+
 .post-avatar {
-  width: 45px;
-  height: 45px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  cursor: pointer;
+  border: 1px solid rgba(0, 0, 0, 0.1);
 }
-.post-info span {
+
+.post-info {
+  flex: 1;
+  min-width: 0; /* Giúp text truncate hoạt động đúng */
   display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 13px;
-  color: #777;
+  flex-direction: column;
 }
-.post-content {
-  margin-top: 10px;
-  white-space: pre-line;
+
+.post-info strong {
   font-size: 15px;
-  color: #222;
+  color: #050505;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+
+.post-info strong:hover {
+  text-decoration: underline;
+}
+
+.post-info span {
+  font-size: 13px;
+  color: #65676b;
+}
+
+/* Nội dung bài viết (Text) */
+.post-content {
+  margin-bottom: 12px;
+  font-size: 15px;
+  color: #050505;
+  line-height: 1.5;
+  white-space: pre-line; /* Giữ định dạng xuống dòng */
+  word-break: break-word;
+}
+
+/* Style riêng cho bài viết Y tế (Medical Form) */
+.medical-post {
+  background: #f7f9fa;
+  padding: 12px;
+  border-radius: 8px;
+  border-left: 4px solid #2563eb;
+}
+
+.medical-post p {
+  margin: 6px 0;
+  font-size: 14px;
+}
+
+.medical-post strong {
+  color: #2563eb;
+}
+
+/* ================================================= */
+/* 📸 2. MEDIA CONTAINER (Grid Ảnh & Video)          */
+/* ================================================= */
+
+/* Wrapper bao quanh để xử lý margin âm trên mobile */
 .post-image-container {
-  margin-top: 10px;
+  margin: 10px -15px; /* Kéo sát lề trên mobile */
+  cursor: pointer;
+  overflow: hidden;
 }
 
-/* 📸 Ảnh trong bài đăng */
-
+/* Container Grid chính */
 .post-images {
   display: grid;
-  gap: 6px;
-  margin-top: 10px;
-  cursor: pointer;
-  background: #1b1b1b;
-  padding: 2px;
-}
-.post-images video {
+  gap: 2px;
   width: 100%;
-  max-width: 560px;
-  background: #000;
-  object-fit: contain;
+  background: #f0f2f5;
+  /* Tỷ lệ khung hình mặc định cho Grid nhiều ảnh */
+  aspect-ratio: 16 / 9;
 }
-/* 1 ảnh: full khung */
+
+/* --- TRƯỜNG HỢP 1 ẢNH / VIDEO ĐƠN --- */
 .post-images:not(.multiple) {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 0;
-  background: transparent;
+  display: block;
+  aspect-ratio: auto; /* Tự động theo ảnh */
 }
+
 .post-images:not(.multiple) img,
 .post-images:not(.multiple) video {
   width: 100%;
-  max-width: 560px;
-  object-fit: contain;
+  height: auto;
+  max-height: 650px; /* Giới hạn chiều cao để không chiếm hết màn hình */
+  object-fit: contain; /* Giữ nguyên tỷ lệ ảnh */
+  background-color: #e4e6eb; /* Màu nền khi load */
+  display: block;
+  margin: 0 auto;
 }
-/* 2-4 ảnh: chia grid */
+
+/* --- TRƯỜNG HỢP NHIỀU ẢNH (GRID SYSTEM) --- */
 .post-images.multiple {
-  grid-template-columns: repeat(2, 1fr);
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* Mặc định 2 cột */
 }
+
 .post-images.multiple img,
 .post-images.multiple video {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  border: 1px solid white;
+  object-fit: cover; /* Cắt ảnh để lấp đầy ô */
+  transition: filter 0.2s;
 }
 
-/* Ảnh thứ 4 có overlay hiển thị số lượng còn lại */
+.post-images.multiple img:hover {
+  filter: brightness(0.9);
+}
+
+/* Xử lý Grid 3 ảnh (1 ảnh to bên trái, 2 ảnh nhỏ bên phải) */
+.post-images.multiple[data-count="3"] {
+  grid-template-rows: repeat(2, 1fr);
+}
+.post-images.multiple[data-count="3"] .image-wrapper:first-child {
+  grid-row: span 2; /* Ảnh đầu tiên chiếm 2 dòng */
+}
+
+/* Wrapper cho từng ảnh (để xử lý overlay + số lượng) */
 .image-wrapper {
   position: relative;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
-  cursor: pointer;
 }
+
+/* Overlay hiển thị số ảnh còn lại (ví dụ: +5) */
 .overlay-more {
   position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
   color: #fff;
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
-  pointer-events: none; /* ✅ Cho phép click xuyên qua overlay */
-  z-index: 5;
+  backdrop-filter: blur(2px);
+  pointer-events: none; /* Click xuyên qua */
 }
 
-.image-wrapper:hover .overlay-more {
-  background: rgba(0, 0, 0, 0.6);
-}
-.overlay-more:hover {
-  background: rgba(0, 0, 0, 0.6);
-}
+/* ================================================= */
+/* 👍 3. TƯƠNG TÁC (Like, Comment, Share)            */
+/* ================================================= */
 
-/* Responsive mobile cho ảnh */
-@media (max-width: 768px) {
-  .post-images.multiple {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .overlay-more {
-    font-size: 24px;
-  }
-}
-
-.post-actions {
-  margin-top: 10px;
-  border-top: 1px solid #e5e7eb;
-  padding-top: 8px;
-  font-size: 14px;
-  color: #555;
-}
-.post-buttons {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-top: 1px solid #e5e7eb;
-  margin-top: 8px;
-  padding-top: 6px;
-}
-.post-action-group {
-  position: relative;
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-.post-buttons button {
-  width: 100%;
-  border: none;
-  background: none;
-  cursor: pointer;
-  padding: 10px 0;
-  color: #555;
-  font-weight: 500;
-  font-size: 15px;
-  border-radius: 8px;
-  transition: all 0.2s ease;
-  text-align: center;
-}
-.post-buttons button:hover {
-  background: #f0f2f5;
-  color: #2563eb;
-}
-
-/* ======================= */
-/* 💙 Reactions + Comments */
-/* ======================= */
-.like-wrapper {
-  position: relative;
-  display: inline-block;
-}
-.like-btn {
-  border: none;
-  background: none;
-  font-size: 15px;
-  cursor: pointer;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: all 0.2s ease;
-}
-.like-btn:active {
-  transform: scale(0.95);
-}
-.like-btn.liked {
-  font-weight: 600;
-}
-
-/* popup 1 */
-.reaction-popup {
-  position: absolute;
-  bottom: 30px;
-  left: 0;
-  display: flex;
-  gap: 8px;
-  background: white;
-  border-radius: 40px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
-  padding: 8px 12px;
-  z-index: 10;
-}
-.post-action-group,
-.comment-react {
-  position: relative;
-  display: inline-block;
-}
-
-/* popup 2 (ghi đè đúng như file gốc) */
-.reaction-popup {
-  position: absolute;
-  top: -45px; /* hoặc top: 25px nếu muốn dưới */
-  left: 0;
-}
-.reaction-icon {
-  font-size: 22px;
-  cursor: pointer;
-  transition: transform 0.2s;
-}
-.reaction-icon:hover {
-  transform: scale(1.4);
-}
-
-/* 🧾 Stats */
+/* Dòng thống kê (Số like, số cmt) */
 .post-stats {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  padding: 10px 4px 6px;
+  color: #65676b;
   font-size: 14px;
-  color: #666;
-  margin-bottom: 6px;
-}
-.reaction-count {
-  color: #1b74e4;
-}
-.comment-share-count {
-  margin-left: 10px;
+  border-bottom: 1px solid #e4e6eb; /* Đường gạch ngang mờ */
 }
 
-/* 💬 Bình luận */
-.comment-box {
-  background: #f9fafb;
-  border-radius: 10px;
-  padding: 10px;
-  overflow: visible !important; /* ✅ Cho phép popup tràn ra ngoài */
-  position: relative; /* tạo gốc định vị cho popup */
-  z-index: 1;
-}
-.comment-input {
+.reaction-count {
   display: flex;
-  gap: 6px;
-}
-.comment-input input {
-  flex: 1;
-  border: 1px solid #ccc;
-  border-radius: 20px;
-  padding: 6px 12px;
-}
-.comment-input button {
-  border: none;
-  background: #2563eb;
-  color: white;
-  border-radius: 20px;
-  padding: 6px 12px;
+  align-items: center;
+  gap: 4px;
   cursor: pointer;
 }
-.comment-list p {
-  background: white;
-  border-radius: 10px;
-  padding: 6px 10px;
-  margin-top: 6px;
+
+.reaction-count:hover,
+.comment-share-count:hover {
+  text-decoration: underline;
 }
-.view-more-comments {
-  color: #2563eb;
-  cursor: pointer;
-  font-size: 14px;
+
+/* Hàng nút hành động */
+.post-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 4px;
   margin-top: 4px;
 }
 
-/* ===== 💬 Reaction Popup trong phần bình luận ===== */
-.comment-react-wrapper {
-  position: relative;
-  display: inline-block;
-  z-index: 10;
-}
-.comment-reaction-popup {
-  position: absolute;
-  bottom: 130%; /* hiện ngay trên nút Thích */
-  left: 100%;
-  transform: translateX(-30%);
+.post-action-group {
+  flex: 1;
+  position: relative; /* Để định vị popup reaction */
   display: flex;
-  gap: 10px;
-  background: #fff;
-  border-radius: 40px;
-  padding: 8px 12px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
-  z-index: 9999; /* ✅ luôn nằm trên mọi phần khác */
-  pointer-events: auto; /* ✅ nhận chuột */
+  justify-content: center;
 }
-.comment-reaction-popup::before {
-  content: "";
-  position: absolute;
-  bottom: -6px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 12px;
-  height: 12px;
-  border-radius: 2px;
-}
-.comment-reaction-popup .reaction-icon {
-  font-size: 24px;
+
+.post-buttons button {
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 8px 0;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #65676b;
   cursor: pointer;
-  transition: transform 0.15s ease;
-}
-.comment-reaction-popup .reaction-icon:hover {
-  transform: scale(1.5);
-}
-
-/* Hiệu ứng hiện popup (theo file gốc) */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(5px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* 🪟 Popup tất cả bình luận */
-.comments-popup-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 999;
-}
-.comments-popup {
-  background: white;
-  border-radius: 12px;
-  width: 400px;
-  max-height: 500px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-.comments-popup h4 {
-  padding: 12px;
-  border-bottom: 1px solid #ddd;
-}
-.comments-scroll {
-  padding: 10px;
-  overflow-y: auto;
-}
-.comments-scroll p {
-  background: #f9fafb;
-  border-radius: 10px;
-  padding: 8px;
-  margin-bottom: 6px;
+  gap: 8px;
+  transition: background 0.2s;
 }
 
-/* ============================= */
-/* 💬 Bình luận nâng cao giống Facebook */
-/* ============================= */
+.post-buttons button:hover {
+  background: #f0f2f5;
+}
+
+/* Trạng thái đã like */
+.post-like-btn.active {
+  color: #2563eb; /* Màu xanh */
+}
+
+/* Reaction Popup (Thả tim/Haha...) */
+
+/* ✅ THANH CẢM XÚC (REACTION POPUP) - UPDATE */
+.reaction-popup {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  transform: translateY(-10px);
+  background: white;
+  border-radius: 50px;
+  /* Padding và Gap mặc định cho màn hình lớn */
+  padding: 6px 10px;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  margin-bottom: 5px;
+  animation: popupFadeIn 0.2s ease cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  z-index: 100;
+  white-space: nowrap;
+}
+
+/* Icon cảm xúc mặc định (Desktop > 1024px) */
+.reaction-icon {
+  font-size: 28px; /* Kích thước chuẩn to rõ */
+  cursor: pointer;
+  transition: transform 0.2s;
+  display: inline-block;
+  line-height: 1;
+  /* Thêm transition cho font-size để khi resize màn hình nó mượt hơn */
+  transition: transform 0.2s, font-size 0.2s;
+}
+
+.reaction-icon:hover {
+  transform: scale(1.4) translateY(-5px);
+}
+@keyframes popupFadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 10px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+/* ================================================= */
+/* 💬 4. BÌNH LUẬN (Comments System)                 */
+/* ================================================= */
+
+.comment-list {
+  margin-top: 10px;
+}
+
 .comment-item {
   display: flex;
   align-items: flex-start;
-  margin-top: 8px;
+  gap: 8px;
+  margin-top: 10px;
 }
+
 .comment-avatar {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  margin-right: 8px;
+  object-fit: cover;
   flex-shrink: 0;
 }
+
 .comment-content {
-  display: flex;
-  flex-direction: column;
-  max-width: 90%;
+  flex: 1;
+  max-width: 100%;
 }
+
 .comment-bubble {
+  background: #f0f2f5;
   border-radius: 18px;
   padding: 8px 12px;
-  font-size: 15px;
-  line-height: 1.4;
-  display: flex;
-  flex-direction: column;
+  display: inline-block;
+  position: relative;
 }
+
 .comment-author {
-  color: #111;
+  display: block;
+  font-size: 13px;
+  color: #050505;
   font-weight: 600;
   margin-bottom: 2px;
 }
+
 .comment-text {
-  margin: 0;
-  color: #050505;
   font-size: 15px;
+  color: #050505;
+  white-space: pre-wrap;
+  word-break: break-word;
   line-height: 1.4;
+  margin: 0;
 }
+
+/* Các nút nhỏ dưới bình luận (Like, Reply, Time) */
 .comment-actions {
   display: flex;
-  gap: 6px;
-  font-size: 13px;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0 0 12px;
+  font-size: 12px;
   color: #65676b;
-  margin-left: 10px;
-  margin-top: 2px;
+  font-weight: 600;
 }
+
 .comment-actions span {
   cursor: pointer;
 }
+
 .comment-actions span:hover {
   text-decoration: underline;
 }
-.comment-time {
-  color: #8a8d91;
-}
-.comment-replies {
-  margin-left: 40px;
-  margin-top: 4px;
-}
-.reply-item {
-  display: flex;
-  align-items: flex-start;
-  margin-top: 6px;
-}
 
-/* Nút xem thêm */
-.view-more-comments {
-  color: #2563eb;
-  cursor: pointer;
-  font-size: 14px;
-  margin-top: 8px;
-}
-.overlay-more {
-  pointer-events: none;
-}
-
-/* Bong bóng bình luận hiển thị đúng xuống dòng và không tràn */
-.comment-bubble,
-.comment-text {
-  white-space: pre-wrap;
-  word-break: break-word;
-  overflow-wrap: anywhere;
-  max-width: 100%;
-}
-.reply-box textarea,
-.comment-input textarea,
-.edit-box textarea {
-  width: 100%;
-  resize: none;
-  overflow: hidden;
-  line-height: 1.4;
-}
-
-/* Hành động dưới bình luận */
-.comment-actions {
-  margin-top: 4px;
-  font-size: 13px;
-  color: #65676b;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px;
-  cursor: default;
-}
-.comment-actions span {
-  cursor: pointer;
-  user-select: none;
-}
 .comment-react.active {
-  color: #1877f2;
-}
-.comment-reply,
-.comment-edit,
-.comment-delete {
-  color: #65676b;
-}
-.comment-edit:hover,
-.comment-delete:hover,
-.comment-react:hover,
-.comment-reply:hover {
-  text-decoration: underline;
+  color: #2563eb;
 }
 
-/* Phần ô nhập trả lời */
-.reply-box {
+/* Ô nhập bình luận */
+.comment-input {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 6px;
-  margin-left: 42px;
+  gap: 8px;
+  margin-top: 10px;
 }
-.reply-box input {
+
+.comment-input input {
   flex: 1;
-  border: 1px solid #ccd0d5;
+  background: #f0f2f5;
+  border: none;
   border-radius: 20px;
   padding: 8px 12px;
-  font-size: 14px;
+  font-size: 15px;
   outline: none;
-  background: #f0f2f5;
-  resize: none;
-}
-.reply-box input:focus {
-  background: #fff;
-  border-color: #1877f2;
-}
-.reply-box button {
-  background: #1877f2;
-  border: none;
-  color: white;
-  font-weight: 500;
-  border-radius: 18px;
-  padding: 6px 12px;
-  cursor: pointer;
-}
-.reply-box button:hover {
-  background: #166fe5;
+  transition: background 0.2s;
 }
 
-/* Ô chỉnh sửa */
-.edit-box input {
-  flex: 1;
-  border: 1px solid #ccc;
-  border-radius: 14px;
-  padding: 6px 10px;
-  font-size: 14px;
-  outline: none;
-}
-.edit-box button {
-  padding: 5px 10px;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  font-size: 13px;
-}
-.edit-box button:first-of-type {
-  background: #1877f2;
-  color: #fff;
-}
-.edit-box button:last-of-type {
+.comment-input input:focus {
   background: #e4e6eb;
-  color: #333;
 }
 
-/* Nút xem thêm bình luận */
+.comment-input button {
+  background: transparent;
+  color: #2563eb;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px 8px;
+}
+.comment-input button:hover {
+  background: #f0f2f5;
+  border-radius: 4px;
+}
+
+/* Nút xem thêm phản hồi */
 .view-more-replies {
   font-size: 13px;
-  color: #1877f2;
+  color: #65676b;
+  font-weight: 600;
   cursor: pointer;
-  margin-left: 42px;
-  margin-top: 4px;
+  margin: 5px 0 0 42px;
 }
 .view-more-replies:hover {
   text-decoration: underline;
 }
 
-/* Nội dung bài viết y tế trong feed */
-.medical-post p {
-  margin: 4px 0;
-  line-height: 1.4;
+/* Input chỉnh sửa comment */
+.comment-bubble input {
+  border: 1px solid #ddd;
+  border-radius: 15px;
+  padding: 6px 10px;
+  width: 100%;
+  outline: none;
+  font-size: 14px;
 }
-.medical-post strong {
-  color: #2563eb;
+
+/* ================================================= */
+/* 📱 5. MEDIA QUERIES (RESPONSIVE)                  */
+/* ================================================= */
+
+/* ================================================= */
+/* 📱 5. RESPONSIVE (ĐA THIẾT BỊ - ICON NHỎ DẦN)     */
+/* ================================================= */
+
+/* --- 1. Laptop nhỏ & Tablet Ngang (1024px -> 1200px) --- */
+@media (max-width: 1200px) {
+  .reaction-icon {
+    font-size: 26px; /* Giảm nhẹ */
+  }
+  .reaction-popup {
+    gap: 7px; /* Thu hẹp khoảng cách */
+  }
+}
+
+/* --- 2. Tablet Dọc & iPad (768px -> 1024px) --- */
+@media (max-width: 1024px) {
+  .post-image-container {
+    margin: 10px -15px;
+  }
+
+  .reaction-icon {
+    font-size: 24px; /* Nhỏ hơn chút nữa */
+  }
+
+  .reaction-popup {
+    padding: 5px 8px;
+    gap: 6px;
+  }
+}
+
+/* --- 3. Mobile (480px -> 768px) --- */
+@media (max-width: 768px) {
+  .post-card {
+    padding: 12px;
+    border-radius: 0;
+    margin-bottom: 8px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+
+  .post-images.multiple {
+    aspect-ratio: 1 / 1;
+  }
+
+  .post-buttons button {
+    padding: 10px 0;
+  }
+
+  /* Icon nhỏ phù hợp ngón tay */
+  .reaction-icon {
+    font-size: 22px;
+  }
+
+  .reaction-popup {
+    padding: 4px 8px;
+    gap: 5px;
+  }
+}
+
+/* --- 3. Mobile (480px -> 768px) --- */
+@media (max-width: 600px) {
+  .post-card {
+    padding: 15px;
+    border-radius: 0;
+    margin-bottom: 8px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+
+  .post-images.multiple {
+    aspect-ratio: 1 / 1;
+  }
+
+  .post-buttons button {
+    padding: 10px 0;
+  }
+
+  /* Icon nhỏ phù hợp ngón tay */
+  .reaction-icon {
+    font-size: 22px;
+  }
+
+  .reaction-popup {
+    padding: 4px 8px;
+    gap: 5px;
+  }
+}
+
+/* --- 4. Mobile Nhỏ (Dưới 480px) --- */
+@media (max-width: 480px) {
+  .post-buttons button span {
+    display: none; /* Ẩn chữ */
+  }
+
+  .post-like-btn span {
+    display: inline-block !important;
+  }
+
+  .overlay-more {
+    font-size: 20px;
+  }
+
+  .post-info strong {
+    font-size: 14px;
+  }
+
+  /* ✅ Icon cảm xúc siêu nhỏ gọn cho màn hình bé */
+  .reaction-icon {
+    font-size: 20px;
+  }
+
+  .reaction-popup {
+    left: -5px; /* Căn chỉnh lại vị trí */
+    padding: 4px 6px;
+    gap: 4px; /* Khoảng cách tối thiểu */
+
+    /* Đảm bảo không bị tràn màn hình */
+    max-width: 260px;
+    overflow-x: auto;
+    scrollbar-width: none; /* Ẩn thanh cuộn */
+  }
+
+  /* Ẩn thanh cuộn trên Chrome/Safari */
+  .reaction-popup::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* --- 5. Điện thoại siêu nhỏ (Galaxy Fold, iPhone SE cũ - Dưới 360px) --- */
+@media (max-width: 360px) {
+  .reaction-icon {
+    font-size: 18px; /* Cực nhỏ để vừa hàng ngang */
+  }
+
+  .post-buttons button i {
+    font-size: 16px;
+  }
 }

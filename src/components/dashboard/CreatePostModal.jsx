@@ -1,5 +1,54 @@
 import React from "react";
 import "../../styles/CreatePostModal.css";
+
+// Thêm helper resolveAvatar
+const DEFAULT_AVATAR =
+  "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
+
+const resolveAvatar = (avatar) => {
+  if (!avatar) return DEFAULT_AVATAR;
+
+  // Nếu trả về object với { url: "/media/..." } hoặc {path: "..."}
+  if (typeof avatar === "object") {
+    if (avatar.url) {
+      const u = avatar.url;
+      if (u.startsWith("/")) {
+        const base = (process.env.REACT_APP_API_BASE || "").replace(/\/$/, "");
+        return base + u;
+      }
+      return u;
+    }
+    if (avatar.path) {
+      const base = (process.env.REACT_APP_API_BASE || "").replace(/\/$/, "");
+      return (
+        base + (avatar.path.startsWith("/") ? avatar.path : "/" + avatar.path)
+      );
+    }
+    // File/Blob
+    if (avatar instanceof File || avatar instanceof Blob) {
+      try {
+        return URL.createObjectURL(avatar);
+      } catch {
+        return DEFAULT_AVATAR;
+      }
+    }
+    return DEFAULT_AVATAR;
+  }
+
+  // string
+  if (typeof avatar === "string") {
+    if (!avatar || avatar === "null" || avatar === "undefined")
+      return DEFAULT_AVATAR;
+    if (avatar.startsWith("/")) {
+      const base = (process.env.REACT_APP_API_BASE || "").replace(/\/$/, "");
+      return base + avatar;
+    }
+    return avatar;
+  }
+
+  return DEFAULT_AVATAR;
+};
+
 const CreatePostModal = ({
   isOpen,
   onClose,
@@ -30,11 +79,12 @@ const CreatePostModal = ({
         <div className="modal-body">
           <div className="modal-user">
             <img
-              src={
-                user?.avatar ||
-                "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
-              }
+              src={resolveAvatar(user?.avatar)}
               alt="avatar"
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = DEFAULT_AVATAR;
+              }}
             />
             <strong>{user?.name || "Người dùng"}</strong>
           </div>
@@ -134,25 +184,67 @@ const CreatePostModal = ({
 
           {selectedImages.length > 0 && (
             <div className="image-preview">
-              {selectedImages.map((media, index) => (
-                <div key={index} className="preview-item">
-                  {media.type && media.type.startsWith("video") ? (
-                    <video src={media.url} controls className="preview-media" />
-                  ) : (
-                    <img
-                      src={media.url}
-                      alt={`preview-${index}`}
-                      className="preview-media"
-                    />
-                  )}
-                  <button
-                    onClick={() => removeImage(media)}
-                    className="remove-btn"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
+              {selectedImages.map((media, index) => {
+                // Tính preview src an toàn:
+                const previewSrc =
+                  typeof media === "string"
+                    ? media
+                    : media?.url
+                    ? media.url
+                    : media instanceof File || media instanceof Blob
+                    ? URL.createObjectURL(media)
+                    : media?.path
+                    ? (process.env.REACT_APP_API_BASE || "").replace(
+                        /\/$/,
+                        ""
+                      ) +
+                      (media.path.startsWith("/")
+                        ? media.path
+                        : "/" + media.path)
+                    : DEFAULT_AVATAR;
+
+                return (
+                  <div key={index} className="preview-item">
+                    {String(previewSrc).startsWith("data:") ||
+                    String(previewSrc).startsWith("blob:") ||
+                    previewSrc?.includes("video") ||
+                    (media?.type && media.type.startsWith("video")) ? (
+                      <video
+                        src={previewSrc}
+                        controls
+                        className="preview-media"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                        }}
+                      />
+                    ) : (
+                      <img
+                        src={previewSrc}
+                        alt={`preview-${index}`}
+                        className="preview-media"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = DEFAULT_AVATAR;
+                        }}
+                      />
+                    )}
+                    <button
+                      onClick={() => {
+                        // nếu bạn dùng URL.createObjectURL ở đây, nhớ revoke khi remove:
+                        if (media instanceof File || media instanceof Blob) {
+                          try {
+                            URL.revokeObjectURL(previewSrc);
+                          } catch {}
+                        }
+                        removeImage(media);
+                      }}
+                      className="remove-btn"
+                    >
+                      ×
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           )}
 

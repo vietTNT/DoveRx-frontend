@@ -2,9 +2,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import "../styles/DashBoard.css";
 
-// 🔧 đường dẫn đúng từ /src/pages → /src/services
 import { fetchPosts, createPost } from "../services/socialApi";
-// 🔧 đường dẫn đúng từ /src/pages → /src/utils
+
 import { mapPostToUI } from "../utils/mapPost";
 
 import Navbar from "../components/Navbar";
@@ -18,19 +17,6 @@ import websocketService from "../services/websocket";
 import { toast } from "react-toastify";
 const Dashboard = ({ user, onLogout }) => {
   const [posts, setPosts] = useState([]);
-
-  // useEffect(() => {
-  //   // Lắng nghe post mới real-time
-  //   const handleNewPost = (data) => {
-  //     setPosts((prev) => [data.post, ...prev]);
-  //   };
-
-  //   websocketService.on("post_created", handleNewPost);
-
-  //   return () => {
-  //     websocketService.off("post_created", handleNewPost);
-  //   };
-  // }, []);
   useEffect(() => {
     const handleNewPost = (data) => {
       console.log("📢 WebSocket nhận post mới:", data);
@@ -210,14 +196,6 @@ const Dashboard = ({ user, onLogout }) => {
       });
       setIsModalOpen(false);
     } catch (e) {
-      // const status = e?.response?.status;
-      // const data = e?.response?.data;
-      // console.error("Create post error:", status, data, e);
-      // alert(
-      //   `Không đăng được bài. HTTP ${status || ""} ${
-      //     data?.detail || data?.error || ""
-      //   }`
-      // );
       console.error("Create post error:", e);
       const msg =
         e?.response?.data?.detail ||
@@ -247,10 +225,6 @@ const Dashboard = ({ user, onLogout }) => {
     const token = localStorage.getItem("access");
     if (!token) return;
 
-    // if (websocketService.ws?.readyState !== WebSocket.OPEN) {
-    //   console.log("🔌 [Dashboard] Connecting WebSocket...");
-    //   websocketService.connect(token);
-    // }
     websocketService.disconnect(); // luôn reset WS cũ
     websocketService.connect(token); // luôn tạo WS mới cho mỗi tab
 
@@ -258,6 +232,42 @@ const Dashboard = ({ user, onLogout }) => {
       console.log("📢 [Dashboard] WebSocket feed_update:", data);
 
       const eventType = data.data?.event || data.type;
+      // ====== HANDLE POST REACTIONS ======
+      if (
+        eventType === "post_react" ||
+        eventType === "post_change_react" ||
+        eventType === "post_unreact"
+      ) {
+        const payload = data.data || data;
+        const pid = payload.post_id;
+        const reactionCounts =
+          payload.reaction_counts || payload.reaction_counts;
+
+        if (pid) {
+          // Update posts list (counts)
+          setPosts((prev) =>
+            prev.map((post) =>
+              post.id === pid
+                ? {
+                    ...post,
+                    reaction_counts: reactionCounts || post.reaction_counts,
+                  }
+                : post
+            )
+          );
+
+          // If event includes user_id and it's current user, update local reactions map
+          const uid = payload.user_id;
+
+          // backend may include reaction_type or action
+          if (uid && uid === user?.id) {
+            // backend may include reaction_type or action
+            const rtype = payload.reaction_type || null;
+            setReactions((prev) => ({ ...prev, [pid]: rtype }));
+          }
+        }
+        return;
+      }
 
       switch (eventType) {
         case "new_comment":
@@ -332,19 +342,11 @@ const Dashboard = ({ user, onLogout }) => {
               )
             );
 
-            // ✅ Cập nhật reactions nếu là current user
+            // ✅ Cập nhật reactions (lưu CHUỖI type) nếu là current user
             if (user_id === user?.id) {
               if (reaction_type) {
-                setReactions((prev) => ({
-                  ...prev,
-                  [post_id]: {
-                    type: reaction_type,
-                    icon: getReactionIcon(reaction_type),
-                    label: getReactionLabel(reaction_type),
-                  },
-                }));
+                setReactions((prev) => ({ ...prev, [post_id]: reaction_type }));
               } else {
-                // Xóa reaction nếu reaction_type = null
                 setReactions((prev) => {
                   const copy = { ...prev };
                   delete copy[post_id];
@@ -392,12 +394,38 @@ const Dashboard = ({ user, onLogout }) => {
         case "new_post":
         case "post_created":
           if (data.data?.post) {
+            const incomingPost = data.data.post;
+
+            // ✅ [FIX] Kiểm tra: Nếu bài viết là của chính mình thì BỎ QUA
+            // Vì hàm handlePost đã thêm bài này vào state rồi.
+            // Lưu ý: user.id có thể là number, incomingPost.author.id có thể là number
+            if (incomingPost.author?.id === user?.id) {
+              console.log(
+                "🚫 [Dashboard] Bỏ qua bài viết từ chính mình (đã xử lý local)"
+              );
+              break; // Thoát khỏi switch, không chạy setPosts bên dưới
+            }
+
             setPosts((prev) => {
-              const exists = prev.some((p) => p.id === data.data.post.id);
-              if (exists) return prev;
-              return [mapPostToUI(data.data.post), ...prev];
+              // ✅ [FIX THÊM] So sánh ID an toàn hơn (ép về String để tránh lỗi 26 !== "26")
+              const exists = prev.some(
+                (p) => String(p.id) === String(incomingPost.id)
+              );
+
+              if (exists) {
+                console.log(
+                  "⚠️ [Dashboard] Bài viết đã tồn tại:",
+                  incomingPost.id
+                );
+                return prev;
+              }
+
+              // Nếu là bài của người khác, thêm vào đầu danh sách
+              toast.success(
+                `📢 ${incomingPost.author?.name || "Ai đó"} vừa đăng bài mới!`
+              );
+              return [mapPostToUI(incomingPost), ...prev];
             });
-            toast.success("📢 Bài viết mới!");
           }
           break;
 

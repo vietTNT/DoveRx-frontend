@@ -2,6 +2,51 @@ import React, { useRef, useEffect } from "react";
 import "../../styles/CommentModal.css";
 import { CommentItem, CommentInput } from "./PostCard";
 
+// Fallback chung
+const DEFAULT_AVATAR =
+  "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
+
+// Helper: chuẩn hoá avatar (string | {url: string} | File/Blob)
+const resolveAvatar = (avatar) => {
+  if (!avatar) return DEFAULT_AVATAR;
+
+  // Nếu là object với .url (thường DRF returns { url: "/media/..." })
+  if (typeof avatar === "object") {
+    if (avatar.url) {
+      const url = avatar.url;
+      // Nếu là đường dẫn tương đối, thêm API_BASE nếu có
+      if (url.startsWith("/")) {
+        const base = process.env.REACT_APP_API_BASE || "";
+        return base.replace(/\/$/, "") + url;
+      }
+      return url;
+    }
+    // Nếu là File/Blob
+    if (avatar instanceof Blob || avatar instanceof File) {
+      try {
+        return URL.createObjectURL(avatar);
+      } catch {
+        return DEFAULT_AVATAR;
+      }
+    }
+    return DEFAULT_AVATAR;
+  }
+
+  // Nếu là string
+  if (typeof avatar === "string") {
+    if (avatar === "null" || avatar === "undefined" || avatar.trim() === "") {
+      return DEFAULT_AVATAR;
+    }
+    if (avatar.startsWith("/")) {
+      const base = process.env.REACT_APP_API_BASE || "";
+      return base.replace(/\/$/, "") + avatar;
+    }
+    return avatar;
+  }
+
+  return DEFAULT_AVATAR;
+};
+
 const CommentModal = ({
   isOpen,
   onClose,
@@ -38,7 +83,7 @@ const CommentModal = ({
 }) => {
   const commentListRef = useRef(null);
   const hidePopupTimer = useRef(null);
-
+  const postPopupTimer = useRef(null);
   // ✅ Di chuyển tất cả logic lên trước if (!isOpen)
   const list = comments[post.id]?.list || [];
   const myReaction = reactions[post.id];
@@ -62,7 +107,7 @@ const CommentModal = ({
 
   const disarmPopup = () => {
     if (hidePopupTimer.current) clearTimeout(hidePopupTimer.current);
-    hidePopupTimer.current = setTimeout(() => setActivePopup(null), 160);
+    hidePopupTimer.current = setTimeout(() => setActivePopup(null), 300);
   };
 
   const toggleReaction = (type) => {
@@ -74,10 +119,17 @@ const CommentModal = ({
   };
 
   useEffect(() => {
-    if (isOpen && commentListRef.current) {
-      setTimeout(() => {
-        commentListRef.current.scrollTop = commentListRef.current.scrollHeight;
+    if (isOpen) {
+      const timer = setTimeout(() => {
+        // ✅ FIX: Kiểm tra ref.current có tồn tại không trước khi gọi scrollHeight
+        if (commentListRef.current) {
+          commentListRef.current.scrollTop =
+            commentListRef.current.scrollHeight;
+        }
       }, 100);
+
+      // ✅ Optional: Clear timeout khi component unmount hoặc dependency thay đổi để an toàn hơn
+      return () => clearTimeout(timer);
     }
   }, [list.length, isOpen]);
 
@@ -103,7 +155,15 @@ const CommentModal = ({
           <div className="modal-post-content">
             {/* Header */}
             <div className="post-header">
-              <img src={post.avatar} alt="avatar" className="post-avatar" />
+              <img
+                src={resolveAvatar(post.avatar)}
+                alt="avatar"
+                className="post-avatar"
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = DEFAULT_AVATAR;
+                }}
+              />
               <div className="post-info">
                 <strong>{post.author}</strong>
                 <span>{getTimeAgo(post.time)}</span>
@@ -203,51 +263,58 @@ const CommentModal = ({
 
             {/* ✅ Actions (giống PostCard) */}
             <div className="post-buttons">
-              <div className="post-action-group">
-                <div
-                  className="reaction-wrapper"
-                  onMouseEnter={() => armPopup(`modal-${post.id}`)}
-                  onMouseLeave={disarmPopup}
+              <div
+                className="post-action-group"
+                onMouseEnter={() => armPopup(`modal-${post.id}`)} // ✅ Thêm sự kiện
+                onMouseLeave={disarmPopup} // ✅ Thêm sự kiện
+              >
+                <button
+                  className={`post-like-btn ${myReaction ? "active" : ""}`}
+                  onClick={() =>
+                    toggleReaction(myReaction ? myReaction : "like")
+                  }
                 >
-                  <button
-                    className={myReaction ? "active" : ""}
-                    onMouseEnter={() => armPopup(`modal-${post.id}`)}
-                    onClick={() => toggleReaction(myReaction ? null : "like")}
-                  >
-                    {myReaction ? (
-                      <>
-                        <span className="reaction-icon-btn">
-                          {emojiList.find((e) => e.type === myReaction)?.icon}
-                        </span>
+                  {/* ✅ Logic hiển thị Icon: Nếu đã like thì hiện icon màu, chưa thì hiện mặc định */}
+                  {myReaction ? (
+                    <>
+                      {/* Tìm icon trong emojiList dựa trên myReaction (string 'like', 'love'...) */}
+                      <span>
+                        {emojiList.find((e) => e.type === myReaction)?.icon}
+                      </span>
+                      <span>
                         {emojiList.find((e) => e.type === myReaction)?.label}
-                      </>
-                    ) : (
-                      <>👍 Thích</>
-                    )}
-                  </button>
-
-                  {activePopup === `modal-${post.id}` && (
-                    <div
-                      className="reaction-popup"
-                      onMouseEnter={() => armPopup(`modal-${post.id}`)}
-                      onMouseLeave={disarmPopup}
-                    >
-                      {emojiList.map((e) => (
-                        <span
-                          key={e.type}
-                          className="reaction-icon"
-                          title={e.label}
-                          onMouseDown={(ev) => {
-                            ev.preventDefault();
-                            toggleReaction(e.type);
-                          }}
-                        >
-                          {e.icon}
-                        </span>
-                      ))}
-                    </div>
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span>👍</span>
+                      <span>Thích</span>
+                    </>
                   )}
-                </div>
+                </button>
+
+                {/* Popup Cảm xúc */}
+                {activePopup === `modal-${post.id}` && (
+                  <div
+                    className="reaction-popup"
+                    onMouseEnter={() => armPopup(`modal-${post.id}`)} // ✅ Giữ popup mở
+                    onMouseLeave={disarmPopup}
+                  >
+                    {emojiList.map((e) => (
+                      <span
+                        key={e.type}
+                        className="reaction-icon"
+                        title={e.label}
+                        onMouseDown={(ev) => {
+                          ev.preventDefault();
+                          toggleReaction(e.type);
+                        }}
+                      >
+                        {e.icon}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="post-action-group">
@@ -301,12 +368,13 @@ const CommentModal = ({
         {/* Footer - Input bình luận */}
         <div className="comment-modal-footer">
           <img
-            src={
-              currentUser?.avatar ||
-              "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
-            }
+            src={resolveAvatar(currentUser?.avatar)}
             alt="avatar"
             className="comment-user-avatar"
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.src = DEFAULT_AVATAR;
+            }}
           />
           <CommentInput
             placeholder="Viết bình luận..."

@@ -88,9 +88,9 @@ export const CommentItem = ({
 
   const disarmCommentPopup = () => {
     if (hidePopupTimer.current) clearTimeout(hidePopupTimer.current);
-    hidePopupTimer.current = setTimeout(() => setActiveCommentPopup(null), 160);
+    hidePopupTimer.current = setTimeout(() => setActiveCommentPopup(null), 300);
   };
-
+  const timeData = c.created_at || c.createdAt;
   return (
     <div className="comment-item" style={{ marginLeft: level > 0 ? 36 : 0 }}>
       <img
@@ -176,7 +176,7 @@ export const CommentItem = ({
 
           <span> · </span>
           <span className="comment-time">
-            {c.createdAt ? getTimeAgo(c.createdAt) : "Vừa xong"}
+            {timeData ? getTimeAgo(timeData) : "Vừa xong"}
           </span>
 
           {c.likes > 0 && (
@@ -311,6 +311,32 @@ const PostCard = ({
   const [shareOpen, setShareOpen] = useState(false);
   const [shareMessage, setShareMessage] = useState("");
 
+  const postPopupTimer = useRef(null);
+  const armPostPopup = (id) => {
+    if (postPopupTimer.current) clearTimeout(postPopupTimer.current);
+    setActivePostPopup(id);
+  };
+
+  // 3. Hàm đóng popup (có độ trễ 300ms để kịp di chuột sang)
+  const disarmPostPopup = () => {
+    if (postPopupTimer.current) clearTimeout(postPopupTimer.current);
+    postPopupTimer.current = setTimeout(() => {
+      setActivePostPopup(null);
+    }, 300);
+  };
+  const myReactionType = reactions[p.id]; // stored as string type, e.g. "like"
+  // Tìm emoji tương ứng để hiển thị icon/label
+  const myReactionEmoji = myReactionType
+    ? emojiList.find((e) => e.type === myReactionType)
+    : null;
+  useEffect(() => {
+    const initialReactionType =
+      p.user_reaction || p.current_reaction || p.my_reaction;
+    if (initialReactionType && !reactions[p.id]) {
+      // Chỉ lưu chuỗi type vào state
+      setReactions((prev) => ({ ...prev, [p.id]: initialReactionType }));
+    }
+  }, [p, reactions, setReactions]);
   const countAllComments = (list) =>
     (list || []).reduce(
       (total, c) => total + 1 + countAllComments(c.replies),
@@ -544,117 +570,73 @@ const PostCard = ({
     }
   };
 
-  /* ---- post reactions & share ---- */
-  // const togglePostReaction = () => {
-  //   if (reactions[p.id]) {
-  //     setReactions((prev) => {
-  //       const copy = { ...prev };
-  //       delete copy[p.id];
-  //       return copy;
-  //     });
-  //     reactPost(p.id, null).catch(() => {});
-  //   } else {
-  //     const def = emojiList.find((r) => r.type === "like") || {
-  //       icon: "👍",
-  //       label: "Thích",
-  //     };
-  //     setReactions((prev) => ({ ...prev, [p.id]: def }));
-  //     reactPost(p.id, "like").catch(() => {});
-  //   }
-  // };
-
   // const setPostReaction = (type) => {
   //   const item = emojiList.find((r) => r.type === type) || {
   //     icon: "👍",
   //     label: "Thích",
   //   };
-  //   setReactions((prev) => ({ ...prev, [p.id]: item }));
-  //   reactPost(p.id, type).catch(() => {});
-  // };
-  const setPostReaction = (type) => {
-    const item = emojiList.find((r) => r.type === type) || {
-      icon: "👍",
-      label: "Thích",
-    };
 
-    // 1️⃣ GỬI WEBSOCKET REALTIME
+  //   // 1️⃣ GỬI WEBSOCKET REALTIME
+  //   websocketService.send("post_react", {
+  //     post_id: p.id,
+  //     reaction_type: type,
+  //   });
+
+  //   // 2️⃣ CẬP NHẬT UI LOCAL
+  //   setReactions((prev) => ({ ...prev, [p.id]: item }));
+
+  //   // 3️⃣ LƯU DB BẰNG API
+  //   reactPost(p.id, type).catch(() => {});
+  //   setActivePostPopup(null);
+  // };
+  // const totalReacts = Object.values(p.reaction_counts || {}).reduce(
+  //   (a, b) => a + b,
+  //   0
+  // );
+  const setPostReaction = (type) => {
+    // Gửi socket
     websocketService.send("post_react", {
       post_id: p.id,
       reaction_type: type,
     });
 
-    // 2️⃣ CẬP NHẬT UI LOCAL
-    setReactions((prev) => ({ ...prev, [p.id]: item }));
+    // ✅ Cập nhật State: Chỉ lưu chuỗi type
+    setReactions((prev) => ({ ...prev, [p.id]: type }));
 
-    // 3️⃣ LƯU DB BẰNG API
+    // Gọi API
     reactPost(p.id, type).catch(() => {});
+
+    // Đóng popup
+    setActivePostPopup(null);
   };
-  const totalReacts = Object.values(p.reaction_counts || {}).reduce(
-    (a, b) => a + b,
-    0
-  );
-  // const togglePostReaction = () => {
-  //   const oldState = reactions[p.id];
-
-  //   if (reactions[p.id]) {
-  //     // Unreact
-  //     setReactions((prev) => {
-  //       const copy = { ...prev };
-  //       delete copy[p.id];
-  //       return copy;
-  //     });
-  //     reactPost(p.id, null).catch(() => {
-  //       // ✅ Rollback nếu API fail
-  //       setReactions((prev) => ({ ...prev, [p.id]: oldState }));
-  //       toast.error("❌ Không thể bỏ thích!");
-  //     });
-  //   } else {
-  //     // React
-  //     setReactions((prev) => ({
-  //       ...prev,
-  //       [p.id]: { type: "like", icon: "👍", label: "Thích" },
-  //     }));
-  //     reactPost(p.id, "like").catch(() => {
-  //       // ✅ Rollback nếu API fail
-  //       setReactions((prev) => {
-  //         const copy = { ...prev };
-  //         delete copy[p.id];
-  //         return copy;
-  //       });
-  //       toast.error("❌ Không thể thích bài viết!");
-  //     });
-  //   }
-  // };
   const togglePostReaction = () => {
-    const oldState = reactions[p.id];
+    // Lấy reaction hiện tại của user (từ state reactions hoặc từ props p)
+    const currentReaction = reactions[p.id];
 
-    if (reactions[p.id]) {
-      // BỎ THÍCH
+    if (currentReaction) {
+      // TRƯỜNG HỢP 1: Đã like -> Bấm để BỎ LIKE
       websocketService.send("post_react", {
         post_id: p.id,
-        reaction_type: null,
+        reaction_type: null, // null nghĩa là xóa reaction
       });
 
       setReactions((prev) => {
         const copy = { ...prev };
-        delete copy[p.id];
+        delete copy[p.id]; // Xóa khỏi state
         return copy;
       });
 
-      reactPost(p.id, null);
+      reactPost(p.id, null).catch(() => {}); // Gọi API xóa
     } else {
-      // THÍCH LẠI
+      // TRƯỜNG HỢP 2: Chưa like -> Bấm để LIKE (Mặc định là 👍)
       websocketService.send("post_react", {
         post_id: p.id,
         reaction_type: "like",
       });
 
-      setReactions((prev) => ({
-        ...prev,
-        [p.id]: { type: "like", icon: "👍", label: "Thích" },
-      }));
+      setReactions((prev) => ({ ...prev, [p.id]: "like" })); // lưu CHUỖI type
 
-      reactPost(p.id, "like");
+      reactPost(p.id, "like").catch(() => {}); // Gọi API like
     }
   };
 
@@ -757,48 +739,50 @@ const PostCard = ({
 
       {/* media */}
       {p.images && p.images.length > 0 && (
-        <div className={`post-images ${p.images.length > 1 ? "multiple" : ""}`}>
-          {p.images
-            .slice(0, p.images.length > 4 ? 4 : p.images.length)
-            .map((m, idx) => (
-              <div
-                key={idx}
-                className="image-wrapper"
-                onClick={() => {
-                  openLightbox(p.images, idx);
-                }}
-              >
-                {/* Hiển thị overlay +N cho ảnh thứ 4 nếu có nhiều hơn 4 ảnh */}
-                {idx === 3 && p.images.length > 4 && (
-                  <div className="overlay-more">+{p.images.length - 4}</div>
-                )}
+        <div className="post-image-container">
+          {" "}
+          {/* ✅ Bọc thêm div này để xử lý tràn viền mobile */}
+          <div
+            className={`post-images ${p.images.length > 1 ? "multiple" : ""}`}
+            data-count={
+              p.images.length
+            } /* ✅ Thêm dòng này để CSS bắt được số lượng ảnh */
+          >
+            {p.images
+              .slice(0, p.images.length > 4 ? 4 : p.images.length)
+              .map((m, idx) => (
+                <div
+                  key={idx}
+                  className="image-wrapper"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openLightbox(p.images, idx);
+                  }}
+                >
+                  {/* Overlay +N */}
+                  {idx === 3 && p.images.length > 4 && (
+                    <div className="overlay-more">+{p.images.length - 4}</div>
+                  )}
 
-                {(!lightbox?.open || lightbox.index !== idx) &&
-                m.type?.startsWith("video") ? (
-                  <video
-                    src={m.url}
-                    controls
-                    className="post-media"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      openLightbox(p.images, idx);
-                    }}
-                  />
-                ) : !m.type?.startsWith("video") ? (
-                  <img
-                    src={m.url}
-                    alt={`post-${p.id}-${idx}`}
-                    className="post-media"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      openLightbox(p.images, idx);
-                    }}
-                  />
-                ) : null}
-              </div>
-            ))}
+                  {/* Render Video hoặc Ảnh */}
+                  {(!lightbox?.open || lightbox.index !== idx) &&
+                  m.type?.startsWith("video") ? (
+                    <video
+                      src={m.url}
+                      className="post-media"
+                      muted // Autoplay cần mute
+                    />
+                  ) : !m.type?.startsWith("video") ? (
+                    <img
+                      src={m.url}
+                      alt={`post-${p.id}-${idx}`}
+                      className="post-media"
+                      loading="lazy" /* ✅ Tối ưu hiệu năng tải trang */
+                    />
+                  ) : null}
+                </div>
+              ))}
+          </div>
         </div>
       )}
 
@@ -827,21 +811,28 @@ const PostCard = ({
 
         <div className="post-buttons">
           {/* like */}
+
           <div
             className="post-action-group"
-            onMouseEnter={() => setActivePostPopup(`p-${p.id}`)}
-            onMouseLeave={() => setActivePostPopup(null)}
+            // 👇 SỬA: Dùng hàm arm/disarm thay vì setActive trực tiếp
+            onMouseEnter={() => armPostPopup(`p-${p.id}`)}
+            onMouseLeave={disarmPostPopup}
           >
             <button
-              className={`post-like-btn ${reactions[p.id] ? "active" : ""}`}
+              className={`post-like-btn ${myReactionType ? "active" : ""}`}
               onClick={togglePostReaction}
             >
-              {reactions[p.id]?.icon || "👍"}{" "}
-              {reactions[p.id]?.label || "Thích"}
+              {myReactionEmoji?.icon || "👍"}{" "}
+              {myReactionEmoji?.label || "Thích"}
             </button>
 
             {activePostPopup === `p-${p.id}` && (
-              <div className="reaction-popup">
+              <div
+                className="reaction-popup"
+                // 👇 SỬA: Thêm sự kiện này vào chính popup để giữ nó mở khi chuột đang chọn icon
+                onMouseEnter={() => armPostPopup(`p-${p.id}`)}
+                onMouseLeave={disarmPostPopup}
+              >
                 {emojiList.map((e) => (
                   <span
                     key={e.type}
@@ -854,7 +845,6 @@ const PostCard = ({
               </div>
             )}
           </div>
-
           {/* comment toggle */}
           <div className="post-action-group">
             <button onClick={() => setCommentModalOpen(true)}>
@@ -925,14 +915,12 @@ const PostCard = ({
               [p.id]: {
                 ...prev[p.id],
                 draft: "",
-                // list: [...(prev[p.id]?.list || []), created],
               },
             }));
           } catch {}
         }}
         MAX_REPLIES_VISIBLE={MAX_REPLIES_VISIBLE}
         MAX_NEST_LEVEL={MAX_NEST_LEVEL}
-        // ✅ Thêm các props mới
         reactions={reactions}
         setReactions={setReactions}
         activePopup={activePopup}
@@ -942,36 +930,6 @@ const PostCard = ({
           setShareOpen(true);
         }}
       />
-
-      {/* ✅ Danh sách bình luận (Comment List) */}
-      <div className="comment-list">
-        {visible.map((c, index) => (
-          <CommentItem
-            key={c.id}
-            c={c}
-            MAX_REPLIES_VISIBLE={MAX_REPLIES_VISIBLE}
-            MAX_NEST_LEVEL={MAX_NEST_LEVEL}
-            emojiList={emojiList}
-            activeCommentPopup={activeCommentPopup}
-            setActiveCommentPopup={setActiveCommentPopup}
-            toggleCommentLike={toggleCommentLike}
-            setCommentReaction={setCommentReaction}
-            toggleReplyBox={toggleReplyBox}
-            getEditDraft={getEditDraft}
-            setEditDraft={setEditDraft}
-            saveEdit={saveEdit}
-            startEdit={startEdit}
-            deleteComment={deleteComment}
-            getReplyDraft={getReplyDraft}
-            setReplyDraft={setReplyDraft}
-            submitReply={submitReply}
-            mutateComments={mutateComments}
-            updateNode={updateNode}
-            currentUser={currentUser}
-            getTimeAgo={getTimeAgo}
-          />
-        ))}
-      </div>
     </div>
   );
 };
