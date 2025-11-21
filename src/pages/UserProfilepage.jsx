@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import { resolveImageUrl } from "../utils/imageHelper";
 import {
   sendFriendRequest,
   acceptFriendRequest,
@@ -87,10 +88,11 @@ const UserProfilePage = ({ user: currentUser, onLogout }) => {
       <div className="user-profile-container">
         <div className="user-profile-card">
           <img
-            src={
-              user.avatar ||
-              "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
-            }
+            // src={
+            //   user.avatar ||
+            //   "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
+            // }
+            src={resolveImageUrl(user.avatar)}
             alt={user.name}
             className="user-profile-avatar"
           />

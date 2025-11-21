@@ -3,6 +3,7 @@ import ShareModal from "./ShareModal";
 import CommentModal from "./CommentModal";
 import "../../styles/PostCard.css";
 import { toast } from "react-toastify";
+import { resolveImageUrl } from "../utils/imageHelper";
 import {
   reactPost,
   sharePost,
@@ -683,7 +684,12 @@ const PostCard = ({
   return (
     <div className="post-card" id={`post-${p.id}`}>
       <div className="post-header">
-        <img src={p.avatar} alt="avatar" className="post-avatar" />
+        {/* <img src={p.avatar} alt="avatar" className="post-avatar" /> */}
+        <img
+          src={resolveImageUrl(p.avatar)}
+          alt="avatar"
+          className="post-avatar"
+        />
         <div className="post-info">
           <strong>{p.author}</strong>
           <span>{getTimeAgo(p.time)}</span>
@@ -774,10 +780,11 @@ const PostCard = ({
                     />
                   ) : !m.type?.startsWith("video") ? (
                     <img
-                      src={m.url}
+                      // src={m.url}
+                      src={resolveImageUrl(m.url)}
                       alt={`post-${p.id}-${idx}`}
                       className="post-media"
-                      loading="lazy" /* ✅ Tối ưu hiệu năng tải trang */
+                      loading="lazy"
                     />
                   ) : null}
                 </div>
