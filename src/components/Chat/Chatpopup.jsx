@@ -2,7 +2,7 @@ import React, {
   useState,
   useRef,
   useEffect,
-  useCallback,
+  useLayoutEffect,
   useMemo,
 } from "react";
 import "../../styles/chat/Chatpopup.css";
@@ -10,18 +10,17 @@ import chatWebSocketService from "../../services/chatWebSocket";
 import { fetchMessages, markAsRead } from "../../services/chatApi";
 import { v4 as uuidv4 } from "uuid";
 import like from "../../assets/icons/like.png";
+import { saveToCache, loadFromCache } from "../../utils/chatCache";
+
 // ✅ Helper function: Lấy avatar URL hoặc fallback
 const getAvatarUrl = (contact) => {
   if (contact?.avatar) {
-    // ✅ Nếu avatar đã là full URL
     if (contact.avatar.startsWith("http")) {
       return contact.avatar;
     }
-    // ✅ Nếu avatar là relative path
     const baseUrl = process.env.REACT_APP_API_BASE;
     return `${baseUrl}${contact.avatar}`;
   }
-  // ✅ Fallback icon
   return "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
 };
 
@@ -48,11 +47,12 @@ const getCurrentUserId = () => {
   }
   return null;
 };
+
 // ✅ Tạo ID nội bộ để React dùng làm key (ổn định, duy nhất)
 const normalizeMessage = (msg) => {
   return {
     ...msg,
-    _local_id: msg.id || uuidv4(), // nếu msg.id null/undefined → tạo uuid
+    _local_id: msg.id || uuidv4(),
   };
 };
 
@@ -74,87 +74,62 @@ const ChatPopup = ({
   const typingTimeoutRef = useRef(null);
   const hasLoadedRef = useRef(false);
 
-  // ✅ THÊM: Ref để theo dõi lần cuối notify
+  // Ref để theo dõi lần cuối notify
   const lastNotifiedRef = useRef(null);
-
   const currentUserId = useMemo(() => getCurrentUserId(), []);
 
-  console.log("🎨 [ChatPopup] Rendering with:", {
-    contactId: contact?.id,
-    conversationId: conversation?.id,
-    messagesCount: messages.length,
-    hasLoaded: hasLoadedRef.current,
-  });
-
-  // ✅ SỬA: Chỉ notify khi messages thực sự thay đổi
+  // ✅ Notify parent khi messages thay đổi
   useEffect(() => {
     if (!onMessagesUpdate) return;
-
-    // ✅ So sánh với lần notify trước
     const currentHash = JSON.stringify(messages.map((m) => m.id));
 
     if (lastNotifiedRef.current !== currentHash) {
-      console.log(`📤 [ChatPopup] Notifying parent about message update`);
       onMessagesUpdate(messages);
       lastNotifiedRef.current = currentHash;
-    } else {
-      console.log(`⏭️ [ChatPopup] Messages unchanged, skipping notify`);
     }
-  }, [messages]); // ✅ CHỈ phụ thuộc vào messages
+  }, [messages, onMessagesUpdate]);
 
-  // ✅ Load tin nhắn chỉ 1 lần
+  // ✅ Load tin nhắn (Chiến lược: Cache-First)
   useEffect(() => {
-    if (!conversation?.id) {
-      console.warn("⚠️ [ChatPopup] No conversation ID");
-      setLoading(false);
-      return;
+    if (!conversation?.id) return;
+
+    // 1️⃣ BƯỚC 1: Load từ Cache hiển thị NGAY LẬP TỨC
+    const cachedMsgs = loadFromCache(conversation.id);
+    if (cachedMsgs.length > 0) {
+      setMessages(cachedMsgs);
+      setLoading(false); // Tắt loading để hiển thị luôn
+      hasLoadedRef.current = true;
+    } else {
+      setLoading(true);
     }
 
-    if (hasLoadedRef.current) {
-      console.log("✅ [ChatPopup] Already loaded, skipping...");
-      return;
-    }
-
-    const loadMessages = async () => {
+    // 2️⃣ BƯỚC 2: Gọi API ngầm để lấy dữ liệu mới nhất
+    const syncMessages = async () => {
       try {
-        console.log(
-          `🔄 [ChatPopup] Loading messages for conversation ${conversation.id}...`
-        );
-        setLoading(true);
+        const serverMessages = await fetchMessages(conversation.id);
+        const normalized = serverMessages.map(normalizeMessage);
 
-        const data = await fetchMessages(conversation.id);
-        console.log(`✅ [ChatPopup] Loaded ${data.length} messages`);
+        // Cập nhật State
+        setMessages(normalized);
 
-        // setMessages(data);
-        setMessages(data.map(normalizeMessage));
+        // 🔥 LƯU NGƯỢC LẠI VÀO CACHE
+        saveToCache(conversation.id, normalized);
 
-        hasLoadedRef.current = true;
-
+        // Đánh dấu đã đọc (Sửa lỗi props.isMinimized -> isMinimized)
         if (!isMinimized) {
           await markAsRead(conversation.id);
-          chatWebSocketService.markAsRead(conversation.id);
         }
-      } catch (error) {
-        console.error("❌ [ChatPopup] Error loading messages:", error);
-        hasLoadedRef.current = true;
+      } catch (err) {
+        console.error("Sync error:", err);
       } finally {
         setLoading(false);
       }
     };
 
-    if (cachedMessages.length > 0) {
-      console.log(
-        `✅ [ChatPopup] Using cached messages: ${cachedMessages.length}`
-      );
-      setMessages(cachedMessages);
-      setLoading(false);
-      hasLoadedRef.current = true;
-    } else {
-      loadMessages();
-    }
-  }, [conversation?.id]);
+    syncMessages();
+  }, [conversation?.id, isMinimized]); // Thêm isMinimized vào dependency nếu cần
 
-  // ✅ Reset khi đổi conversation
+  // ✅ Reset refs khi đổi conversation
   useEffect(() => {
     hasLoadedRef.current = false;
     lastNotifiedRef.current = null;
@@ -169,12 +144,17 @@ const ChatPopup = ({
         setMessages((prev) => {
           const newMsg = normalizeMessage(data.message);
 
+          // Tránh trùng lặp
           const exists = prev.some((msg) => msg._local_id === newMsg._local_id);
           if (exists) return prev;
 
           const sorted = [...prev, newMsg].sort(
             (a, b) => new Date(a.created_at) - new Date(b.created_at)
           );
+
+          // 🔥 QUAN TRỌNG: Cập nhật Cache ngay khi có tin nhắn mới Realtime
+          saveToCache(conversation.id, sorted);
+
           return sorted;
         });
 
@@ -188,13 +168,16 @@ const ChatPopup = ({
       if (Number(data.message?.conversation) === Number(conversation?.id)) {
         setMessages((prev) => {
           const newMsg = normalizeMessage(data.message);
-
           const exists = prev.some((msg) => msg._local_id === newMsg._local_id);
           if (exists) return prev;
 
           const sorted = [...prev, newMsg].sort(
             (a, b) => new Date(a.created_at) - new Date(b.created_at)
           );
+
+          // 🔥 QUAN TRỌNG: Cập nhật Cache ngay khi gửi tin nhắn thành công
+          saveToCache(conversation.id, sorted);
+
           return sorted;
         });
       }
@@ -214,9 +197,13 @@ const ChatPopup = ({
 
     const handleMessagesRead = (data) => {
       if (data.conversation_id === conversation?.id) {
-        setMessages((prev) =>
-          prev.map((msg) => (msg.is_read ? msg : { ...msg, is_read: true }))
-        );
+        setMessages((prev) => {
+          const updated = prev.map((msg) =>
+            msg.is_read ? msg : { ...msg, is_read: true }
+          );
+          // Không cần saveToCache ở đây vì is_read không ảnh hưởng nhiều đến hiển thị content
+          return updated;
+        });
       }
     };
 
@@ -233,14 +220,23 @@ const ChatPopup = ({
     };
   }, [conversation?.id, currentUserId, isMinimized]);
 
-  // ✅ Auto scroll
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  // ✅ Auto scroll (Fix lỗi hiển thị tin cũ)
+  useLayoutEffect(() => {
+    if (loading) return;
 
+    // Nếu vừa load xong data (có messages) và không phải do người khác đang gõ
+    // Dùng 'auto' để nhảy ngay xuống cuối
+    if (messages.length > 0 && !isTyping) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+    }
+  }, [loading, conversation?.id]);
+
+  // Smooth scroll khi có tin nhắn mới thêm vào
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (!loading && messages.length > 0) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, loading]);
 
   // ✅ Gửi tin nhắn
   const handleSend = (e) => {
@@ -256,7 +252,7 @@ const ChatPopup = ({
     }
   };
 
-  // ✅ Typing indicator
+  // ✅ Typing indicator logic
   const handleTyping = (e) => {
     setMessage(e.target.value);
     if (!conversation?.id) return;
@@ -272,7 +268,6 @@ const ChatPopup = ({
     }, 2000);
   };
 
-  // ✅ Minimized view
   if (isMinimized) {
     return (
       <div className="chat-popup-minimized" style={style} onClick={onMinimize}>
@@ -291,7 +286,6 @@ const ChatPopup = ({
     );
   }
 
-  // ✅ Full view
   return (
     <div className="chat-popup" style={style}>
       <div className="chat-popup-header">
@@ -332,7 +326,6 @@ const ChatPopup = ({
 
               return (
                 <div
-                  // key={msg.id}
                   key={msg._local_id}
                   className={`message ${isMine ? "me" : "them"}`}
                 >
