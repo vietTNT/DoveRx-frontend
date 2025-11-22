@@ -35,24 +35,24 @@ const getInitials = (name) => {
 };
 
 // ✅ Lấy current user từ localStorage
-const getCurrentUserId = () => {
+const getCurrentUser = () => {
   try {
     const stored = localStorage.getItem("user");
     if (stored) {
-      const userData = JSON.parse(stored);
-      return userData.id;
+      return JSON.parse(stored);
     }
   } catch (error) {
     console.error("Error getting current user:", error);
   }
-  return null;
+  return { id: null };
 };
 
 // ✅ Tạo ID nội bộ để React dùng làm key (ổn định, duy nhất)
 const normalizeMessage = (msg) => {
   return {
     ...msg,
-    _local_id: msg.id || uuidv4(),
+    _local_id: msg.id || msg._local_id || uuidv4(),
+    isSending: msg.isSending || false, // Default false
   };
 };
 
@@ -76,7 +76,7 @@ const ChatPopup = ({
 
   // Ref để theo dõi lần cuối notify
   const lastNotifiedRef = useRef(null);
-  const currentUserId = useMemo(() => getCurrentUserId(), []);
+  const currentUser = useMemo(() => getCurrentUser(), []);
 
   // ✅ Notify parent khi messages thay đổi
   useEffect(() => {
@@ -127,7 +127,7 @@ const ChatPopup = ({
     };
 
     syncMessages();
-  }, [conversation?.id, isMinimized]); // Thêm isMinimized vào dependency nếu cần
+  }, [conversation?.id, isMinimized]);
 
   // ✅ Reset refs khi đổi conversation
   useEffect(() => {
@@ -144,49 +144,65 @@ const ChatPopup = ({
         setMessages((prev) => {
           const newMsg = normalizeMessage(data.message);
 
-          // Tránh trùng lặp
-          const exists = prev.some((msg) => msg._local_id === newMsg._local_id);
+          // 1. Nếu tin nhắn đến là CỦA MÌNH (do server echo về)
+          // ✅ FIX 1: Dùng currentUser.id thay vì currentUserId
+          if (newMsg.sender.id === currentUser.id) {
+            // Tìm tin nhắn "giả lập" đang pending có nội dung giống hệt
+            const pendingIndex = prev.findIndex(
+              (m) => m.isSending && m.text === newMsg.text
+            );
+
+            if (pendingIndex !== -1) {
+              // ✅ THAY THẾ tin giả lập bằng tin thật (giữ nguyên vị trí)
+              const updated = [...prev];
+              updated[pendingIndex] = {
+                ...newMsg,
+                _local_id: prev[pendingIndex]._local_id, // Giữ local_id để React không vẽ lại
+              };
+              saveToCache(conversation.id, updated);
+              return updated;
+            }
+          }
+
+          // 2. Logic thêm tin nhắn bình thường (của người khác)
+          const exists = prev.some((msg) => msg.id === newMsg.id); // Check ID server
           if (exists) return prev;
 
           const sorted = [...prev, newMsg].sort(
             (a, b) => new Date(a.created_at) - new Date(b.created_at)
           );
 
-          // 🔥 QUAN TRỌNG: Cập nhật Cache ngay khi có tin nhắn mới Realtime
           saveToCache(conversation.id, sorted);
-
           return sorted;
         });
 
-        if (!isMinimized) {
-          chatWebSocketService.markAsRead(conversation.id);
-        }
+        if (!isMinimized) chatWebSocketService.markAsRead(conversation.id);
       }
     };
 
-    const handleMessageSent = (data) => {
-      if (Number(data.message?.conversation) === Number(conversation?.id)) {
-        setMessages((prev) => {
-          const newMsg = normalizeMessage(data.message);
-          const exists = prev.some((msg) => msg._local_id === newMsg._local_id);
-          if (exists) return prev;
+    // const handleMessageSent = (data) => {
+    //   if (Number(data.message?.conversation) === Number(conversation?.id)) {
+    //     setMessages((prev) => {
+    //       const newMsg = normalizeMessage(data.message);
+    //       const exists = prev.some((msg) => msg._local_id === newMsg._local_id);
+    //       if (exists) return prev;
 
-          const sorted = [...prev, newMsg].sort(
-            (a, b) => new Date(a.created_at) - new Date(b.created_at)
-          );
+    //       const sorted = [...prev, newMsg].sort(
+    //         (a, b) => new Date(a.created_at) - new Date(b.created_at)
+    //       );
 
-          // 🔥 QUAN TRỌNG: Cập nhật Cache ngay khi gửi tin nhắn thành công
-          saveToCache(conversation.id, sorted);
+    //       // 🔥 QUAN TRỌNG: Cập nhật Cache ngay khi gửi tin nhắn thành công
+    //       saveToCache(conversation.id, sorted);
 
-          return sorted;
-        });
-      }
-    };
+    //       return sorted;
+    //     });
+    //   }
+    // };
 
     const handleTyping = (data) => {
       if (
         data.conversation_id === conversation?.id &&
-        data.user_id !== currentUserId
+        data.user_id !== currentUser.id // ✅ FIX 2: Dùng currentUser.id
       ) {
         setIsTyping(data.is_typing);
         if (data.is_typing) {
@@ -201,24 +217,23 @@ const ChatPopup = ({
           const updated = prev.map((msg) =>
             msg.is_read ? msg : { ...msg, is_read: true }
           );
-          // Không cần saveToCache ở đây vì is_read không ảnh hưởng nhiều đến hiển thị content
           return updated;
         });
       }
     };
 
     chatWebSocketService.on("new_message", handleNewMessage);
-    chatWebSocketService.on("message_sent", handleMessageSent);
+    // chatWebSocketService.on("message_sent", handleMessageSent);
     chatWebSocketService.on("user_typing", handleTyping);
     chatWebSocketService.on("messages_read", handleMessagesRead);
 
     return () => {
       chatWebSocketService.off("new_message", handleNewMessage);
-      chatWebSocketService.off("message_sent", handleMessageSent);
+      // chatWebSocketService.off("message_sent", handleMessageSent);
       chatWebSocketService.off("user_typing", handleTyping);
       chatWebSocketService.off("messages_read", handleMessagesRead);
     };
-  }, [conversation?.id, currentUserId, isMinimized]);
+  }, [conversation?.id, currentUser.id, isMinimized]); // ✅ FIX 3: Dependency array
 
   // ✅ Auto scroll (Fix lỗi hiển thị tin cũ)
   useLayoutEffect(() => {
@@ -229,6 +244,7 @@ const ChatPopup = ({
     if (messages.length > 0 && !isTyping) {
       messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, conversation?.id]);
 
   // Smooth scroll khi có tin nhắn mới thêm vào
@@ -236,24 +252,44 @@ const ChatPopup = ({
     if (!loading && messages.length > 0) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages, loading]);
+  }, [messages, loading, isTyping]);
 
   // ✅ Gửi tin nhắn
   const handleSend = (e) => {
     e.preventDefault();
-    if (!message.trim() || !conversation?.id) return;
+    const textToSend = message.trim();
+    if (!textToSend || !conversation?.id) return;
 
-    chatWebSocketService.sendMessage(conversation.id, message.trim());
-    setMessage("");
+    // 1️⃣ TẠO TIN NHẮN GIẢ LẬP (Optimistic Message)
+    const optimisticMsg = {
+      id: null, // Chưa có ID server
+      _local_id: uuidv4(),
+      conversation: conversation.id,
+      text: textToSend,
+      sender: {
+        id: currentUser.id,
+        name: currentUser.name || currentUser.username || "Tôi",
+        avatar: currentUser.avatar, // Dùng avatar từ localStorage
+      },
+      created_at: new Date().toISOString(),
+      is_read: false,
+      isSending: true, // 🚩 Đánh dấu đang gửi
+    };
 
+    // 2️⃣ CẬP NHẬT GIAO DIỆN NGAY LẬP TỨC
+    setMessages((prev) => [...prev, optimisticMsg]);
+    setMessage(""); // Xóa input ngay
+
+    // 3️⃣ GỬI SOCKET NGẦM
+    chatWebSocketService.sendMessage(conversation.id, textToSend);
+
+    // 4️⃣ TẮT TYPING (Gửi signal ngừng gõ)
     chatWebSocketService.sendTyping(conversation.id, false);
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
   };
 
   // ✅ Typing indicator logic
-  const handleTyping = (e) => {
+  const handleTypingInput = (e) => {
     setMessage(e.target.value);
     if (!conversation?.id) return;
 
@@ -322,7 +358,8 @@ const ChatPopup = ({
         ) : (
           <>
             {messages.map((msg) => {
-              const isMine = msg.sender?.id === currentUserId;
+              // ✅ FIX 4: Dùng currentUser.id
+              const isMine = msg.sender?.id === currentUser.id;
 
               return (
                 <div
@@ -381,7 +418,7 @@ const ChatPopup = ({
           type="text"
           placeholder="Aa"
           value={message}
-          onChange={handleTyping}
+          onChange={handleTypingInput}
         />
         <button type="button" className="emoji-btn">
           <i className="far fa-smile"></i>
