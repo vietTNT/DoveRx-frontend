@@ -106,10 +106,7 @@ const SidebarRight = ({ contacts, onContactClick }) => {
       `💾 [SidebarRight] Caching messages for contact ${contactId}:`,
       messages.length
     );
-    // setCachedMessages((prev) => ({
-    //   ...prev,
-    //   [contactId]: messages,
-    // }));
+
     // ✅ Lưu vào ref trước
     cachedMessagesRef.current = {
       ...cachedMessagesRef.current,
@@ -139,13 +136,25 @@ const SidebarRight = ({ contacts, onContactClick }) => {
       };
     });
   }, []);
-  // // ✅ Xử lý khi click vào contact
+
+  // ✅ Xử lý khi click vào contact
   // const handleClick = async (contact) => {
   //   try {
-  //     // ✅ Lấy hoặc tạo conversation
-  //     const conversation = await getOrCreateConversation(contact.id);
+  //     console.log(`🖱️ [SidebarRight] Clicked contact:`, contact);
 
-  //     // ✅ Lưu conversation vào state
+  //     const token = localStorage.getItem("access");
+  //     if (!token) {
+  //       alert("⚠️ Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+  //       window.location.href = "/login";
+  //       return;
+  //     }
+
+  //     console.log(
+  //       `🔄 [SidebarRight] Getting conversation with user ${contact.id}...`
+  //     );
+  //     const conversation = await getOrCreateConversation(contact.id);
+  //     console.log(`✅ [SidebarRight] Got conversation:`, conversation);
+
   //     setConversations((prev) => ({
   //       ...prev,
   //       [contact.id]: conversation,
@@ -156,87 +165,98 @@ const SidebarRight = ({ contacts, onContactClick }) => {
   //     );
 
   //     if (existingChatIndex === -1) {
-  //       // ✅ Chat chưa tồn tại - Thêm mới
+  //       console.log(`➕ [SidebarRight] Adding new chat for ${contact.name}`);
   //       setOpenChats([...openChats, { contact, isMinimized: false }]);
   //     } else {
   //       const existingChat = openChats[existingChatIndex];
 
   //       if (existingChat.isMinimized) {
-  //         // ✅ Chat đang minimize - Maximize và di chuyển lên đầu danh sách expanded
+  //         console.log(`⬆️ [SidebarRight] Maximizing chat for ${contact.name}`);
   //         const updatedChats = [...openChats];
   //         updatedChats.splice(existingChatIndex, 1);
   //         updatedChats.push({ ...existingChat, isMinimized: false });
   //         setOpenChats(updatedChats);
+  //       } else {
+  //         console.log(`🔄 [SidebarRight] Focusing chat for ${contact.name}`);
+  //         const updatedChats = [...openChats];
+  //         updatedChats.splice(existingChatIndex, 1);
+  //         updatedChats.push(existingChat);
+  //         setOpenChats(updatedChats);
   //       }
-  //       // Nếu chat đã expanded rồi thì không làm gì
-  //     }
-
-  //     if (onContactClick) {
-  //       onContactClick(contact);
   //     }
   //   } catch (error) {
-  //     console.error("Error opening chat:", error);
+  //     console.error("❌ [SidebarRight] Error in handleClick:", error);
+
+  //     if (
+  //       error.message?.includes("Session expired") ||
+  //       error.message?.includes("No access token")
+  //     ) {
+  //       alert("⚠️ Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+  //       window.location.href = "/login";
+  //     } else {
+  //       alert(`❌ Không thể mở chat.\n\nLỗi: ${error.message}`);
+  //     }
   //   }
   // };
-  // ✅ Xử lý khi click vào contact
-  const handleClick = async (contact) => {
-    try {
-      console.log(`🖱️ [SidebarRight] Clicked contact:`, contact);
+  // ✅ Xử lý khi click vào contact (SỬA ĐỔI: Instant UI)
+  const handleClick = (contact) => {
+    // 1. Kiểm tra Auth trước (Giữ nguyên)
+    const token = localStorage.getItem("access");
+    if (!token) {
+      alert("⚠️ Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+      window.location.href = "/login";
+      return;
+    }
 
-      const token = localStorage.getItem("access");
-      if (!token) {
-        alert("⚠️ Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
-        window.location.href = "/login";
-        return;
-      }
+    console.log(`🖱️ [SidebarRight] Clicked contact (Instant Open):`, contact);
 
-      console.log(
-        `🔄 [SidebarRight] Getting conversation with user ${contact.id}...`
-      );
-      const conversation = await getOrCreateConversation(contact.id);
-      console.log(`✅ [SidebarRight] Got conversation:`, conversation);
-
-      setConversations((prev) => ({
-        ...prev,
-        [contact.id]: conversation,
-      }));
-
-      const existingChatIndex = openChats.findIndex(
+    // 2. MỞ UI NGAY LẬP TỨC (Không chờ API)
+    // Logic: Nếu chưa mở -> Thêm vào list. Nếu đang đóng -> Mở lại.
+    setOpenChats((prevChats) => {
+      const existingChatIndex = prevChats.findIndex(
         (chat) => chat.contact.id === contact.id
       );
 
+      // TH1: Chat chưa tồn tại trong list -> Thêm mới
       if (existingChatIndex === -1) {
-        console.log(`➕ [SidebarRight] Adding new chat for ${contact.name}`);
-        setOpenChats([...openChats, { contact, isMinimized: false }]);
-      } else {
-        const existingChat = openChats[existingChatIndex];
-
-        if (existingChat.isMinimized) {
-          console.log(`⬆️ [SidebarRight] Maximizing chat for ${contact.name}`);
-          const updatedChats = [...openChats];
-          updatedChats.splice(existingChatIndex, 1);
-          updatedChats.push({ ...existingChat, isMinimized: false });
-          setOpenChats(updatedChats);
-        } else {
-          console.log(`🔄 [SidebarRight] Focusing chat for ${contact.name}`);
-          const updatedChats = [...openChats];
-          updatedChats.splice(existingChatIndex, 1);
-          updatedChats.push(existingChat);
-          setOpenChats(updatedChats);
-        }
+        return [...prevChats, { contact, isMinimized: false }];
       }
-    } catch (error) {
-      console.error("❌ [SidebarRight] Error in handleClick:", error);
 
-      if (
-        error.message?.includes("Session expired") ||
-        error.message?.includes("No access token")
-      ) {
-        alert("⚠️ Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
-        window.location.href = "/login";
-      } else {
-        alert(`❌ Không thể mở chat.\n\nLỗi: ${error.message}`);
-      }
+      // TH2: Chat đã tồn tại
+      const updatedChats = [...prevChats];
+      const existingChat = updatedChats[existingChatIndex];
+
+      // Nếu đang minimize hoặc không focus -> Đưa lên đầu/mở rộng
+      updatedChats.splice(existingChatIndex, 1);
+      updatedChats.push({ ...existingChat, isMinimized: false });
+
+      return updatedChats;
+    });
+
+    // 3. GỌI API NGẦM (Background Fetch)
+    // Nếu chưa có thông tin conversation trong state thì mới gọi
+    if (!conversations[contact.id]) {
+      console.log(
+        `🔄 [SidebarRight] Fetching conversation info in background...`
+      );
+
+      getOrCreateConversation(contact.id)
+        .then((conversation) => {
+          console.log(
+            `✅ [SidebarRight] Got conversation data for ${contact.name}`
+          );
+          setConversations((prev) => ({
+            ...prev,
+            [contact.id]: conversation,
+          }));
+        })
+        .catch((error) => {
+          console.error(
+            "❌ [SidebarRight] Error fetching conversation:",
+            error
+          );
+          // Tùy chọn: Có thể đóng chat nếu lỗi, hoặc hiện thông báo
+        });
     }
   };
   // ✅ Đóng chat
