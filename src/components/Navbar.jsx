@@ -298,11 +298,6 @@ const Navbar = ({ user, onLogout }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) alert(`🔍 Kết quả tìm kiếm: "${searchQuery}"`);
-  };
-
   const handleProfileClick = () => navigate("/profile");
 
   return (
@@ -316,7 +311,7 @@ const Navbar = ({ user, onLogout }) => {
 
         {/* ✅ Search với dropdown results */}
         <div className="search-wrapper">
-          <form className="navbar-search" onSubmit={handleSearchSubmit}>
+          <form className="navbar-search">
             <i className="fas fa-search search-icon"></i>
             <input
               type="text"
@@ -400,7 +395,6 @@ const Navbar = ({ user, onLogout }) => {
           <button
             className={`nav-icon-btn ${activeTab === "friend" ? "active" : ""}`}
             onClick={() => {
-              console.log("👥 Friend button clicked");
               setFriendRequestsOpen(!friendRequestsOpen);
               setNotifOpen(false);
               setChatOpen(false);

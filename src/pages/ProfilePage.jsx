@@ -41,6 +41,7 @@ const ProfilePage = ({ onLogout, user: appUser, setUser: setAppUser }) => {
     license_number: "",
   });
   const [avatarPreview, setAvatarPreview] = useState(user?.avatar || "");
+  const [saving, setSaving] = useState(false);
 
   // 🆕 State cho Avatar Editor
   const [showEditor, setShowEditor] = useState(false);
@@ -62,7 +63,7 @@ const ProfilePage = ({ onLogout, user: appUser, setUser: setAppUser }) => {
         bio: storedUser.bio || "",
         avatar: "", // only store File here when user selects new image
       });
-      // convert relative avatar -> full URL; keep blob/data as-is
+
       setAvatarPreview(
         storedUser.avatar ? getAvatarUrl(storedUser.avatar) : ""
       );
@@ -121,70 +122,61 @@ const ProfilePage = ({ onLogout, user: appUser, setUser: setAppUser }) => {
 
   const handleSave = async () => {
     try {
+      setSaving(true); // 🔥 Bắt đầu loading
+
       const token = localStorage.getItem("access");
       const form = new FormData();
 
-      // 1️⃣ Append các field (trừ avatar & gender)
+      // Append fields
       const skip = ["id", "email", "role", "avatar", "gender"];
       for (const key in formData) {
         if (skip.includes(key)) continue;
         const v = formData[key];
-        if (v !== undefined && v !== null) form.append(key, v);
+        if (v !== undefined && v !== null && v !== "") {
+          form.append(key, v);
+        }
       }
 
-      // 2️⃣ Append avatar nếu là file
+      // Append avatar
       if (formData.avatar instanceof File) {
         form.append("avatar", formData.avatar);
       }
 
-      // 3️⃣ Append gender
+      // Map gender
       const gMap = { Nam: "male", Nữ: "female", Khác: "other", "": "" };
-      const genderValue = gMap.hasOwnProperty(formData.gender)
-        ? gMap[formData.gender]
-        : formData.gender || "";
-      if (genderValue !== "") form.append("gender", genderValue);
+      const genderValue = gMap[formData.gender] || formData.gender;
+      if (genderValue) form.append("gender", genderValue);
 
-      // 4️⃣ Gửi API update
+      // 🔥 API request
       const res = await axios.put(
         `${process.env.REACT_APP_API_BASE}/api/accounts/update-profile/`,
         form,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      // ✅ Giữ lại token cũ & user cũ
-      const oldUser = JSON.parse(localStorage.getItem("user")) || {};
-      const updatedUser = { ...oldUser, ...res.data };
+      const updatedUser = res.data;
 
-      // Lưu user mới mà KHÔNG làm mất token
-      localStorage.setItem("user", JSON.stringify(updatedUser));
+      // 🔥 Cập nhật UI ngay lập tức
       setUser(updatedUser);
-      if (setAppUser) setAppUser(updatedUser);
-
-      toast.success("✅ Hồ sơ đã được lưu thành công!");
-
-      // 6️⃣ Refresh lại profile mới nhất
-      const refreshed = await axios.get(
-        `${process.env.REACT_APP_API_BASE}/api/accounts/profile/`,
-        { headers: { Authorization: `Bearer ${token}` } }
+      setAppUser?.(updatedUser);
+      setAvatarPreview(
+        updatedUser.avatar ? getAvatarUrl(updatedUser.avatar) : ""
       );
 
-      // Cập nhật lại dữ liệu mà vẫn giữ token
-      const finalUser = { ...updatedUser, ...refreshed.data };
+      // 🔥 Lưu user vào localStorage
+      localStorage.setItem("user", JSON.stringify(updatedUser));
 
-      localStorage.setItem("user", JSON.stringify(finalUser));
-      setUser(finalUser);
-      if (setAppUser) setAppUser(finalUser);
-      setFormData({ ...finalUser, avatar: "" });
-      setAvatarPreview(finalUser.avatar ? getAvatarUrl(finalUser.avatar) : "");
+      toast.success("🎉 Hồ sơ đã lưu!");
 
       setIsEditing(false);
+
+      // 🔥 Bắn event update cho toàn hệ thống
       window.dispatchEvent(new CustomEvent("user:updated"));
     } catch (error) {
-      console.error(
-        "❌ Lỗi khi cập nhật hồ sơ:",
-        error.response?.data || error
-      );
-      alert("Cập nhật thất bại!");
+      console.error("❌ Update profile failed", error);
+      toast.error("Cập nhật thất bại!");
+    } finally {
+      setSaving(false); // 🔥 tắt loading
     }
   };
 
