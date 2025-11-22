@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from "react";
 import "../styles/DashBoard.css";
 
 import { fetchPosts, createPost } from "../services/socialApi";
-
+import { savePostsToCache, loadPostsFromCache } from "../utils/postCache";
 import { mapPostToUI } from "../utils/mapPost";
 
 import Navbar from "../components/Navbar";
@@ -32,18 +32,40 @@ const Dashboard = ({ user, onLogout }) => {
     };
   }, []);
   useEffect(() => {
-    const loadPosts = async () => {
+    const loadData = async () => {
+      // 1️⃣ BƯỚC 1: Hiển thị ngay từ Cache (nếu có) để tạo cảm giác "mượt"
+      const cachedPosts = loadPostsFromCache();
+      if (cachedPosts && cachedPosts.length > 0) {
+        console.log(
+          `🚀 [Dashboard] Loaded ${cachedPosts.length} posts from Cache`
+        );
+        setPosts(cachedPosts);
+      }
+
+      // 2️⃣ BƯỚC 2: Gọi API lấy dữ liệu mới nhất (Ngầm)
       try {
         const data = await fetchPosts();
-        setPosts(data.map(mapPostToUI));
+        const uiPosts = data.map(mapPostToUI);
+
+        // Cập nhật State hiển thị
+        setPosts(uiPosts);
+
+        // Lưu ngay dữ liệu mới nhất vào cache
+        savePostsToCache(uiPosts);
       } catch (err) {
         console.error("Tải bài viết thất bại:", err);
       }
     };
 
-    loadPosts(); // ✅ Chỉ load 1 lần khi mount
+    loadData();
   }, []);
 
+  // Tự động lưu Cache mỗi khi danh sách posts thay đổi
+  useEffect(() => {
+    if (posts.length > 0) {
+      savePostsToCache(posts);
+    }
+  }, [posts]);
   const getTimeAgo = (timestamp) => {
     if (!timestamp) return "";
 

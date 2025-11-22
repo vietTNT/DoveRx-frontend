@@ -83,7 +83,7 @@ const CommentModal = ({
 }) => {
   const commentListRef = useRef(null);
   const hidePopupTimer = useRef(null);
-  const postPopupTimer = useRef(null);
+
   // ✅ Di chuyển tất cả logic lên trước if (!isOpen)
   const list = comments[post.id]?.list || [];
   const myReaction = reactions[post.id];

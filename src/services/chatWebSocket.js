@@ -4,39 +4,20 @@ class ChatWebSocketService {
     this.listeners = new Map();
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 5;
-    this.pingInterval = null; // ✅ THÊM
+    this.pingInterval = null;
+    this.messageQueue = [];
   }
 
   connect(token) {
-    // ✅ Kiểm tra token hợp lệ
     if (!token || token === "undefined" || token === "null") {
-      console.error("❌ [chatWebSocket] Invalid token:", token);
+      console.error("❌ [chatWebSocket] Invalid token");
       return;
     }
 
-    // ✅ Kiểm tra đã connected chưa
-    if (this.ws?.readyState === WebSocket.OPEN) {
-      console.log("✅ [chatWebSocket] Already connected");
-      return;
-    }
+    if (this.ws?.readyState === WebSocket.OPEN) return;
 
-    // ✅ Nếu đang connecting hoặc closing, đợi
-    if (this.ws?.readyState === WebSocket.CONNECTING) {
-      console.log("⏳ [chatWebSocket] Already connecting, waiting...");
-      return;
-    }
-
-    const baseUrl = process.env.REACT_APP_API_BASE;
-    const wsProtocol = baseUrl.startsWith("https") ? "wss" : "ws";
-    const wsHost = baseUrl.replace(/^https?:\/\//, "");
-    // const wsUrl = `${wsProtocol}://${wsHost}/ws/chat/?token=${token}`; local
     const wsUrl = `${process.env.REACT_APP_WS_BASE}/ws/chat/?token=${token}`;
-
     console.log("🔌 [chatWebSocket] Connecting to:", wsUrl);
-    console.log(
-      "🔑 [chatWebSocket] Token preview:",
-      token.substring(0, 30) + "..."
-    ); // ✅ THÊM LOG
 
     this.ws = new WebSocket(wsUrl);
 
@@ -44,10 +25,12 @@ class ChatWebSocketService {
       console.log("✅ [chatWebSocket] Connected successfully");
       this.reconnectAttempts = 0;
 
-      // ✅ THÊM: Gửi ping mỗi 30 giây để giữ kết nối
+      // ✅ FIX: Xả hàng đợi tin nhắn (Flush Queue)
+      this.processMessageQueue();
+
+      // Setup Heartbeat
       this.pingInterval = setInterval(() => {
         if (this.ws?.readyState === WebSocket.OPEN) {
-          console.log("🏓 [chatWebSocket] Sending ping...");
           this.send({ type: "ping" });
         }
       }, 30000);
@@ -56,32 +39,18 @@ class ChatWebSocketService {
     this.ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        console.log("📩 [chatWebSocket] Received:", data);
 
-        if (data.type === "pong") {
-          console.log("🏓 [chatWebSocket] Received pong");
-          return;
-        }
+        if (data.type === "pong") return;
 
         // ✅ KIỂM TRA LẠI: Có thể bị nhầm logic ở đây
-        if (data.type === "connection_established") {
-          console.log("✅ [chatWebSocket] Server confirmed connection");
-        } else if (data.type === "message_sent") {
-          console.log("✅ [chatWebSocket] Message type: message_sent");
-          this.notifyListeners("message_sent", data); // ✅ ĐÚNG
-        } else if (data.type === "new_message") {
-          console.log("💬 [chatWebSocket] Message type: new_message");
-          this.notifyListeners("new_message", data); // ✅ ĐÚNG
-        } else if (data.type === "user_typing") {
-          console.log("⌨️ [chatWebSocket] Message type: user_typing");
-          this.notifyListeners("user_typing", data); // ✅ ĐÚNG
-        } else if (data.type === "messages_read") {
+        if (data.type === "new_message")
+          this.notifyListeners("new_message", data);
+        else if (data.type === "message_sent")
+          this.notifyListeners("message_sent", data);
+        else if (data.type === "user_typing")
+          this.notifyListeners("user_typing", data);
+        else if (data.type === "messages_read")
           this.notifyListeners("messages_read", data);
-        } else if (data.type === "error") {
-          console.error("❌ [chatWebSocket] Server error:", data.message);
-        } else {
-          console.warn("⚠️ [chatWebSocket] Unknown type:", data.type);
-        }
       } catch (err) {
         console.error("❌ [chatWebSocket] Parse error:", err);
       }
@@ -92,54 +61,39 @@ class ChatWebSocketService {
     };
 
     this.ws.onclose = (event) => {
-      console.log("🔌 [chatWebSocket] Closed:", event.code, event.reason);
+      console.log("🔌 [chatWebSocket] Closed");
+      if (this.pingInterval) clearInterval(this.pingInterval);
 
-      // ✅ THÊM: Dừng ping khi đóng
-      if (this.pingInterval) {
-        clearInterval(this.pingInterval);
-        this.pingInterval = null;
-      }
-
-      // ✅ Chỉ reconnect nếu không phải lỗi auth
+      // Chỉ reconnect nếu không phải lỗi Auth
       if (event.code !== 4001 && event.code !== 4003) {
         this.reconnect(token);
-      } else {
-        console.error(
-          "❌ [chatWebSocket] Authentication failed, not reconnecting"
-        );
       }
     };
   }
 
+  // ✅ THÊM HÀM: Xử lý hàng đợi
+  processMessageQueue() {
+    if (this.messageQueue.length > 0) {
+      console.log(
+        `🔄 [chatWebSocket] Processing ${this.messageQueue.length} queued messages...`
+      );
+
+      while (this.messageQueue.length > 0) {
+        const payload = this.messageQueue.shift(); // Lấy tin nhắn đầu tiên ra
+        this.ws.send(JSON.stringify(payload));
+        console.log("📤 [chatWebSocket] Sent queued message:", payload);
+      }
+    }
+  }
   reconnect(token) {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
-      console.log(
-        `🔄 [chatWebSocket] Reconnecting... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`
-      );
       setTimeout(() => this.connect(token), 3000);
-    } else {
-      console.error("❌ [chatWebSocket] Max reconnect attempts reached");
     }
   }
-
   send(message) {
     if (this.ws?.readyState === WebSocket.OPEN) {
-      console.log("📤 [chatWebSocket] Sending:", message);
       this.ws.send(JSON.stringify(message));
-    } else {
-      console.error(
-        "❌ [chatWebSocket] Not connected, ReadyState:",
-        this.ws?.readyState
-      );
-
-      // ✅ Log chi tiết để debug
-      console.error("❌ [chatWebSocket] WebSocket states:");
-      console.error("   - CONNECTING:", WebSocket.CONNECTING);
-      console.error("   - OPEN:", WebSocket.OPEN);
-      console.error("   - CLOSING:", WebSocket.CLOSING);
-      console.error("   - CLOSED:", WebSocket.CLOSED);
-      console.error("   - Current:", this.ws?.readyState);
     }
   }
 
@@ -150,36 +104,20 @@ class ChatWebSocketService {
       text,
     };
 
-    console.log("📤 [chatWebSocket] sendMessage called:");
-    console.log("   conversationId:", conversationId);
-    console.log("   text:", text);
-    console.log("   payload:", payload);
-    console.log("   wsState:", this.ws?.readyState);
-    console.log("   wsStates: CONNECTING=0, OPEN=1, CLOSING=2, CLOSED=3");
-
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-      console.error("❌ [chatWebSocket] WebSocket not ready!");
-      console.error("   Current state:", this.ws?.readyState);
-      console.error("   Expected state: 1 (OPEN)");
+      console.warn("⚠️ [chatWebSocket] Connection lost. Queuing message...");
 
-      // ✅ Thử reconnect
+      // ✅ Đẩy vào queue để chờ reconnect
+      this.messageQueue.push(payload);
+
+      // Thử reconnect nếu cần
       const token = localStorage.getItem("access");
-      if (token) {
-        console.log("🔄 [chatWebSocket] Attempting to reconnect...");
-        this.connect(token);
+      if (token) this.connect(token);
 
-        // ✅ Queue tin nhắn để gửi sau khi reconnect
-        if (!this.messageQueue) {
-          this.messageQueue = [];
-        }
-        this.messageQueue.push(payload);
-      }
       return;
     }
 
-    console.log("✅ [chatWebSocket] Sending payload via WebSocket...");
     this.ws.send(JSON.stringify(payload));
-    console.log("✅ [chatWebSocket] Payload sent successfully");
   }
 
   sendTyping(conversationId, isTyping = true) {
