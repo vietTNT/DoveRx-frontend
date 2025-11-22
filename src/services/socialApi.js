@@ -6,16 +6,31 @@ export const fetchPosts = async () => {
   return data;
 };
 
+// export const createPost = async ({ kind, content, content_medical, files }) => {
+//   const fd = new FormData();
+//   fd.append("kind", kind || "normal");
+//   if (kind === "medical")
+//     fd.append("content_medical", JSON.stringify(content_medical || {}));
+//   else fd.append("content", content || "");
+//   (files || []).forEach((f) => fd.append("media", f));
+//   const { data } = await api.post("/api/social/posts/", fd, {
+//     headers: { "Content-Type": "multipart/form-data" },
+//   });
+//   return data;
+// };
 export const createPost = async ({ kind, content, content_medical, files }) => {
   const fd = new FormData();
   fd.append("kind", kind || "normal");
+
   if (kind === "medical")
     fd.append("content_medical", JSON.stringify(content_medical || {}));
   else fd.append("content", content || "");
+
   (files || []).forEach((f) => fd.append("media", f));
-  const { data } = await api.post("/api/social/posts/", fd, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
+
+  // ❌ KHÔNG thêm Content-Type
+  const { data } = await api.post("/api/social/posts/", fd);
+
   return data;
 };
 

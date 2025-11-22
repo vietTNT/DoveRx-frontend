@@ -3,7 +3,7 @@ import ShareModal from "./ShareModal";
 import CommentModal from "./CommentModal";
 import "../../styles/PostCard.css";
 import { toast } from "react-toastify";
-import { resolveImageUrl } from "../utils/imageHelper";
+import { resolveImageUrl } from "../../utils/imageHelper";
 import {
   reactPost,
   sharePost,
