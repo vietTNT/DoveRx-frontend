@@ -99,15 +99,6 @@ function App() {
 
     // Connect Chat WebSocket
     chatWebSocketService.connect(token);
-
-    // ❌ XÓA RETURN CLEANUP NÀY ĐI
-    // return () => {
-    //   if (!user) {
-    //     console.log("🔌 [App] User logged out, disconnecting WebSockets");
-    //     websocketService.disconnect();
-    //     chatWebSocketService.disconnect();
-    //   }
-    // };
   }, [user]);
 
   // ✅ THÊM useEffect mới CHỈ cleanup khi logout
@@ -122,7 +113,18 @@ function App() {
 
   // ✅ Lắng nghe sự kiện user cập nhật từ ProfilePage
   useEffect(() => {
-    const handleUserUpdated = () => {
+    // Thêm tham số 'event' vào hàm xử lý
+    const handleUserUpdated = (event) => {
+      // 🔥 ƯU TIÊN 1: Lấy dữ liệu "nóng" từ event (URL tạm thời Blob)
+      // Đây là phần giúp Navbar đổi ảnh ngay lập tức
+      if (event.detail && event.detail.user) {
+        console.log("⚡ [App] Cập nhật nhanh từ Event:", event.detail.user);
+        setUser(event.detail.user);
+        return; // Dừng lại, không cần đọc localStorage nữa
+      }
+
+      // 🔥 ƯU TIÊN 2: Fallback đọc từ localStorage (Logic cũ)
+      // Dành cho trường hợp F5 hoặc các update không gửi kèm detail
       try {
         const updatedUser = localStorage.getItem("user");
         if (updatedUser && updatedUser !== "undefined") {

@@ -23,6 +23,17 @@ const getAvatarUrl = (a) => {
   return base ? `${base}${path}` : path;
 };
 
+// --- NEW: chuẩn hóa giá trị gender từ API -> label hiển thị
+const apiToLabelGender = (g) => {
+  if (!g && g !== 0) return "";
+  const s = String(g).toLowerCase().trim();
+  if (s.includes("male") || s === "m" || s === "nam") return "Nam";
+  if (s.includes("female") || s === "f" || s === "nữ" || s === "nu")
+    return "Nữ";
+  if (s.includes("other") || s === "khác" || s === "khac") return "Khác";
+  return String(g);
+};
+
 const ProfilePage = ({ onLogout, user: appUser, setUser: setAppUser }) => {
   const [user, setUser] = useState(appUser || null);
   const [isEditing, setIsEditing] = useState(false);
@@ -56,12 +67,13 @@ const ProfilePage = ({ onLogout, user: appUser, setUser: setAppUser }) => {
       setFormData({
         first_name: storedUser.first_name || "",
         last_name: storedUser.last_name || "",
-        gender: storedUser.gender || "",
+        // map giá trị API về label để select hiển thị đúng
+        gender: apiToLabelGender(storedUser.gender),
         age: storedUser.age || "",
         phone: storedUser.phone || "",
         address: storedUser.address || "",
         bio: storedUser.bio || "",
-        avatar: "", // only store File here when user selects new image
+        avatar: "",
       });
 
       setAvatarPreview(
@@ -85,11 +97,86 @@ const ProfilePage = ({ onLogout, user: appUser, setUser: setAppUser }) => {
   };
 
   // 🆕 Lưu ảnh đã crop
+  // 🆕 Xử lý Optimistic UI: Đổi ảnh ngay lập tức + Upload ngầm
+  // ⭐ Thay thế function cũ trong ProfilePage.jsx bằng đoạn này
   const handleSaveAvatar = (croppedFile) => {
-    setFormData({ ...formData, avatar: croppedFile });
-    setAvatarPreview(URL.createObjectURL(croppedFile));
-    setShowEditor(false);
-    setRawImage(null);
+    // KHÔNG block UI: không dùng async ở đây, chỉ chạy sync rất nhanh
+    setRawImage(null); // dọn state ảnh raw
+
+    // 1. Tạo URL tạm để hiển thị mượt ngay lập tức
+    const tempUrl = URL.createObjectURL(croppedFile);
+
+    const oldAvatar = user?.avatar || null;
+    const oldPreview = avatarPreview;
+
+    // 2. Cập nhật giao diện ngay (Optimistic UI)
+    setAvatarPreview(tempUrl);
+    setFormData((prev) => ({ ...prev, avatar: croppedFile }));
+
+    const tempUser = { ...user, avatar: tempUrl };
+    setUser(tempUser);
+
+    // Bắn event để Navbar đổi avatar ngay (dùng blob URL)
+    window.dispatchEvent(
+      new CustomEvent("user:updated", {
+        detail: { user: tempUser },
+      })
+    );
+
+    // 3. UPLOAD NGẦM LÊN SERVER (background)
+    (async () => {
+      try {
+        const token = localStorage.getItem("access");
+        const formData = new FormData();
+        formData.append("avatar", croppedFile);
+
+        const res = await axios.put(
+          `${process.env.REACT_APP_API_BASE}/api/accounts/update-profile/`,
+          formData,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        const updatedUser = res.data; // chứa URL Cloudinary thật
+
+        // Lưu lại để F5 không mất
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+
+        // Cập nhật user local + preview bằng URL thật từ Cloudinary
+        setUser(updatedUser);
+        setAvatarPreview(
+          updatedUser.avatar ? getAvatarUrl(updatedUser.avatar) : ""
+        );
+
+        // Bắn event lần nữa để App/Navbar dùng URL Cloudinary (không còn blob:)
+        // Cập nhật local
+        setUser(updatedUser);
+        setAvatarPreview(getAvatarUrl(updatedUser.avatar));
+
+        // 🔥 Đồng bộ lên App cha
+        if (setAppUser) setAppUser(updatedUser);
+
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+
+        // Giải phóng blob tạm cho đỡ leak RAM
+        URL.revokeObjectURL(tempUrl);
+
+        toast.success("Đã cập nhật ảnh đại diện!");
+      } catch (error) {
+        console.error("Lỗi upload avatar:", error);
+        toast.error("Lỗi cập nhật ảnh, đang hoàn tác...");
+
+        // 4. ROLLBACK nếu upload lỗi
+        setUser((prev) => ({ ...prev, avatar: oldAvatar }));
+        setAvatarPreview(oldPreview);
+        setFormData((prev) => ({ ...prev, avatar: oldAvatar }));
+
+        window.dispatchEvent(
+          new CustomEvent("user:updated", {
+            detail: { user: { ...user, avatar: oldAvatar } },
+          })
+        );
+      }
+    })();
   };
 
   // 🆕 Xóa avatar về mặc định
@@ -122,13 +209,13 @@ const ProfilePage = ({ onLogout, user: appUser, setUser: setAppUser }) => {
 
   const handleSave = async () => {
     try {
-      setSaving(true); // 🔥 Bắt đầu loading
+      setSaving(true);
 
       const token = localStorage.getItem("access");
       const form = new FormData();
 
-      // Append fields
       const skip = ["id", "email", "role", "avatar", "gender"];
+
       for (const key in formData) {
         if (skip.includes(key)) continue;
         const v = formData[key];
@@ -137,46 +224,41 @@ const ProfilePage = ({ onLogout, user: appUser, setUser: setAppUser }) => {
         }
       }
 
-      // Append avatar
-      if (formData.avatar instanceof File) {
-        form.append("avatar", formData.avatar);
-      }
-
       // Map gender
       const gMap = { Nam: "male", Nữ: "female", Khác: "other", "": "" };
       const genderValue = gMap[formData.gender] || formData.gender;
       if (genderValue) form.append("gender", genderValue);
 
-      // 🔥 API request
       const res = await axios.put(
         `${process.env.REACT_APP_API_BASE}/api/accounts/update-profile/`,
         form,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      const updatedUser = res.data;
+      const finalUser = res.data;
 
-      // 🔥 Cập nhật UI ngay lập tức
-      setUser(updatedUser);
-      setAppUser?.(updatedUser);
-      setAvatarPreview(
-        updatedUser.avatar ? getAvatarUrl(updatedUser.avatar) : ""
+      setFormData((prev) => ({
+        ...prev,
+        gender: apiToLabelGender(finalUser.gender),
+      }));
+
+      setUser(finalUser);
+      if (setAppUser) setAppUser(finalUser);
+      localStorage.setItem("user", JSON.stringify(finalUser));
+
+      toast.success("🎉 Thông tin đã được lưu!");
+      setIsEditing(false); // Thoát chế độ sửa
+
+      window.dispatchEvent(
+        new CustomEvent("user:updated", {
+          detail: { user: finalUser },
+        })
       );
-
-      // 🔥 Lưu user vào localStorage
-      localStorage.setItem("user", JSON.stringify(updatedUser));
-
-      toast.success("🎉 Hồ sơ đã lưu!");
-
-      setIsEditing(false);
-
-      // 🔥 Bắn event update cho toàn hệ thống
-      window.dispatchEvent(new CustomEvent("user:updated"));
     } catch (error) {
       console.error("❌ Update profile failed", error);
       toast.error("Cập nhật thất bại!");
     } finally {
-      setSaving(false); // 🔥 tắt loading
+      setSaving(false);
     }
   };
 
@@ -325,13 +407,7 @@ const ProfilePage = ({ onLogout, user: appUser, setUser: setAppUser }) => {
               </p>
               <p>
                 <b>Giới tính:</b>{" "}
-                {user.gender === "male"
-                  ? "Nam"
-                  : user.gender === "female"
-                  ? "Nữ"
-                  : user.gender === "other"
-                  ? "Khác"
-                  : "Chưa cập nhật"}
+                {apiToLabelGender(user.gender) || "Chưa cập nhật"}
               </p>
               <p>
                 <b>Tuổi:</b> {user.age || "Chưa cập nhật"}
