@@ -140,65 +140,62 @@ const ChatPopup = ({
     if (!conversation?.id) return;
 
     const handleNewMessage = (data) => {
+      // Kiểm tra đúng cuộc trò chuyện
       if (Number(data.message?.conversation) === Number(conversation?.id)) {
+        if (data.message.sender.id !== currentUser.id) {
+          setIsTyping(false);
+          if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+          }
+        }
+
         setMessages((prev) => {
           const newMsg = normalizeMessage(data.message);
 
-          // 1. Nếu tin nhắn đến là CỦA MÌNH (do server echo về)
-          // ✅ FIX 1: Dùng currentUser.id thay vì currentUserId
+          // 1. TRƯỜNG HỢP: Tin nhắn CỦA MÌNH (Server phản hồi về)
+          // Mục đích: Thay thế tin nhắn "giả lập" (đang xoay) bằng tin nhắn thật
           if (newMsg.sender.id === currentUser.id) {
-            // Tìm tin nhắn "giả lập" đang pending có nội dung giống hệt
+            // Tìm tin nhắn đang gửi (isSending) có nội dung trùng khớp
             const pendingIndex = prev.findIndex(
               (m) => m.isSending && m.text === newMsg.text
             );
 
             if (pendingIndex !== -1) {
-              // ✅ THAY THẾ tin giả lập bằng tin thật (giữ nguyên vị trí)
+              // ✅ THAY THẾ: Giữ nguyên vị trí, chỉ update data
               const updated = [...prev];
               updated[pendingIndex] = {
                 ...newMsg,
-                _local_id: prev[pendingIndex]._local_id, // Giữ local_id để React không vẽ lại
+                _local_id: prev[pendingIndex]._local_id, // Giữ _local_id để React không vẽ lại (quan trọng)
               };
+
+              // Lưu cache để lần sau mở lại có data chuẩn
               saveToCache(conversation.id, updated);
               return updated;
             }
           }
 
-          // 2. Logic thêm tin nhắn bình thường (của người khác)
-          const exists = prev.some((msg) => msg.id === newMsg.id); // Check ID server
+          // 2. TRƯỜNG HỢP: Tin nhắn BÌNH THƯỜNG (Của người khác hoặc tin mình nhưng không tìm thấy bản giả lập)
+
+          // Kiểm tra trùng lặp ID (Deduplication)
+          const exists = prev.some((msg) => msg.id === newMsg.id);
           if (exists) return prev;
 
+          // Thêm mới và sắp xếp lại theo thời gian
           const sorted = [...prev, newMsg].sort(
             (a, b) => new Date(a.created_at) - new Date(b.created_at)
           );
 
+          // Cập nhật cache
           saveToCache(conversation.id, sorted);
           return sorted;
         });
 
-        if (!isMinimized) chatWebSocketService.markAsRead(conversation.id);
+        // Đánh dấu đã đọc nếu chat đang mở
+        if (!isMinimized) {
+          chatWebSocketService.markAsRead(conversation.id);
+        }
       }
     };
-
-    // const handleMessageSent = (data) => {
-    //   if (Number(data.message?.conversation) === Number(conversation?.id)) {
-    //     setMessages((prev) => {
-    //       const newMsg = normalizeMessage(data.message);
-    //       const exists = prev.some((msg) => msg._local_id === newMsg._local_id);
-    //       if (exists) return prev;
-
-    //       const sorted = [...prev, newMsg].sort(
-    //         (a, b) => new Date(a.created_at) - new Date(b.created_at)
-    //       );
-
-    //       // 🔥 QUAN TRỌNG: Cập nhật Cache ngay khi gửi tin nhắn thành công
-    //       saveToCache(conversation.id, sorted);
-
-    //       return sorted;
-    //     });
-    //   }
-    // };
-
     const handleTyping = (data) => {
       if (
         data.conversation_id === conversation?.id &&
@@ -252,7 +249,7 @@ const ChatPopup = ({
     if (!loading && messages.length > 0) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages, loading, isTyping]);
+  }, [messages, loading]);
 
   // ✅ Gửi tin nhắn
   const handleSend = (e) => {
