@@ -131,7 +131,7 @@
 
 /* 🔹 Hiệu ứng khi focus */
 .share-body textarea:focus {
-  background: #646060;
+  background: #ffffff;
   border-color: #1877f2;
   box-shadow: 0 0 0 2px rgba(24, 119, 242, 0.15);
 }

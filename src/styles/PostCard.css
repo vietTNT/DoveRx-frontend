@@ -12,7 +12,27 @@
   position: relative;
   transition: box-shadow 0.2s ease;
 }
+/* Hiệu ứng cho bài viết đang gửi */
+.post-card.optimistic {
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
+  pointer-events: none; /* Chặn click like/comment khi chưa có ID thật */
+  position: relative;
+}
 
+/* Thêm chữ "Đang đăng..." góc phải */
+.post-card.optimistic::after {
+  content: "Đang đăng...";
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  font-size: 12px;
+  color: #65676b;
+  font-style: italic;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 2px 5px;
+  border-radius: 4px;
+}
 /* Header: Avatar, Tên, Thời gian */
 .post-header {
   display: flex;

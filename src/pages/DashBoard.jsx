@@ -69,9 +69,9 @@ const Dashboard = ({ user, onLogout }) => {
   const getTimeAgo = (timestamp) => {
     if (!timestamp) return "";
 
-    const date = new Date(timestamp); // ✅ Giả sử backend trả về UTC hoặc ISO string
+    const date = new Date(timestamp);
     const now = new Date();
-    const diffMs = now - date; // ✅ So sánh trực tiếp (browser tự convert múi giờ)
+    const diffMs = now - date;
 
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMins / 60);
@@ -135,16 +135,6 @@ const Dashboard = ({ user, onLogout }) => {
     { type: "angry", icon: "😡", label: "Phẫn nộ", color: "#e9710f" },
   ];
   const fileInputRef = useRef();
-  // ✅ THÊM 2 helper functions này
-  const getReactionIcon = (type) => {
-    const emoji = emojiList.find((e) => e.type === type);
-    return emoji?.icon || "👍";
-  };
-
-  const getReactionLabel = (type) => {
-    const emoji = emojiList.find((e) => e.type === type);
-    return emoji?.label || "Thích";
-  };
   // 🟢 TẢI FEED từ BE khi mở trang
   useEffect(() => {
     (async () => {
@@ -175,60 +165,101 @@ const Dashboard = ({ user, onLogout }) => {
   // 🟢 Đăng bài — gọi BE & prepend post trả về
   const [posting, setPosting] = useState(false);
 
+  // 🟢 Đăng bài — Optimistic UI (Hiển thị trước, gửi sau)
   const handlePost = async () => {
     if (posting) return; // tránh double-click
+
+    // 1. Chuẩn bị dữ liệu
+    const files = (selectedImages || []).map((x) => x.file).filter(Boolean);
+    const kind = postType === "medical" ? "medical" : "normal";
+
+    const hasContent =
+      (kind === "medical"
+        ? Object.values(medicalForm).some((v) => (v || "").trim() !== "")
+        : (newPost || "").trim().length > 0) || files.length > 0;
+
+    if (!hasContent) {
+      alert("Bạn chưa nhập nội dung hoặc chọn ảnh/video.");
+      return;
+    }
+
+    // 2. Tạo ID tạm thời
+    const tempId = Date.now();
+
+    // 3. Tạo bài viết GIẢ LẬP (Fake Post) để hiển thị ngay
+    // Lưu ý: Cấu trúc này phải khớp với những gì PostCard cần để render
+    const optimisicPost = {
+      id: tempId,
+      author: user?.name || "Bạn",
+      avatar: user?.avatar, // URL avatar hiện tại
+      time: new Date().toISOString(), // Thời gian hiện tại
+      content: kind === "medical" ? medicalForm : newPost,
+      // Lấy URL preview từ selectedImages để hiển thị ngay
+      images: selectedImages.map((img) => ({
+        url: img.url,
+        type: img.type.startsWith("video") ? "video" : "image",
+      })),
+      reaction_counts: {},
+      comment_count: 0,
+      isOptimistic: true, // 🚩 Cờ để đánh dấu đang gửi (dùng để chỉnh CSS mờ đi)
+    };
+
+    // 4. CẬP NHẬT UI NGAY LẬP TỨC
+    setPosts((prev) => [optimisicPost, ...prev]);
+
+    // 5. Đóng Modal & Reset Form NGAY LẬP TỨC (Người dùng cảm thấy đã xong)
+    setNewPost("");
+    setSelectedImages([]);
+    setMedicalForm({
+      symptom: "",
+      duration: "",
+      severity: "",
+      factors: "",
+      historyPersonal: "",
+      historyFamily: "",
+      medication: "",
+      lifestyle: "",
+    });
+    setIsModalOpen(false);
+
+    // 6. Gửi API ngầm (Background)
+    setPosting(true);
     try {
-      const files = (selectedImages || []).map((x) => x.file).filter(Boolean);
-      const kind = postType === "medical" ? "medical" : "normal";
-
-      const hasContent =
-        (kind === "medical"
-          ? Object.values(medicalForm).some((v) => (v || "").trim() !== "")
-          : (newPost || "").trim().length > 0) || files.length > 0;
-      if (!hasContent) {
-        alert("Bạn chưa nhập nội dung hoặc chọn ảnh/video.");
-        return;
-      }
-
       const payload =
         kind === "medical"
-          ? { kind, content_medical: medicalForm, files }
-          : { kind, content: newPost, files };
+          ? { kind, content_medical: optimisicPost.content, files }
+          : { kind, content: optimisicPost.content, files };
 
-      console.log("[CreatePost] payload:", payload);
-      setPosting(true);
+      console.log("[CreatePost] Sending payload...", payload);
 
+      // Gọi API thật
       const created = await createPost(payload);
-      console.log("[CreatePost] created:", created);
+      console.log("[CreatePost] Success:", created);
 
-      setPosts((prev) => [mapPostToUI(created), ...prev]);
-
-      // reset UI
-      setNewPost("");
-      setSelectedImages([]);
-      setMedicalForm({
-        symptom: "",
-        duration: "",
-        severity: "",
-        factors: "",
-        historyPersonal: "",
-        historyFamily: "",
-        medication: "",
-        lifestyle: "",
-      });
-      setIsModalOpen(false);
+      // 7. THAY THẾ bài giả lập bằng bài thật (Update ID thật từ server)
+      setPosts((prev) =>
+        prev.map((p) => (p.id === tempId ? mapPostToUI(created) : p))
+      );
     } catch (e) {
       console.error("Create post error:", e);
       const msg =
-        e?.response?.data?.detail ||
-        e?.response?.data?.error ||
-        "Không thể đăng bài, vui lòng thử lại!";
+        e?.response?.data?.detail || "Không thể đăng bài, vui lòng thử lại!";
       toast.error(`❌ ${msg}`);
+
+      // 8. ROLLBACK: Nếu lỗi thì xóa bài giả lập đi và hoàn tác
+      setPosts((prev) => prev.filter((p) => p.id !== tempId));
+
+      // (Optional) Khôi phục lại nội dung vào form để user không phải gõ lại
+      if (kind === "normal") {
+        setNewPost(
+          typeof optimisicPost.content === "string" ? optimisicPost.content : ""
+        );
+        setIsModalOpen(true); // Mở lại modal
+      }
     } finally {
       setPosting(false);
     }
   };
-
   // 🖼️ Lightbox
   const openLightbox = (images, index) =>
     setLightbox({ open: true, images, index });
@@ -354,17 +385,58 @@ const Dashboard = ({ user, onLogout }) => {
           break;
 
         // ✅ Post reaction
+        // case "post_react":
+        //   const { post_id, reaction_counts, user_id, reaction_type } =
+        //     data.data || {};
+        //   if (post_id) {
+        //     setPosts((prev) =>
+        //       prev.map((p) =>
+        //         p.id === post_id ? { ...p, reaction_counts } : p
+        //       )
+        //     );
+
+        //     // ✅ Cập nhật reactions (lưu CHUỖI type) nếu là current user
+        //     if (user_id === user?.id) {
+        //       if (reaction_type) {
+        //         setReactions((prev) => ({ ...prev, [post_id]: reaction_type }));
+        //       } else {
+        //         setReactions((prev) => {
+        //           const copy = { ...prev };
+        //           delete copy[post_id];
+        //           return copy;
+        //         });
+        //       }
+        //     }
+        //   }
+        //   break;
+        // ✅ Post reaction
         case "post_react":
           const { post_id, reaction_counts, user_id, reaction_type } =
             data.data || {};
           if (post_id) {
+            // 1️⃣ Cập nhật posts state (QUAN TRỌNG ĐỂ LƯU CACHE)
             setPosts((prev) =>
-              prev.map((p) =>
-                p.id === post_id ? { ...p, reaction_counts } : p
-              )
+              prev.map((p) => {
+                if (p.id === post_id) {
+                  // Nếu là chính mình react, cập nhật luôn field user_reaction trong post
+                  const updatedPost = {
+                    ...p,
+                    reaction_counts,
+                  };
+
+                  if (user_id === user?.id) {
+                    // Lưu ý: Key này phải khớp với key mà mapPostToUI hoặc PostCard dùng
+                    // Thường là 'user_reaction', 'my_reaction' hoặc 'current_reaction'
+                    updatedPost.user_reaction = reaction_type;
+                    updatedPost.my_reaction = reaction_type;
+                  }
+                  return updatedPost;
+                }
+                return p;
+              })
             );
 
-            // ✅ Cập nhật reactions (lưu CHUỖI type) nếu là current user
+            // 2️⃣ Cập nhật reactions map (Logic cũ giữ nguyên)
             if (user_id === user?.id) {
               if (reaction_type) {
                 setReactions((prev) => ({ ...prev, [post_id]: reaction_type }));
@@ -378,7 +450,6 @@ const Dashboard = ({ user, onLogout }) => {
             }
           }
           break;
-
         // ✅ Comment reaction
         case "comment_react":
           const {
@@ -464,7 +535,29 @@ const Dashboard = ({ user, onLogout }) => {
       websocketService.off("feed_update", handleFeedUpdate);
     };
   }, [user?.id]);
+  // ✅ FIX: Đồng bộ từ Posts sang Reactions state khi mới load (từ Cache/API)
+  useEffect(() => {
+    if (posts.length > 0) {
+      setReactions((prev) => {
+        const newReactions = { ...prev };
+        let hasChange = false;
 
+        posts.forEach((p) => {
+          // Kiểm tra xem bài viết có lưu reaction của mình không
+          // Cần check đúng key mà API trả về (thường là user_reaction, my_reaction, hoặc current_reaction)
+          const myReact =
+            p.user_reaction || p.my_reaction || p.current_reaction;
+
+          if (myReact && newReactions[p.id] !== myReact) {
+            newReactions[p.id] = myReact;
+            hasChange = true;
+          }
+        });
+
+        return hasChange ? newReactions : prev;
+      });
+    }
+  }, [posts]);
   return (
     <div className="dashboard-page">
       <Navbar user={user} onLogout={onLogout} />

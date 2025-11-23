@@ -446,25 +446,6 @@ const PostCard = ({
       updateNode(list, cid, (c) => ({ ...c, replyOpen: !c.replyOpen }))
     );
 
-  // const submitReply = (cid) => {
-  //   const text = (getReplyDraft(cid) || "").trim();
-  //   if (!text) return;
-  //   setReplyDraft(cid, "");
-
-  //   addComment({ postId: p.id, text, parentId: cid })
-  //     .then((created) => {
-  //       setComments((prev) => {
-  //         const postState = prev[p.id] || { list: [] };
-  //         const newList = updateNode(postState.list || [], cid, (node) => ({
-  //           ...node,
-  //           replies: [...(node.replies || []), created],
-  //           replyOpen: false,
-  //         }));
-  //         return { ...prev, [p.id]: { ...postState, list: newList } };
-  //       });
-  //     })
-  //     .catch(() => {});
-  // };
   // ✅ Cập nhật submitReply để thêm mention
   const submitReply = (cid, mentionedUser) => {
     const text = (getReplyDraft(cid) || "").trim();
@@ -488,7 +469,7 @@ const PostCard = ({
           const postState = prev[p.id] || { list: [] };
           const newList = updateNode(postState.list || [], cid, (node) => ({
             ...node,
-            // replies: [...(node.replies || []), { ...created, mentionedUser }],
+
             replyOpen: false,
           }));
           return { ...prev, [p.id]: { ...postState, list: newList } };
@@ -571,29 +552,6 @@ const PostCard = ({
     }
   };
 
-  // const setPostReaction = (type) => {
-  //   const item = emojiList.find((r) => r.type === type) || {
-  //     icon: "👍",
-  //     label: "Thích",
-  //   };
-
-  //   // 1️⃣ GỬI WEBSOCKET REALTIME
-  //   websocketService.send("post_react", {
-  //     post_id: p.id,
-  //     reaction_type: type,
-  //   });
-
-  //   // 2️⃣ CẬP NHẬT UI LOCAL
-  //   setReactions((prev) => ({ ...prev, [p.id]: item }));
-
-  //   // 3️⃣ LƯU DB BẰNG API
-  //   reactPost(p.id, type).catch(() => {});
-  //   setActivePostPopup(null);
-  // };
-  // const totalReacts = Object.values(p.reaction_counts || {}).reduce(
-  //   (a, b) => a + b,
-  //   0
-  // );
   const setPostReaction = (type) => {
     // Gửi socket
     websocketService.send("post_react", {
@@ -682,9 +640,11 @@ const PostCard = ({
   const visible = list.slice(0, limit);
 
   return (
-    <div className="post-card" id={`post-${p.id}`}>
+    <div
+      className={`post-card ${p.isOptimistic ? "optimistic" : ""}`}
+      id={`post-${p.id}`}
+    >
       <div className="post-header">
-        {/* <img src={p.avatar} alt="avatar" className="post-avatar" /> */}
         <img
           src={resolveImageUrl(p.avatar)}
           alt="avatar"
@@ -756,39 +716,53 @@ const PostCard = ({
           >
             {p.images
               .slice(0, p.images.length > 4 ? 4 : p.images.length)
-              .map((m, idx) => (
-                <div
-                  key={idx}
-                  className="image-wrapper"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openLightbox(p.images, idx);
-                  }}
-                >
-                  {/* Overlay +N */}
-                  {idx === 3 && p.images.length > 4 && (
-                    <div className="overlay-more">+{p.images.length - 4}</div>
-                  )}
+              .map((m, idx) => {
+                // 🔥 [CODE MỚI] Logic nhận diện video mạnh mẽ hơn
+                // Kiểm tra cả type từ API VÀ kiểm tra đường dẫn URL
+                const isVideo =
+                  m.type?.startsWith("video") ||
+                  (m.url && m.url.includes("/video/")) ||
+                  (m.url && m.url.endsWith(".mp4"));
 
-                  {/* Render Video hoặc Ảnh */}
-                  {(!lightbox?.open || lightbox.index !== idx) &&
-                  m.type?.startsWith("video") ? (
-                    <video
-                      src={m.url}
-                      className="post-media"
-                      muted // Autoplay cần mute
-                    />
-                  ) : !m.type?.startsWith("video") ? (
-                    <img
-                      // src={m.url}
-                      src={resolveImageUrl(m.url)}
-                      alt={`post-${p.id}-${idx}`}
-                      className="post-media"
-                      loading="lazy"
-                    />
-                  ) : null}
-                </div>
-              ))}
+                return (
+                  <div
+                    key={idx}
+                    className="image-wrapper"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openLightbox(p.images, idx);
+                    }}
+                  >
+                    {/* Overlay +N */}
+                    {idx === 3 && p.images.length > 4 && (
+                      <div className="overlay-more">+{p.images.length - 4}</div>
+                    )}
+
+                    {/* Render Video hoặc Ảnh dựa trên biến isVideo vừa tạo */}
+                    {(!lightbox?.open || lightbox.index !== idx) && isVideo ? (
+                      <video
+                        src={resolveImageUrl(m.url)} // Dùng helper để đảm bảo URL chuẩn
+                        className="post-media"
+                        controls // ✅ CÓ NÚT PLAY
+                        preload="metadata"
+                        onClick={(e) => e.stopPropagation()} // Chặn click để không mở Lightbox
+                      />
+                    ) : !isVideo ? (
+                      <img
+                        src={resolveImageUrl(m.url)}
+                        alt={`post-${p.id}-${idx}`}
+                        className="post-media"
+                        loading="lazy"
+                        onError={(e) => {
+                          // Fallback nếu ảnh lỗi
+                          e.currentTarget.src =
+                            "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
+                        }}
+                      />
+                    ) : null}
+                  </div>
+                );
+              })}
           </div>
         </div>
       )}
