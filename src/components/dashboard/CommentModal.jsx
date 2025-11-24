@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import "../../styles/CommentModal.css";
 import { CommentItem, CommentInput } from "./PostCard";
 
@@ -6,22 +6,18 @@ import { CommentItem, CommentInput } from "./PostCard";
 const DEFAULT_AVATAR =
   "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
 
-// Helper: chuẩn hoá avatar (string | {url: string} | File/Blob)
+// Helper: chuẩn hoá avatar
 const resolveAvatar = (avatar) => {
   if (!avatar) return DEFAULT_AVATAR;
-
-  // Nếu là object với .url (thường DRF returns { url: "/media/..." })
   if (typeof avatar === "object") {
     if (avatar.url) {
       const url = avatar.url;
-      // Nếu là đường dẫn tương đối, thêm API_BASE nếu có
       if (url.startsWith("/")) {
         const base = process.env.REACT_APP_API_BASE || "";
         return base.replace(/\/$/, "") + url;
       }
       return url;
     }
-    // Nếu là File/Blob
     if (avatar instanceof Blob || avatar instanceof File) {
       try {
         return URL.createObjectURL(avatar);
@@ -31,8 +27,6 @@ const resolveAvatar = (avatar) => {
     }
     return DEFAULT_AVATAR;
   }
-
-  // Nếu là string
   if (typeof avatar === "string") {
     if (avatar === "null" || avatar === "undefined" || avatar.trim() === "") {
       return DEFAULT_AVATAR;
@@ -43,7 +37,6 @@ const resolveAvatar = (avatar) => {
     }
     return avatar;
   }
-
   return DEFAULT_AVATAR;
 };
 
@@ -80,13 +73,20 @@ const CommentModal = ({
   activePopup,
   setActivePopup,
   onShareClick,
+  onTogglePostReaction,
+  onSetPostReaction,
 }) => {
   const commentListRef = useRef(null);
   const hidePopupTimer = useRef(null);
 
-  // ✅ Di chuyển tất cả logic lên trước if (!isOpen)
+  // ✅ STATE MỚI: Quản lý xem thêm/thu gọn nội dung bài viết trong Modal
+  const [isExpanded, setIsExpanded] = useState(false);
+  const CHAR_LIMIT = 350; // Giới hạn ký tự giống PostCard
+
   const list = comments[post.id]?.list || [];
   const myReaction = reactions[post.id];
+
+  // Tính toán tổng reaction an toàn
   const reactionSummary = post.reactionSummary || {
     like: 0,
     love: 0,
@@ -95,8 +95,10 @@ const CommentModal = ({
     sad: 0,
     angry: 0,
   };
-  const totalReactions = Object.values(reactionSummary).reduce(
-    (sum, count) => sum + count,
+  // Nếu có reaction_counts từ realtime/API thì dùng, không thì dùng fallback
+  const counts = post.reaction_counts || reactionSummary;
+  const totalReactions = Object.values(counts).reduce(
+    (sum, c) => sum + (Number(c) || 0),
     0
   );
 
@@ -109,27 +111,42 @@ const CommentModal = ({
     if (hidePopupTimer.current) clearTimeout(hidePopupTimer.current);
     hidePopupTimer.current = setTimeout(() => setActivePopup(null), 300);
   };
+  // Hàm xử lý click nút Like/Icon
+  const handleToggleReaction = () => {
+    if (onTogglePostReaction) {
+      onTogglePostReaction(); // Gọi hàm của PostCard để đồng bộ API + State
+    } else {
+      // Fallback nếu không truyền prop (chỉ update local state)
+      setReactions((prev) => ({
+        ...prev,
+        [post.id]: prev[post.id] ? null : "like",
+      }));
+    }
+    setActivePopup(null);
+  };
 
-  const toggleReaction = (type) => {
-    setReactions((prev) => ({
-      ...prev,
-      [post.id]: prev[post.id] === type ? null : type,
-    }));
+  // Hàm xử lý chọn icon cụ thể
+  const handleSelectReaction = (type) => {
+    if (onSetPostReaction) {
+      onSetPostReaction(type); // Gọi hàm của PostCard
+    } else {
+      setReactions((prev) => ({ ...prev, [post.id]: type }));
+    }
     setActivePopup(null);
   };
 
   useEffect(() => {
     if (isOpen) {
       const timer = setTimeout(() => {
-        // ✅ FIX: Kiểm tra ref.current có tồn tại không trước khi gọi scrollHeight
         if (commentListRef.current) {
           commentListRef.current.scrollTop =
             commentListRef.current.scrollHeight;
         }
       }, 100);
-
-      // ✅ Optional: Clear timeout khi component unmount hoặc dependency thay đổi để an toàn hơn
       return () => clearTimeout(timer);
+    } else {
+      // Reset trạng thái mở rộng khi đóng modal
+      setIsExpanded(false);
     }
   }, [list.length, isOpen]);
 
@@ -149,11 +166,10 @@ const CommentModal = ({
           </button>
         </div>
 
-        {/* Content */}
+        {/* Body (Scrollable) */}
         <div className="comment-modal-body" ref={commentListRef}>
-          {/* ✅ Sử dụng lại cấu trúc từ PostCard */}
           <div className="modal-post-content">
-            {/* Header */}
+            {/* Post Header */}
             <div className="post-header">
               <img
                 src={resolveAvatar(post.avatar)}
@@ -170,7 +186,7 @@ const CommentModal = ({
               </div>
             </div>
 
-            {/* Nội dung */}
+            {/* Post Content (có logic Xem thêm) */}
             {(() => {
               let content = post.content;
               try {
@@ -197,29 +213,44 @@ const CommentModal = ({
                       <strong>📈 Yếu tố ảnh hưởng:</strong>{" "}
                       {content.factors || "—"}
                     </p>
-                    <p>
-                      <strong>💊 Tiền sử cá nhân:</strong>{" "}
-                      {content.historyPersonal || "—"}
-                    </p>
-                    <p>
-                      <strong>🧬 Tiền sử gia đình:</strong>{" "}
-                      {content.historyFamily || "—"}
-                    </p>
-                    <p>
-                      <strong>💉 Thuốc đang dùng:</strong>{" "}
-                      {content.medication || "—"}
-                    </p>
-                    <p>
-                      <strong>🧠 Lối sống:</strong> {content.lifestyle || "—"}
-                    </p>
                   </div>
                 );
               } else {
-                return <p className="post-content">{content}</p>;
+                // ✅ LOGIC CẮT NGẮN VĂN BẢN CHO MODAL
+                const text = content || "";
+                const isLongText = text.length > CHAR_LIMIT;
+
+                return (
+                  <div className="post-content-wrapper">
+                    <p className="post-content">
+                      {isLongText && !isExpanded
+                        ? `${text.substring(0, CHAR_LIMIT)}...`
+                        : text}
+
+                      {isLongText && !isExpanded && (
+                        <span
+                          className="see-more-btn"
+                          onClick={() => setIsExpanded(true)}
+                        >
+                          Xem thêm
+                        </span>
+                      )}
+                    </p>
+
+                    {isLongText && isExpanded && (
+                      <span
+                        className="see-less-btn"
+                        onClick={() => setIsExpanded(false)}
+                      >
+                        Thu gọn
+                      </span>
+                    )}
+                  </div>
+                );
               }
             })()}
 
-            {/* Hình ảnh/Video */}
+            {/* Images/Videos */}
             {post.images && post.images.length > 0 && (
               <div
                 className={`post-images ${
@@ -233,51 +264,46 @@ const CommentModal = ({
                         +{post.images.length - 4}
                       </div>
                     )}
-                    {m.type?.startsWith("video") ? (
-                      <video src={m.url} controls />
+                    {m.type?.startsWith("video") ||
+                    (m.url && m.url.includes("/video/")) ? (
+                      <video src={m.url} controls className="post-media" />
                     ) : (
-                      <img src={m.url} alt={`post-${idx}`} />
+                      <img
+                        src={m.url}
+                        alt={`post-${idx}`}
+                        className="post-media"
+                      />
                     )}
                   </div>
                 ))}
               </div>
             )}
 
-            {/* ✅ Thống kê (giống PostCard) */}
+            {/* Stats & Actions */}
             <div className="post-stats">
-              {totalReactions > 0 && (
-                <div className="reaction-summary">
+              <div className="reaction-summary">
+                {totalReactions > 0 && (
                   <div className="reaction-icons">
-                    {reactionSummary.like > 0 && <span>👍</span>}
-                    {reactionSummary.love > 0 && <span>❤️</span>}
-                    {reactionSummary.haha > 0 && <span>😂</span>}
-                    {reactionSummary.wow > 0 && <span>😮</span>}
-                    {reactionSummary.sad > 0 && <span>😢</span>}
-                    {reactionSummary.angry > 0 && <span>😠</span>}
+                    <span>👍</span> {totalReactions}
                   </div>
-                  <span className="reaction-count">{totalReactions}</span>
-                </div>
-              )}
+                )}
+              </div>
               <span className="comment-count">{list.length} bình luận</span>
             </div>
 
-            {/* ✅ Actions (giống PostCard) */}
+            {/* Post Buttons (Like/Share inside Modal) */}
             <div className="post-buttons">
               <div
                 className="post-action-group"
-                onMouseEnter={() => armPopup(`modal-${post.id}`)} // ✅ Thêm sự kiện
-                onMouseLeave={disarmPopup} // ✅ Thêm sự kiện
+                onMouseEnter={() => armPopup(`modal-${post.id}`)}
+                onMouseLeave={disarmPopup}
               >
                 <button
                   className={`post-like-btn ${myReaction ? "active" : ""}`}
-                  onClick={() =>
-                    toggleReaction(myReaction ? myReaction : "like")
-                  }
+                  onClick={() => handleToggleReaction()}
                 >
-                  {/* ✅ Logic hiển thị Icon: Nếu đã like thì hiện icon màu, chưa thì hiện mặc định */}
                   {myReaction ? (
                     <>
-                      {/* Tìm icon trong emojiList dựa trên myReaction (string 'like', 'love'...) */}
                       <span>
                         {emojiList.find((e) => e.type === myReaction)?.icon}
                       </span>
@@ -293,21 +319,19 @@ const CommentModal = ({
                   )}
                 </button>
 
-                {/* Popup Cảm xúc */}
                 {activePopup === `modal-${post.id}` && (
                   <div
                     className="reaction-popup"
-                    onMouseEnter={() => armPopup(`modal-${post.id}`)} // ✅ Giữ popup mở
+                    onMouseEnter={() => armPopup(`modal-${post.id}`)}
                     onMouseLeave={disarmPopup}
                   >
                     {emojiList.map((e) => (
                       <span
                         key={e.type}
                         className="reaction-icon"
-                        title={e.label}
                         onMouseDown={(ev) => {
                           ev.preventDefault();
-                          toggleReaction(e.type);
+                          handleSelectReaction(e.type);
                         }}
                       >
                         {e.icon}
@@ -316,11 +340,6 @@ const CommentModal = ({
                   </div>
                 )}
               </div>
-
-              <div className="post-action-group">
-                <button>💬 Bình luận</button>
-              </div>
-
               <div className="post-action-group">
                 <button onClick={() => onShareClick(post)}>🔗 Chia sẻ</button>
               </div>
@@ -332,7 +351,7 @@ const CommentModal = ({
             {list.length > 0 ? (
               list.map((c, index) => (
                 <CommentItem
-                  key={`modal-comment-${c.id}-${index}`} // ✅ Thêm prefix unique
+                  key={`modal-comment-${c.id}-${index}`}
                   c={c}
                   level={0}
                   MAX_REPLIES_VISIBLE={MAX_REPLIES_VISIBLE}
@@ -347,25 +366,26 @@ const CommentModal = ({
                   setEditDraft={setEditDraft}
                   saveEdit={saveEdit}
                   startEdit={startEdit}
+                  // ✅ Quan trọng: Truyền hàm xóa/sửa xuống CommentItem
                   deleteComment={deleteComment}
                   getReplyDraft={getReplyDraft}
                   setReplyDraft={setReplyDraft}
                   submitReply={submitReply}
                   mutateComments={mutateComments}
                   updateNode={updateNode}
-                  currentUser={currentUser}
-                  getTimeAgo={getTimeAgo}
+                  currentUser={currentUser} // ✅ Truyền user hiện tại để check quyền
+                  getTimeAgo={getTimeAgo} // ✅ Truyền hàm tính thời gian
                 />
               ))
             ) : (
               <p className="no-comments">
-                Chưa có bình luận nào. Hãy là người đầu tiên bình luận!
+                Chưa có bình luận nào. Hãy là người đầu tiên!
               </p>
             )}
           </div>
         </div>
 
-        {/* Footer - Input bình luận */}
+        {/* Footer Input */}
         <div className="comment-modal-footer">
           <img
             src={resolveAvatar(currentUser?.avatar)}
@@ -381,6 +401,7 @@ const CommentModal = ({
             value={commentDraft}
             onChange={setCommentDraft}
             onSubmit={onSubmitComment}
+            autoFocus
           />
         </div>
       </div>

@@ -440,7 +440,37 @@
   outline: none;
   font-size: 14px;
 }
+/* Style cho nút Xem thêm / Thu gọn */
+.see-more-btn {
+  cursor: pointer;
+  font-weight: 600;
+  margin-left: 5px;
+  color: #65676b; /* Màu xám đậm giống FB */
+  transition: color 0.2s;
+}
 
+.see-more-btn:hover {
+  text-decoration: underline;
+  color: #1877f2; /* Màu xanh FB khi hover */
+}
+
+.see-less-btn {
+  display: block; /* Xuống dòng */
+  margin-top: 5px;
+  cursor: pointer;
+  font-weight: 600;
+  color: #65676b;
+  transition: color 0.2s;
+}
+
+.see-less-btn:hover {
+  text-decoration: underline;
+  color: #1877f2;
+}
+
+.post-content {
+  white-space: pre-wrap; /* Giữ định dạng xuống dòng */
+}
 /* ================================================= */
 /* 📱 5. MEDIA QUERIES (RESPONSIVE)                  */
 /* ================================================= */

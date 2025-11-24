@@ -15,7 +15,7 @@ import {
 } from "../../services/socialApi";
 import websocketService from "../../services/websocket";
 
-// ✅ THÊM HELPER FUNCTION
+// HELPER FUNCTION
 const getCurrentUserId = () => {
   try {
     const userStr = localStorage.getItem("user");
@@ -55,7 +55,7 @@ export const CommentInput = ({
   </div>
 );
 
-/* ---------- Comment Item (đệ quy) ---------- */
+/* ---------- Comment Item ---------- */
 export const CommentItem = ({
   c,
   level = 0,
@@ -92,6 +92,10 @@ export const CommentItem = ({
     hidePopupTimer.current = setTimeout(() => setActiveCommentPopup(null), 300);
   };
   const timeData = c.created_at || c.createdAt;
+  // Check quyền owner: so sánh userId của comment với currentUser.id
+  const isOwner =
+    currentUser?.id &&
+    (currentUser.id === c.userId || currentUser.id === c.user_id);
   return (
     <div className="comment-item" style={{ marginLeft: level > 0 ? 36 : 0 }}>
       <img
@@ -186,8 +190,8 @@ export const CommentItem = ({
             </span>
           )}
 
-          {/* ✅ Kiểm tra quyền xóa: So sánh user.id thay vì user.name */}
-          {currentUser?.id && currentUser.id === c.userId && !c.editing && (
+          {/* ✅ NÚT SỬA / XÓA */}
+          {isOwner && !c.editing && (
             <>
               <span> · </span>
               <span
@@ -311,6 +315,10 @@ const PostCard = ({
   const [activePostPopup, setActivePostPopup] = useState(null);
   const [shareOpen, setShareOpen] = useState(false);
   const [shareMessage, setShareMessage] = useState("");
+
+  // Quản lý xem thêm/thu gọn
+  const [isExpanded, setIsExpanded] = useState(false);
+  const CHAR_LIMIT = 350; // Giới hạn ký tự hiển thị ban đầu
 
   const postPopupTimer = useRef(null);
   const armPostPopup = (id) => {
@@ -522,9 +530,10 @@ const PostCard = ({
       console.warn("⚠️ [PostCard] Comment not found");
       return;
     }
-
+    // ✅ Kiểm tra cả 2 trường hợp userId và user_id
+    const commentOwnerId = comment.userId || comment.user_id;
     // ✅ Chỉ người tạo mới được xóa (so sánh userId thay vì user.id)
-    if (comment.userId !== currentUserId) {
+    if (commentOwnerId !== currentUserId) {
       toast.error("❌ Bạn không có quyền xóa bình luận này");
       return;
     }
@@ -535,15 +544,22 @@ const PostCard = ({
     }
 
     try {
-      // ✅ Gọi API delete
       await apiDeleteComment(cid);
+      // Xóa cục bộ ngay lập tức để phản hồi nhanh
+      setComments((prev) => {
+        const postState = prev[p.id];
+        if (!postState?.list) return prev;
+        return {
+          ...prev,
+          [p.id]: {
+            ...postState,
+            list: removeNode(postState.list, cid),
+          },
+        };
+      });
       console.log("✅ [PostCard] Comment deleted:", cid);
-
-      // ✅ WebSocket sẽ broadcast event delete_comment
-      // → Dashboard sẽ tự động xóa comment khỏi UI
     } catch (err) {
       console.error("❌ [PostCard] Delete failed:", err);
-
       if (err.response?.status === 403) {
         toast.error("❌ Bạn không có quyền xóa bình luận này");
       } else {
@@ -559,7 +575,7 @@ const PostCard = ({
       reaction_type: type,
     });
 
-    // ✅ Cập nhật State: Chỉ lưu chuỗi type
+    // Cập nhật State: Chỉ lưu chuỗi type
     setReactions((prev) => ({ ...prev, [p.id]: type }));
 
     // Gọi API
@@ -573,15 +589,15 @@ const PostCard = ({
     const currentReaction = reactions[p.id];
 
     if (currentReaction) {
-      // TRƯỜNG HỢP 1: Đã like -> Bấm để BỎ LIKE
+      //  Đã like -> Bấm để BỎ LIKE
       websocketService.send("post_react", {
         post_id: p.id,
-        reaction_type: null, // null nghĩa là xóa reaction
+        reaction_type: null,
       });
 
       setReactions((prev) => {
         const copy = { ...prev };
-        delete copy[p.id]; // Xóa khỏi state
+        delete copy[p.id];
         return copy;
       });
 
@@ -637,7 +653,6 @@ const PostCard = ({
   /* ---- render ---- */
   const limit = comments[p.id]?.limit || 3;
   const list = comments[p.id]?.list || [];
-  const visible = list.slice(0, limit);
 
   return (
     <div
@@ -699,7 +714,40 @@ const PostCard = ({
             </div>
           );
         } else {
-          return <p className="post-content">{content}</p>;
+          //  CẮT NGẮN VĂN BẢN
+          const text = content || "";
+          const isLongText = text.length > CHAR_LIMIT;
+
+          return (
+            <div className="post-content-wrapper">
+              <p className="post-content">
+                {/* Nếu dài và chưa mở rộng -> Cắt chuỗi */}
+                {isLongText && !isExpanded
+                  ? `${text.substring(0, CHAR_LIMIT)}...`
+                  : text}
+
+                {/* Nút "Xem thêm" hiển thị ngay sau dấu ... */}
+                {isLongText && !isExpanded && (
+                  <span
+                    className="see-more-btn"
+                    onClick={() => setIsExpanded(true)}
+                  >
+                    Xem thêm
+                  </span>
+                )}
+              </p>
+
+              {/* Nút "Thu gọn" hiển thị ở dòng dưới cùng khi đã mở rộng */}
+              {isLongText && isExpanded && (
+                <span
+                  className="see-less-btn"
+                  onClick={() => setIsExpanded(false)}
+                >
+                  Thu gọn
+                </span>
+              )}
+            </div>
+          );
         }
       })()}
 
@@ -707,7 +755,6 @@ const PostCard = ({
       {p.images && p.images.length > 0 && (
         <div className="post-image-container">
           {" "}
-          {/* ✅ Bọc thêm div này để xử lý tràn viền mobile */}
           <div
             className={`post-images ${p.images.length > 1 ? "multiple" : ""}`}
             data-count={
@@ -717,8 +764,6 @@ const PostCard = ({
             {p.images
               .slice(0, p.images.length > 4 ? 4 : p.images.length)
               .map((m, idx) => {
-                // 🔥 [CODE MỚI] Logic nhận diện video mạnh mẽ hơn
-                // Kiểm tra cả type từ API VÀ kiểm tra đường dẫn URL
                 const isVideo =
                   m.type?.startsWith("video") ||
                   (m.url && m.url.includes("/video/")) ||
@@ -743,7 +788,7 @@ const PostCard = ({
                       <video
                         src={resolveImageUrl(m.url)} // Dùng helper để đảm bảo URL chuẩn
                         className="post-media"
-                        controls // ✅ CÓ NÚT PLAY
+                        controls
                         preload="metadata"
                         onClick={(e) => e.stopPropagation()} // Chặn click để không mở Lightbox
                       />
@@ -770,9 +815,6 @@ const PostCard = ({
       {/* actions */}
       <div className="post-actions">
         <div className="post-stats">
-          {/* {reactions[p.id] && (
-            <span className="reaction-count">{reactions[p.id].icon} 1</span>
-          )} */}
           {Object.keys(p.reaction_counts || {}).length > 0 && (
             <span className="reaction-count">
               {Object.entries(p.reaction_counts).map(([type, count]) => (
@@ -795,7 +837,6 @@ const PostCard = ({
 
           <div
             className="post-action-group"
-            // 👇 SỬA: Dùng hàm arm/disarm thay vì setActive trực tiếp
             onMouseEnter={() => armPostPopup(`p-${p.id}`)}
             onMouseLeave={disarmPostPopup}
           >
@@ -810,7 +851,6 @@ const PostCard = ({
             {activePostPopup === `p-${p.id}` && (
               <div
                 className="reaction-popup"
-                // 👇 SỬA: Thêm sự kiện này vào chính popup để giữ nó mở khi chuột đang chọn icon
                 onMouseEnter={() => armPostPopup(`p-${p.id}`)}
                 onMouseLeave={disarmPostPopup}
               >
@@ -890,7 +930,7 @@ const PostCard = ({
           const text = comments[p.id]?.draft?.trim();
           if (!text) return;
           try {
-            const created = await addComment({ postId: p.id, text });
+            await addComment({ postId: p.id, text });
             setComments((prev) => ({
               ...prev,
               [p.id]: {
@@ -910,6 +950,8 @@ const PostCard = ({
           setSelectedPost(p);
           setShareOpen(true);
         }}
+        onTogglePostReaction={togglePostReaction}
+        onSetPostReaction={setPostReaction}
       />
     </div>
   );

@@ -395,12 +395,12 @@ body:has(.comment-modal-overlay) .sidebar-right {
 @media (max-width: 767px) {
   .comment-modal-overlay {
     padding: 10px;
-    padding-top: 70px; /* ✅ Đẩy xuống */
+    padding-top: 40px; /* ✅ Đẩy xuống */
   }
 
   .comment-modal-container {
     max-width: 95%;
-    max-height: calc(100vh - 90px);
+    max-height: calc(100vh - 120px);
   }
 
   .comment-modal-header {
@@ -472,6 +472,7 @@ body:has(.comment-modal-overlay) .sidebar-right {
   .comment-modal-overlay {
     top: 70px;
     padding: 0;
+    padding-top: 20px;
     align-items: stretch;
   }
 
@@ -515,6 +516,62 @@ body:has(.comment-modal-overlay) .sidebar-right {
 
   .comment-modal-footer {
     border-radius: 0;
+  }
+}
+
+@media (max-width: 360px) and (max-width: 416px) {
+  .comment-modal-overlay {
+    top: 70px;
+    padding: 0;
+    padding-top: 10px;
+    align-items: stretch;
+  }
+
+  .comment-modal-container {
+    width: 95%;
+    max-width: 100%;
+    height: 80vh;
+    max-height: 80vh;
+    border-radius: 0;
+  }
+
+  .comment-modal-header {
+    border-radius: 0;
+    padding: 12px 16px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .comment-modal-body {
+    padding: 10px;
+  }
+
+  .modal-post-content {
+    padding: 10px;
+    border-radius: 6px;
+  }
+
+  .modal-post-content .post-images.multiple {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-post-content .post-images img,
+  .modal-post-content .post-images video {
+    max-height: 100px;
+  }
+  .modal-post-content .post-action-group button {
+    font-size: 13px;
+    padding: 5px;
+  }
+  .modal-comment-list {
+    padding: 10px;
+  }
+
+  .comment-modal-footer {
+    border-radius: 0;
+    padding: 7px;
+    gap: 2px;
   }
 }
 /* ===== Animations ===== */
