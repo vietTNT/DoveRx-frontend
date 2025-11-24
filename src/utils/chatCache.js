@@ -1,7 +1,7 @@
 // src/utils/chatCache.js
 
 const CACHE_PREFIX = "chat_cache_";
-const MAX_CACHE_SIZE = 50; // Chỉ lưu 50 tin gần nhất để nhẹ máy
+const MAX_CACHE_SIZE = 20; // ✅ Giảm xuống 20 để load siêu tốc (chỉ cần đủ lấp đầy màn hình)
 
 // Helper: Tạo key duy nhất cho mỗi cuộc trò chuyện
 const getCacheKey = (conversationId) => `${CACHE_PREFIX}${conversationId}`;
@@ -15,8 +15,16 @@ export const saveToCache = (conversationId, messages) => {
   if (!conversationId || !Array.isArray(messages)) return;
 
   try {
-    // Chỉ lưu 50 tin nhắn cuối cùng để tránh đầy bộ nhớ
-    const lastMessages = messages.slice(-MAX_CACHE_SIZE);
+    // ✅ BƯỚC 1: Sắp xếp lại theo thời gian (Cũ -> Mới)
+    // Để đảm bảo khi cắt slice(-20) ta luôn lấy được 20 tin MỚI NHẤT thực sự
+    const sortedMessages = [...messages].sort((a, b) => {
+      const timeA = new Date(a.created_at || a.createdAt || 0).getTime();
+      const timeB = new Date(b.created_at || b.createdAt || 0).getTime();
+      return timeA - timeB;
+    });
+
+    // ✅ BƯỚC 2: Chỉ lưu 20 tin nhắn cuối cùng
+    const lastMessages = sortedMessages.slice(-MAX_CACHE_SIZE);
 
     // Lưu dưới dạng chuỗi JSON
     localStorage.setItem(
@@ -44,6 +52,8 @@ export const loadFromCache = (conversationId) => {
     }
   } catch (error) {
     console.error("❌ [ChatCache] Error loading from cache:", error);
+    // Nếu file cache lỗi, xóa nó đi để tránh lỗi lần sau
+    clearChatCache(conversationId);
   }
   return [];
 };

@@ -5,7 +5,7 @@ class ChatWebSocketService {
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 5;
     this.pingInterval = null;
-    this.messageQueue = [];
+    this.messageQueue = []; // Hàng đợi tin nhắn khi mất mạng
   }
 
   connect(token) {
@@ -16,7 +16,10 @@ class ChatWebSocketService {
 
     if (this.ws?.readyState === WebSocket.OPEN) return;
 
-    const wsUrl = `${process.env.REACT_APP_WS_BASE}/ws/chat/?token=${token}`;
+    // Đảm bảo REACT_APP_WS_BASE không có dấu / ở cuối
+    const wsBase = process.env.REACT_APP_WS_BASE.replace(/\/$/, "");
+    const wsUrl = `${wsBase}/ws/chat/?token=${token}`;
+
     console.log("🔌 [chatWebSocket] Connecting to:", wsUrl);
 
     this.ws = new WebSocket(wsUrl);
@@ -25,10 +28,10 @@ class ChatWebSocketService {
       console.log("✅ [chatWebSocket] Connected successfully");
       this.reconnectAttempts = 0;
 
-      // ✅ FIX: Xả hàng đợi tin nhắn (Flush Queue)
+      // ✅ Quan trọng: Gửi lại các tin nhắn bị kẹt khi mất mạng
       this.processMessageQueue();
 
-      // Setup Heartbeat
+      // Setup Heartbeat (Ping server mỗi 30s để giữ kết nối)
       this.pingInterval = setInterval(() => {
         if (this.ws?.readyState === WebSocket.OPEN) {
           this.send({ type: "ping" });
@@ -42,15 +45,11 @@ class ChatWebSocketService {
 
         if (data.type === "pong") return;
 
-        // ✅ KIỂM TRA LẠI: Có thể bị nhầm logic ở đây
-        if (data.type === "new_message")
-          this.notifyListeners("new_message", data);
-        else if (data.type === "message_sent")
-          this.notifyListeners("message_sent", data);
-        else if (data.type === "user_typing")
-          this.notifyListeners("user_typing", data);
-        else if (data.type === "messages_read")
-          this.notifyListeners("messages_read", data);
+        // Phát sự kiện cho các listeners (ChatPopup)
+        this.notifyListeners(data.type, data);
+
+        // Hỗ trợ thêm event generic 'message' nếu cần
+        this.notifyListeners("message", data);
       } catch (err) {
         console.error("❌ [chatWebSocket] Parse error:", err);
       }
@@ -61,63 +60,62 @@ class ChatWebSocketService {
     };
 
     this.ws.onclose = (event) => {
-      console.log("🔌 [chatWebSocket] Closed");
+      console.log("🔌 [chatWebSocket] Closed. Code:", event.code);
       if (this.pingInterval) clearInterval(this.pingInterval);
 
-      // Chỉ reconnect nếu không phải lỗi Auth
+      // Chỉ reconnect nếu không phải lỗi Auth (4001, 4003)
       if (event.code !== 4001 && event.code !== 4003) {
         this.reconnect(token);
       }
     };
   }
 
-  // ✅ THÊM HÀM: Xử lý hàng đợi
+  // Xử lý hàng đợi
   processMessageQueue() {
     if (this.messageQueue.length > 0) {
       console.log(
-        `🔄 [chatWebSocket] Processing ${this.messageQueue.length} queued messages...`
+        `🔄 [chatWebSocket] Resending ${this.messageQueue.length} queued messages...`
       );
-
       while (this.messageQueue.length > 0) {
-        const payload = this.messageQueue.shift(); // Lấy tin nhắn đầu tiên ra
-        this.ws.send(JSON.stringify(payload));
-        console.log("📤 [chatWebSocket] Sent queued message:", payload);
+        const msg = this.messageQueue.shift();
+        this.send(msg); // Gọi lại send để gửi
       }
     }
   }
+
   reconnect(token) {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
+      console.log(`🔄 Reconnecting attempt ${this.reconnectAttempts}...`);
       setTimeout(() => this.connect(token), 3000);
     }
   }
+
+  // 🔥 HÀM GỬI CHÍNH (ĐÃ SỬA ĐỂ HỖ TRỢ QUEUE CHO MỌI LOẠI TIN NHẮN)
   send(message) {
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(message));
+    } else {
+      // Nếu chưa kết nối, lưu vào hàng đợi
+      console.warn(
+        "⚠️ [chatWebSocket] Connection lost. Queuing message...",
+        message
+      );
+      this.messageQueue.push(message);
+
+      // Thử reconnect ngay nếu có token
+      const token = localStorage.getItem("access");
+      if (token) this.connect(token);
     }
   }
 
+  // Helper gửi tin nhắn text (Optional, dùng cái này cho gọn code bên ngoài)
   sendMessage(conversationId, text) {
-    const payload = {
+    this.send({
       type: "send_message",
       conversation_id: conversationId,
       text,
-    };
-
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-      console.warn("⚠️ [chatWebSocket] Connection lost. Queuing message...");
-
-      // ✅ Đẩy vào queue để chờ reconnect
-      this.messageQueue.push(payload);
-
-      // Thử reconnect nếu cần
-      const token = localStorage.getItem("access");
-      if (token) this.connect(token);
-
-      return;
-    }
-
-    this.ws.send(JSON.stringify(payload));
+    });
   }
 
   sendTyping(conversationId, isTyping = true) {
@@ -135,16 +133,12 @@ class ChatWebSocketService {
     });
   }
 
+  // --- Event Listeners ---
   on(eventType, callback) {
     if (!this.listeners.has(eventType)) {
       this.listeners.set(eventType, []);
     }
     this.listeners.get(eventType).push(callback);
-    console.log(
-      `👂 [chatWebSocket] Listener added for "${eventType}" (total: ${
-        this.listeners.get(eventType).length
-      })`
-    );
   }
 
   off(eventType, callback) {
@@ -154,40 +148,25 @@ class ChatWebSocketService {
         eventType,
         callbacks.filter((cb) => cb !== callback)
       );
-      console.log(
-        `🧹 [chatWebSocket] Listener removed for "${eventType}" (remaining: ${
-          this.listeners.get(eventType).length
-        })`
-      );
     }
   }
 
   notifyListeners(eventType, data) {
     const callbacks = this.listeners.get(eventType);
-    if (callbacks && callbacks.length > 0) {
-      console.log(
-        `🔔 [chatWebSocket] Notifying ${callbacks.length} listener(s) for "${eventType}"`
-      );
-      callbacks.forEach((cb, index) => {
+    if (callbacks) {
+      callbacks.forEach((cb) => {
         try {
           cb(data);
         } catch (err) {
-          console.error(`❌ [chatWebSocket] Listener ${index} error:`, err);
+          console.error(`❌ Listener error:`, err);
         }
       });
-    } else {
-      console.warn(`⚠️ [chatWebSocket] No listeners for "${eventType}"`);
     }
   }
 
   disconnect() {
-    if (this.pingInterval) {
-      clearInterval(this.pingInterval);
-      this.pingInterval = null;
-    }
-
+    if (this.pingInterval) clearInterval(this.pingInterval);
     if (this.ws) {
-      console.log("🔌 [chatWebSocket] Disconnecting...");
       this.ws.close();
       this.ws = null;
     }
@@ -195,5 +174,4 @@ class ChatWebSocketService {
 }
 
 const chatWebSocketService = new ChatWebSocketService();
-
 export default chatWebSocketService;
