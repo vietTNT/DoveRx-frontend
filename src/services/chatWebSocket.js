@@ -5,7 +5,7 @@ class ChatWebSocketService {
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 5;
     this.pingInterval = null;
-    this.messageQueue = []; // Hàng đợi tin nhắn khi mất mạng
+    this.messageQueue = []; // Hàng đợi tin nhắn khi mất kết nối
   }
 
   connect(token) {
@@ -28,7 +28,7 @@ class ChatWebSocketService {
       console.log("✅ [chatWebSocket] Connected successfully");
       this.reconnectAttempts = 0;
 
-      // ✅ Quan trọng: Gửi lại các tin nhắn bị kẹt khi mất mạng
+      //  Gửi lại các tin nhắn bị kẹt khi mất mạng
       this.processMessageQueue();
 
       // Setup Heartbeat (Ping server mỗi 30s để giữ kết nối)
@@ -91,7 +91,6 @@ class ChatWebSocketService {
     }
   }
 
-  // 🔥 HÀM GỬI CHÍNH (ĐÃ SỬA ĐỂ HỖ TRỢ QUEUE CHO MỌI LOẠI TIN NHẮN)
   send(message) {
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(message));

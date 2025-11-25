@@ -40,7 +40,10 @@
   gap: 12px;
   margin-bottom: 12px;
 }
-
+.post-header > div:first-child {
+  flex-grow: 1;
+  margin-right: 10px; /* Tạo khoảng cách để text không đè lên nút menu */
+}
 .post-avatar {
   width: 40px;
   height: 40px;
@@ -50,7 +53,20 @@
   cursor: pointer;
   border: 1px solid rgba(0, 0, 0, 0.1);
 }
+.post-options {
+  flex-shrink: 0;
+  position: relative; /* Quan trọng cho dropdown absolute */
+}
 
+/* Đảm bảo nút bấm nhìn thấy được */
+.options-btn {
+  opacity: 1 !important;
+  visibility: visible !important;
+  color: #65676b; /* Màu xám đậm */
+  font-size: 20px;
+  padding: 8px;
+  cursor: pointer;
+}
 .post-info {
   flex: 1;
   min-width: 0; /* Giúp text truncate hoạt động đúng */
@@ -471,6 +487,7 @@
 .post-content {
   white-space: pre-wrap; /* Giữ định dạng xuống dòng */
 }
+
 /* ================================================= */
 /* 📱 5. MEDIA QUERIES (RESPONSIVE)                  */
 /* ================================================= */

@@ -6,46 +6,7 @@ class WebSocketService {
     this.maxReconnectAttempts = 5;
   }
 
-  // connect(token) {
-  //   // if (this.ws?.readyState === WebSocket.OPEN) return;
-
-  //   // ✅ Lấy base URL từ env
-  //   const baseUrl = process.env.REACT_APP_API_BASE;
-  //   const wsProtocol = baseUrl.startsWith("https") ? "wss" : "ws";
-  //   const wsHost = baseUrl.replace(/^https?:\/\//, "");
-  //   const wsUrl = `${wsProtocol}://${wsHost}/ws/feed/?token=${token}`;
-
-  //   console.log("🔌 Connecting to WebSocket:", wsUrl);
-  //   this.ws = new WebSocket(wsUrl);
-
-  //   this.ws.onopen = () => {
-  //     console.log("✅ WebSocket connected");
-  //     this.reconnectAttempts = 0;
-  //   };
-
-  //   this.ws.onmessage = (event) => {
-  //     try {
-  //       const data = JSON.parse(event.data);
-  //       this.notifyListeners(data.type, data);
-  //     } catch (err) {
-  //       console.error("WebSocket message error:", err);
-  //     }
-  //   };
-
-  //   this.ws.onerror = (error) => {
-  //     console.error("❌ WebSocket error:", error);
-  //   };
-
-  //   this.ws.onclose = () => {
-  //     console.log("🔌 WebSocket closed");
-  //     this.reconnect(token);
-  //   };
-  // }
   connect(token) {
-    // Nếu ws đã mở thì không kết nối lại
-    // if (this.ws?.readyState === WebSocket.OPEN) return;
-
-    // 🔥 Lấy URL WebSocket từ ENV (đúng chuẩn)
     const wsBase = process.env.REACT_APP_WS_BASE;
 
     if (!wsBase) {
@@ -67,8 +28,16 @@ class WebSocketService {
 
     this.ws.onmessage = (event) => {
       try {
-        const data = JSON.parse(event.data);
-        this.notifyListeners(data.type, data);
+        const response = JSON.parse(event.data);
+        if (
+          response.type === "feed_update" &&
+          response.data &&
+          response.data.event
+        ) {
+          this.notifyListeners(response.data.event, response.data);
+        } else {
+          this.notifyListeners(response.type, response);
+        }
       } catch (err) {
         console.error("WebSocket message error:", err);
       }
@@ -80,23 +49,21 @@ class WebSocketService {
 
     this.ws.onclose = () => {
       console.log("🔌 WebSocket closed");
-      this.reconnect(token);
+      this.reconnect();
     };
   }
 
-  reconnect(token) {
+  reconnect() {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
       console.log(`🔄 Reconnecting... (${this.reconnectAttempts})`);
-      setTimeout(() => this.connect(token), 3000);
+
+      //  Lấy token mới nhất từ storage
+      const newToken = localStorage.getItem("access");
+      setTimeout(() => this.connect(newToken), 3000);
     }
   }
 
-  // send(message) {
-  //   if (this.ws?.readyState === WebSocket.OPEN) {
-  //     this.ws.send(JSON.stringify(message));
-  //   }
-  // }
   send(type, payload = {}) {
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(
@@ -118,13 +85,13 @@ class WebSocketService {
 
     console.log(
       `👂 [WebSocket] Registered listener for "${eventType}". Total: ${callbacks.length}`
-    ); // ✅ THÊM LOG
+    );
   }
 
   off(eventType, callback) {
     const callbacks = this.listeners.get(eventType);
     if (callbacks) {
-      // ✅ Lọc bỏ callback cụ thể, giữ lại các callback khác
+      // Lọc bỏ callback cụ thể, giữ lại các callback khác
       const filtered = callbacks.filter((cb) => cb !== callback);
 
       if (filtered.length === 0) {
@@ -145,7 +112,7 @@ class WebSocketService {
     if (callbacks) {
       console.log(
         `📢 [WebSocket] Notifying ${callbacks.length} listeners for "${eventType}"`
-      ); // ✅ THÊM LOG
+      );
       callbacks.forEach((cb) => cb(data));
     }
   }

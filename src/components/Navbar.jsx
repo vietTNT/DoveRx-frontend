@@ -26,14 +26,13 @@ const Navbar = ({ user, onLogout }) => {
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
 
-  // ✅ THÊM 2 STATE NÀY
   const [friendRequestsOpen, setFriendRequestsOpen] = useState(false); // Trạng thái mở/đóng dropdown
   const [friendRequests, setFriendRequests] = useState([]); // Danh sách lời mời kết bạn
   const [friends, setFriends] = useState([]); // Danh sách bạn bè
   const searchTimeoutRef = useRef(null);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
-  // 📌 Thêm đoạn này ở đầu component Navbar (sau khi khai báo props hoặc useState)
+
   const displayName = (() => {
     // Nếu có họ hoặc tên thì ghép lại
     if (user?.first_name || user?.last_name) {
@@ -47,7 +46,6 @@ const Navbar = ({ user, onLogout }) => {
     return "Người dùng"; // fallback cuối cùng
   })();
 
-  // 📌 Đặt ảnh mặc định nếu avatar null hoặc trống
   const avatarUrl = (() => {
     const defaultAvatar =
       "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
@@ -62,39 +60,9 @@ const Navbar = ({ user, onLogout }) => {
   })();
 
   // 🧩 Dữ liệu mẫu
-  const notifications = [
-    {
-      id: 1,
-      name: "Bác sĩ Lan",
-      avatar: "https://cdn-icons-png.flaticon.com/512/194/194938.png",
-      text: "Đã đăng bài mới về sức khỏe tim mạch 🩺",
-      time: "2 giờ trước",
-    },
-    {
-      id: 2,
-      name: "Minh Anh",
-      avatar: "https://cdn-icons-png.flaticon.com/512/194/194935.png",
-      text: "Đã thích bài viết của bạn ❤️",
-      time: "5 giờ trước",
-    },
-  ];
+  const notifications = [];
 
-  const messages = [
-    {
-      id: 1,
-      name: "Bác sĩ Long",
-      avatar: "https://cdn-icons-png.flaticon.com/512/194/194939.png",
-      text: "Bạn có rảnh để trao đổi không?",
-      time: "17 giờ trước",
-    },
-    {
-      id: 2,
-      name: "Mỹ Linh",
-      avatar: "https://cdn-icons-png.flaticon.com/512/194/194940.png",
-      text: "Cảm ơn bạn về chia sẻ hôm qua 🌸",
-      time: "1 ngày trước",
-    },
-  ];
+  const messages = [];
   // Load friend requests
   useEffect(() => {
     const loadFriendRequests = async () => {
@@ -111,14 +79,14 @@ const Navbar = ({ user, onLogout }) => {
     if (user) {
       loadFriendRequests();
 
-      // ✅ Auto refresh mỗi 30 giây
+      //  Auto refresh mỗi 30 giây
       const interval = setInterval(loadFriendRequests, 30000);
       return () => clearInterval(interval);
     }
   }, [user]);
 
   // Chấp nhận lời mời kết bạn
-  // ✅ THAY THẾ FUNCTION handleAccept
+
   const handleAccept = async (fromUserId, e) => {
     // Ngăn event bubble lên parent
     if (e) {
@@ -129,23 +97,23 @@ const Navbar = ({ user, onLogout }) => {
     console.log("👥 [Navbar] Accepting friend request from user:", fromUserId);
 
     try {
-      // 1️⃣ Gọi API chấp nhận
+      // Gọi API chấp nhận
       console.log("📤 [Navbar] Calling acceptFriendRequest API...");
       const result = await acceptFriendRequest(fromUserId);
       console.log("✅ [Navbar] API response:", result);
 
-      // 2️⃣ Xóa lời mời khỏi danh sách
+      //  Xóa lời mời khỏi danh sách
       console.log("🗑️ [Navbar] Removing request from list...");
       setFriendRequests((prev) =>
         prev.filter((req) => req.from_user.id !== fromUserId)
       );
 
-      // 3️⃣ Reload toàn bộ danh sách bạn bè từ backend
+      // 3 Reload toàn bộ danh sách bạn bè từ backend
       console.log("🔄 [Navbar] Reloading friends list...");
       const updatedFriends = await getFriends();
       console.log("✅ [Navbar] Updated friends:", updatedFriends);
 
-      // 4️⃣ Dispatch event để SidebarRight cập nhật
+      // 4️Dispatch event để SidebarRight cập nhật
       console.log("📢 [Navbar] Dispatching friendsUpdated event...");
       window.dispatchEvent(
         new CustomEvent("friendsUpdated", {
@@ -154,7 +122,6 @@ const Navbar = ({ user, onLogout }) => {
       );
       console.log("✅ [Navbar] Event dispatched successfully");
 
-      // 5️⃣ Thông báo thành công
       alert(
         `✅ Đã chấp nhận lời mời kết bạn từ ${
           result.friend?.name || "người dùng"
@@ -188,9 +155,7 @@ const Navbar = ({ user, onLogout }) => {
     }
   };
 
-  // ✅ THAY THẾ FUNCTION handleReject
   const handleReject = async (fromUserId, e) => {
-    // Ngăn event bubble lên parent
     if (e) {
       e.stopPropagation();
       e.preventDefault();
@@ -244,7 +209,7 @@ const Navbar = ({ user, onLogout }) => {
       }
     }
   };
-  // ✅ Debounced search
+  //  Debounced search
   useEffect(() => {
     if (searchQuery.trim().length < 2) {
       setSearchResults([]);
@@ -278,7 +243,7 @@ const Navbar = ({ user, onLogout }) => {
     };
   }, [searchQuery]);
 
-  // ✅ Click vào user trong search results
+  //  Click vào user trong search results
   const handleUserClick = (userId) => {
     navigate(`/profile/${userId}`);
     setShowSearchDropdown(false);
@@ -302,14 +267,14 @@ const Navbar = ({ user, onLogout }) => {
 
   return (
     <nav className="navbar">
-      {/* ✅ Logo + Thanh tìm kiếm bên trái */}
+      {/* Logo + Thanh tìm kiếm bên trái */}
       <div className="navbar-left">
         <div className="logo-section" onClick={() => navigate("/dashboard")}>
           <img src={logo} alt="logo" className="navbar-logo" />
           <h1 className="navbar-title">DoveRx</h1>
         </div>
 
-        {/* ✅ Search với dropdown results */}
+        {/*  Search với dropdown results */}
         <div className="search-wrapper">
           <form className="navbar-search">
             <i className="fas fa-search search-icon"></i>
@@ -324,7 +289,7 @@ const Navbar = ({ user, onLogout }) => {
             />
           </form>
 
-          {/* ✅ Search Results Dropdown */}
+          {/*  Search Results Dropdown */}
           {showSearchDropdown && (
             <div className="search-dropdown">
               {searchLoading ? (
@@ -369,7 +334,7 @@ const Navbar = ({ user, onLogout }) => {
           )}
         </div>
       </div>
-      {/* ✅ Navbar Center: 2 Icon ở giữa */}
+
       <div className="navbar-center">
         <button
           className={`nav-icon-btn ${activeTab === "home" ? "active" : ""}`}
@@ -378,7 +343,6 @@ const Navbar = ({ user, onLogout }) => {
             navigate("/dashboard");
           }}
         >
-          {/* ✅ Thay <i> bằng <img> icon home của bạn */}
           <img src={home} alt="Home" className="home-icon" />
         </button>
 
@@ -403,13 +367,13 @@ const Navbar = ({ user, onLogout }) => {
           >
             <img src={friend} alt="Friend Requests" className="friend-icon" />
 
-            {/* ✅ Badge hiển thị số lượng lời mời */}
+            {/* Badge hiển thị số lượng lời mời */}
             {friendRequests.length > 0 && (
               <span className="friend-badge">{friendRequests.length}</span>
             )}
           </button>
 
-          {/* ✅ DROPDOWN MENU */}
+          {/*  DROPDOWN MENU */}
           {friendRequestsOpen && (
             <div className="popup-menu friend-requests-menu">
               <h4>Lời mời kết bạn ({friendRequests.length})</h4>
@@ -420,7 +384,7 @@ const Navbar = ({ user, onLogout }) => {
                     "🟢 Rendering friend request item:",
                     req.id,
                     req.from_user.name
-                  ); // ✅ THÊM LOG NÀY
+                  );
 
                   return (
                     <div key={req.id} className="friend-request-item">
@@ -455,13 +419,13 @@ const Navbar = ({ user, onLogout }) => {
                           {new Date(req.created_at).toLocaleDateString("vi-VN")}
                         </span>
 
-                        {/* ✅ BUTTONS - KIỂM TRA KỸ ĐOẠN NÀY */}
+                        {/* BUTTONS - KIỂM TRA KỸ ĐOẠN NÀY */}
                         <div className="friend-request-actions">
                           <button
                             type="button"
                             className="btn-accept"
                             onMouseDown={(e) => {
-                              // ✅ Dùng onMouseDown thay vì onClick
+                              // Dùng onMouseDown thay vì onClick
                               e.preventDefault();
                               e.stopPropagation();
 
@@ -475,7 +439,7 @@ const Navbar = ({ user, onLogout }) => {
                             type="button"
                             className="btn-reject"
                             onMouseDown={(e) => {
-                              // ✅ Dùng onMouseDown thay vì onClick
+                              // Dùng onMouseDown thay vì onClick
                               e.preventDefault();
                               e.stopPropagation();
 

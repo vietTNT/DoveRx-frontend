@@ -301,7 +301,7 @@ const ChatPopup = ({
     // Reset input
     e.target.value = null;
 
-    // A. Preview (Optimistic UI)
+    //  Preview (Optimistic UI)
     const previewUrl = URL.createObjectURL(file);
     let type = "file";
     if (file.type.startsWith("image/")) type = "image";
@@ -352,7 +352,6 @@ const ChatPopup = ({
   const handleSendLike = () => {
     if (!conversation?.id) return;
 
-    // Gửi icon 👍 to (Dùng emoji hoặc URL ảnh like cố định)
     const likeEmoji = "👍";
 
     // Optimistic UI cho Like
@@ -377,13 +376,13 @@ const ChatPopup = ({
     // Gửi qua socket
     chatWebSocketService.sendMessage(conversation.id, likeEmoji);
   };
-  // ✅ Gửi tin nhắn
+  //  Gửi tin nhắn
   const handleSend = (e) => {
     e.preventDefault();
     const textToSend = message.trim();
     if (!textToSend || !conversation?.id) return;
 
-    // 1️⃣ TẠO TIN NHẮN GIẢ LẬP (Optimistic Message)
+    //  TẠO TIN NHẮN GIẢ LẬP (Optimistic Message)
     const optimisticMsg = {
       id: null, // Chưa có ID server
       _local_id: uuidv4(),
@@ -399,19 +398,18 @@ const ChatPopup = ({
       isSending: true, // 🚩 Đánh dấu đang gửi
     };
 
-    // 2️⃣ CẬP NHẬT GIAO DIỆN NGAY LẬP TỨC
+    //  CẬP NHẬT GIAO DIỆN NGAY LẬP TỨC
     setMessages((prev) => [...prev, optimisticMsg]);
     setMessage(""); // Xóa input ngay
 
-    // 3️⃣ GỬI SOCKET NGẦM
+    // GỬI SOCKET NGẦM
     chatWebSocketService.sendMessage(conversation.id, textToSend);
 
-    // 4️⃣ TẮT TYPING (Gửi signal ngừng gõ)
+    // TẮT TYPING (Gửi signal ngừng gõ)
     chatWebSocketService.sendTyping(conversation.id, false);
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
   };
 
-  // ✅ Typing indicator logic
   const handleTypingInput = (e) => {
     setMessage(e.target.value);
     if (!conversation?.id) return;

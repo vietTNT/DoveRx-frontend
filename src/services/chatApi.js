@@ -36,7 +36,7 @@ export const fetchMessages = async (conversationId) => {
       `🔄 [chatApi] Fetching messages for conversation ${conversationId}`
     );
 
-    // ✅ SỬA: Gọi endpoint đúng
+    //  Gọi endpoint
     const { data } = await api.get(
       `/api/chat/conversations/${conversationId}/messages/`
     );

@@ -2,14 +2,13 @@ import axios from "axios";
 
 const API_BASE = process.env.REACT_APP_API_BASE;
 
-// const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:8000"; // local
 export async function refreshTokenIfNeeded() {
   const access = localStorage.getItem("access");
   const refresh = localStorage.getItem("refresh");
 
   if (!access || !refresh) return null;
 
-  // ✅ Kiểm tra access token còn hạn không
+  // Kiểm tra access token còn hạn không
   try {
     const payload = JSON.parse(atob(access.split(".")[1]));
     const exp = payload.exp * 1000;
@@ -18,7 +17,7 @@ export async function refreshTokenIfNeeded() {
     console.warn("⚠️ Không decode được access token");
   }
 
-  // ✅ Hết hạn → gọi API refresh
+  //  Hết hạn → gọi API refresh
   try {
     const res = await axios.post(`${API_BASE}/api/accounts/token/refresh/`, {
       refresh,
