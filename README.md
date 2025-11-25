@@ -1,70 +1,139 @@
-# Getting Started with Create React App
+🏥 DoveRx - Medical Social Network & Forum
+🔗 Live Demo: https://doverx.vercel.app
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+DoveRx is a comprehensive medical social network platform that connects health-conscious users with medical professionals (Doctors, Medical Students). The system enables Q&A, knowledge sharing, online health consultations, and personal medical record management.
 
-## Available Scripts
+This repository contains the Full-stack source code for the project, including the Backend (Django) and Frontend (React.js).
 
-In the project directory, you can run:
+🌐 System Overview
+DoveRx operates on a decoupled Client-Server architecture:
 
-### `npm start`
+Frontend: React.js (Single Page Application) providing a modern, optimized user experience, deployed on Vercel.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+Backend: RESTful API built with Django Rest # 🏥 DoveRx - Medical Social Network & Forum
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+[![Live Demo](https://img.shields.io/badge/Live_Demo-doverx.vercel.app-2563eb?style=for-the-badge&logo=vercel)](https://doverx.vercel.app)
 
-### `npm test`
+**🔗 Live Demo:** [**https://doverx.vercel.app**](https://doverx.vercel.app)
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+**DoveRx** is a comprehensive medical social network platform that connects health-conscious users with medical professionals (Doctors, Medical Students). The system enables Q&A, knowledge sharing, online health consultations, and personal medical record management.
 
-### `npm run build`
+This repository contains the **Full-stack** source code for the project, including the Backend (Django) and Frontend (**React.js**).
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+---
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## 🌐 System Overview
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+DoveRx operates on a decoupled Client-Server architecture:
 
-### `npm run eject`
+* **Frontend:** **React.js** (Single Page Application) providing a modern, optimized user experience, deployed on **Vercel**.
+* **Backend:** RESTful API built with **Django Rest Framework**, deployed on **Railway**.
+* **Database:** **Neon (PostgreSQL)** Serverless for high performance and scalability.
+* **Real-time Engine:** **Redis** + **Django Channels** handling instant Chat and Notifications.
+* **Media Storage:** **Cloudinary** for storage and optimization of images/videos.
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+---
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## 🎨 UI/UX Highlights (React.js Frontend)
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+The React interface is designed for fluidity and instant feedback:
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+* **Optimistic UI:** Uses React State to update the interface (Like, Comment, Friend Requests) immediately before waiting for server confirmation.
+* **Real-time Feedback:**
+    * **Chat:** Real-time components update incoming messages, "typing..." indicators, and "seen" statuses via WebSocket.
+    * **Notifications:** Notification dropdown updates instantly without page reloads.
+* **Smart Components:**
+    * **Debounce Search:** Search input uses debounce techniques to minimize request load.
+    * **Dynamic Modals:** State-managed modals for creating posts, comments, and viewing media.
+* **Media Handling:** Multi-threaded uploads with instant browser-side previews.
 
-## Learn More
+---
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## 🚀 Extended Features (Technical Depth)
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+The project implements advanced Full-stack techniques:
 
-### Code Splitting
+1.  **Security & Auth:**
+    * **React:** **Refresh Token Locking** mechanism in Axios Interceptors to handle expired tokens automatically and safely.
+    * **Backend:** JWT Authentication, Server-side Google OAuth2 verification.
+    * **WebSocket:** Custom Middleware for JWT authentication on socket connections.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+2.  **Role-Based Access Control (RBAC):**
+    * Strict separation between **User** and **Doctor** roles from Database to UI.
+    * Specialized Doctor registration flow with email OTP verification.
 
-### Analyzing the Bundle Size
+3.  **Friendship & Social Graph:**
+    * Complex status management: *Pending, Accepted, Rejected, Blocked*.
+    * Friend request processing directly via the Navbar dropdown.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+---
 
-### Making a Progressive Web App
+## 🛠️ Technology & Libraries
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+### Frontend (React Ecosystem)
+* **Core:** React.js (Hooks, Context API).
+* **Routing:** React Router DOM (v6).
+* **HTTP Client:** Axios (Custom Instance & Interceptors).
+* **Real-time:** Native WebSocket API (Custom Services wrapper).
+* **UI/UX:** CSS Modules, React-Toastify, React-Easy-Crop (avatar processing).
 
-### Advanced Configuration
+### Backend (Django Ecosystem)
+* **Core:** Python, Django, Django REST Framework.
+* **Real-time:** Django Channels, Daphne.
+* **Database:** PostgreSQL (Neon), Redis.
+* **Storage:** Cloudinary.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+---
 
-### Deployment
+## 📂 Project Structure
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+Monorepo Structure:
 
-### `npm run build` fails to minify
+```bash
+DOVERX/
+├── Backend/                # Django Project
+│   ├── accounts/           # Auth, User, Profile, Friend logic
+│   ├── chat/               # WebSocket Chat logic
+│   ├── social/             # Post, Feed, Comment logic
+│   ├── doverx_backend/     # Config (Settings, ASGI)
+│   └── manage.py
+│
+└── Frontend/               # React.js Project
+    ├── public/
+    ├── src/
+    │   ├── api/            # Axios config (api.js, posts.js)
+    │   ├── components/     # React Components (Navbar, ChatPopup, PostCard...)
+    │   ├── pages/          # Pages (Dashboard, Login, Profile...)
+    │   ├── services/       # WebSocket Services (chatWebSocket.js...)
+    │   └── utils/          # Helpers (imageHelper, timeUtils...)
+    └── package.json
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+✅ Requirements
+Node.js: v16+ (Required for React dev server).
+
+Python: v3.10+
+
+Redis: (Required for Chat/Real-time features).
+
+PostgreSQL.
+
+💻 Installation & Run
+1. Setup Backend (Django)
+cd Backend
+python -m venv venv
+# Activate venv (Windows: venv\Scripts\activate | Mac/Linux: source venv/bin/activate)
+
+pip install -r requirements.txt
+# Configure .env file (DB, Redis, Cloudinary...)
+
+python manage.py migrate
+python manage.py runserver
+2. Setup Frontend (React.js)
+cd Frontend
+# Install dependencies
+npm install
+
+# Configure .env file (REACT_APP_API_BASE=http://localhost:8000)
+
+# Start Development Server
+npm start
