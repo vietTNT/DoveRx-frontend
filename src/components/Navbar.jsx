@@ -568,7 +568,7 @@ const Navbar = ({ user, onLogout }) => {
       <div className="navbar-left">
         <div className="logo-section" onClick={() => navigate("/dashboard")}>
           <img src={logo} alt="logo" className="navbar-logo" />
-          <h1 className="navbar-title">DoveRx</h1>
+          <h1 className="navbar-title  hide-on-mobile">DoveRx</h1>
         </div>
         <div className="search-wrapper">
           <form className="navbar-search">
@@ -661,11 +661,15 @@ const Navbar = ({ user, onLogout }) => {
           }`}
           onClick={() => {
             setActiveTab("dove");
-            navigate("/dove-community");
+            // navigate("/dove-community");
           }}
         >
           <img src={dove} className="dove-icon" alt="dove" />
         </button>
+      </div>
+
+      {/* RIGHT */}
+      <div className="navbar-right" ref={dropdownRef}>
         <div className="icon-wrapper friend-requests-wrapper">
           <button
             className={`nav-icon-btn ${activeTab === "friend" ? "active" : ""}`}
@@ -733,10 +737,6 @@ const Navbar = ({ user, onLogout }) => {
             </div>
           )}
         </div>
-      </div>
-
-      {/* RIGHT */}
-      <div className="navbar-right" ref={dropdownRef}>
         <div className="icon-wrapper notification-wrapper">
           <img
             src={notificationIcon}
