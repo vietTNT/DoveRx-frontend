@@ -980,9 +980,6 @@
   }
 }
 /* ===== FRIEND REQUESTS STYLES ===== */
-.friend-requests-wrapper {
-  position: relative;
-}
 
 .friend-badge {
   position: absolute;
@@ -1417,7 +1414,7 @@
 @media (max-width: 480px) {
   .friend-requests-menu {
     width: 280px;
-    right: -60px;
+    right: -80px;
     top: 50px;
     max-height: 400px;
   }
