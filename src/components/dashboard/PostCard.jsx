@@ -16,7 +16,7 @@ import {
   updatePost,
 } from "../../services/socialApi";
 import websocketService from "../../services/websocket";
-
+import ReactionListModal from "./ReactionListModal";
 // HELPER FUNCTION
 const getCurrentUserId = () => {
   try {
@@ -85,7 +85,9 @@ export const CommentItem = ({
 
   const armCommentPopup = (id) => {
     if (hidePopupTimer.current) clearTimeout(hidePopupTimer.current);
-    setActiveCommentPopup(id);
+    hidePopupTimer.current = setTimeout(() => {
+      setActiveCommentPopup(id);
+    }, 500);
   };
 
   const disarmCommentPopup = () => {
@@ -130,6 +132,9 @@ export const CommentItem = ({
             className="comment-react-wrapper"
             onMouseEnter={() => armCommentPopup(`c-${c.id}`)}
             onMouseLeave={disarmCommentPopup}
+            // hỗ trợ mobile
+            onTouchStart={() => armCommentPopup(`c-${c.id}`)}
+            onTouchEnd={disarmCommentPopup}
           >
             <span
               className={`comment-react ${c.reaction ? "active" : ""}`}
@@ -193,7 +198,7 @@ export const CommentItem = ({
             </span>
           )}
 
-          {/* ✅ NÚT SỬA / XÓA */}
+          {/* NÚT SỬA / XÓA */}
           {isOwner && !c.editing && (
             <>
               <span> · </span>
@@ -317,7 +322,7 @@ const PostCard = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState("");
   const menuRef = useRef(null);
-
+  const [showReactionList, setShowReactionList] = useState(false);
   const isAuthor =
     currentUser?.id &&
     (String(currentUser.id) === String(p.author?.id) ||
@@ -423,7 +428,7 @@ const PostCard = ({
       }));
 
   const toggleCommentLike = (cid) => {
-    /* ...logic like comment... */ let had = false;
+    let had = false;
     setComments((prev) => {
       const ps = prev[p.id];
       const list = updateNode(ps.list, cid, (c) => {
@@ -534,7 +539,9 @@ const PostCard = ({
 
   const armPostPopup = (id) => {
     if (postPopupTimer.current) clearTimeout(postPopupTimer.current);
-    setActivePostPopup(id);
+    postPopupTimer.current = setTimeout(() => {
+      setActivePostPopup(id);
+    }, 500);
   };
   const disarmPostPopup = () => {
     if (postPopupTimer.current) clearTimeout(postPopupTimer.current);
@@ -654,7 +661,6 @@ const PostCard = ({
         )}
       </div>
 
-      {/* Content & Media (Giữ nguyên) */}
       {isEditing ? (
         <div className="post-edit-mode" style={{ padding: "10px" }}>
           <textarea
@@ -816,7 +822,11 @@ const PostCard = ({
       <div className="post-actions">
         <div className="post-stats">
           {Object.keys(p.reaction_counts || {}).length > 0 && (
-            <span className="reaction-count">
+            <span
+              className="reaction-count"
+              onClick={() => setShowReactionList(true)}
+              style={{ cursor: "pointer" }}
+            >
               {Object.entries(p.reaction_counts).map(([t, c]) => (
                 <span key={t}>
                   {emojiList.find((e) => e.type === t)?.icon || "👍"} {c}
@@ -835,6 +845,9 @@ const PostCard = ({
             className="post-action-group"
             onMouseEnter={() => armPostPopup(`p-${p.id}`)}
             onMouseLeave={disarmPostPopup}
+            // hỗ trợ mobile
+            onTouchStart={() => armPostPopup(`p-${p.id}`)}
+            onTouchEnd={disarmPostPopup}
           >
             <button
               className={`post-like-btn ${myReactionType ? "active" : ""}`}
@@ -939,6 +952,12 @@ const PostCard = ({
         }}
         onTogglePostReaction={togglePostReaction}
         onSetPostReaction={setPostReaction}
+      />
+      <ReactionListModal
+        isOpen={showReactionList}
+        onClose={() => setShowReactionList(false)}
+        postId={p.id}
+        emojiList={emojiList}
       />
     </div>
   );

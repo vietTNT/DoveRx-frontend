@@ -1,7 +1,5 @@
 import api from "../api/api";
 
-const API_URL = `${process.env.REACT_APP_API_BASE}/api/chat`;
-
 // ===== Conversations =====
 export const fetchConversations = async () => {
   const { data } = await api.get("/api/chat/conversations/");
@@ -58,7 +56,7 @@ export const sendMessage = async (conversationId, text) => {
 };
 
 export const markAsRead = async (conversationId) => {
-  const { data } = await api.post("/api/chat/messages/mark_as_read/", {
+  const { data } = await api.post("/api/chat/messages/read_sync/", {
     conversation_id: conversationId,
   });
   return data;

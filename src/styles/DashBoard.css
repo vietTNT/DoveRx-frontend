@@ -1,109 +1,117 @@
-.dashboard-layout {
-  display: flex;
-  justify-content: space-between; /* ✅ Căn giữa thay vì flex-start */
-  gap: 25px;
-  margin-top: 85px;
-  padding: 10px 20px; /* ✅ Thay 40vh thành 20px */
-  height: calc(100vh - 85px);
-  font-family: "Segoe UI", sans-serif;
-  max-width: 1920px; /* ✅ Giới hạn width tối đa */
-  margin-left: auto;
-  margin-right: auto;
-}
-
+/* =================== 1. CẤU TRÚC CHUNG (Dành cho PC) =================== */
 .dashboard-page {
   background: linear-gradient(135deg, #5ec6ca, #2563eb);
-  min-height: 100vh;
+  min-height: 100vh; /* Đảm bảo nền luôn phủ kín */
   display: flex;
   flex-direction: column;
+  overflow: hidden; /* Ẩn scroll body trên PC để dùng scroll của feed */
 }
 
-/* =================== FEED GIỮA CUỘN ĐỘC LẬP =================== */
+.dashboard-layout {
+  display: flex;
+  justify-content: center; /* Căn giữa nội dung */
+  gap: 24px;
+  margin-top: 70px; /* Khớp với chiều cao Navbar */
+  padding: 20px;
+  height: calc(100vh - 70px); /* Chiều cao cố định trên PC */
+  font-family: "Segoe UI", sans-serif;
+  max-width: 1920px;
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+}
+
+/* =================== 2. FEED (CUỘN ĐỘC LẬP TRÊN PC) =================== */
 .feed {
-  flex: 1;
-  max-width: 680px; /* ✅ Giảm từ 700px xuống 680px giống Facebook */
-  height: calc(100vh - 100px);
-  overflow-y: auto;
-  padding-right: 10px;
+  flex: 1; /* Tự động co giãn */
+  max-width: 700px; /* Độ rộng chuẩn dễ đọc */
+  height: 100%; /* Chiếm hết chiều cao layout */
+  overflow-y: auto; /* Cuộn dọc */
+  padding-right: 8px; /* Khoảng cách để scrollbar không dính nội dung */
   scroll-behavior: smooth;
-  position: relative;
-  z-index: 1;
+
+  /* Ẩn thanh cuộn mặc định nhưng vẫn cuộn được (tùy chọn) */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.4) transparent;
 }
 
+/* Custom Scrollbar Webkit */
 .feed::-webkit-scrollbar {
-  width: 8px; /* ✅ Tăng từ 6px lên 8px cho dễ thấy */
+  width: 6px;
 }
-
 .feed::-webkit-scrollbar-track {
   background: transparent;
 }
-
 .feed::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.3); /* ✅ Đổi màu để dễ nhìn */
-  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
 }
-
 .feed::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.6);
 }
 
-.feed.scrollable {
-  padding-bottom: 25px;
-  scroll-behavior: smooth;
-}
+/* =================== 3. RESPONSIVE (ĐA PHƯƠNG TIỆN) =================== */
 
-/* 🌐 Responsive */
-@media (min-width: 1600px) {
-  .dashboard-layout {
-    gap: 30px;
-    padding: 10px 40px;
-  }
-
+/* --- Màn hình Lớn (Desktop > 1400px) --- */
+@media (min-width: 1400px) {
   .feed {
-    max-width: 850px; /* ✅ Tăng width cho màn hình lớn */
+    max-width: 800px; /* Tận dụng màn hình to */
+  }
+  .dashboard-layout {
+    gap: 32px;
   }
 }
 
-@media (max-width: 1400px) {
-  .dashboard-layout {
-    gap: 20px;
-  }
-
+/* --- Laptop & Tablet Ngang (1024px - 1399px) --- */
+@media (max-width: 1399px) {
   .feed {
     max-width: 650px;
   }
-}
-
-@media (max-width: 1200px) {
-  .feed {
-    max-width: 600px;
+  .dashboard-layout {
+    gap: 20px;
+    padding: 15px;
   }
 }
 
-@media (max-width: 1024px) {
+/* --- Tablet Dọc (768px - 1023px) --- */
+@media (max-width: 1023px) {
   .dashboard-layout {
     gap: 15px;
-  }
-
-  .feed {
-    max-width: 550px;
-  }
-}
-
-@media (max-width: 992px) {
-  .feed {
-    max-width: 500px;
-  }
-}
-
-@media (max-width: 768px) {
-  .dashboard-layout {
     padding: 10px;
-    gap: 0;
+  }
+  .feed {
+    max-width: 100%; /* Feed chiếm hết chiều rộng nếu sidebar bị ẩn */
+  }
+}
+
+/* --- MOBILE (QUAN TRỌNG NHẤT: < 768px) --- */
+@media (max-width: 768px) {
+  /* 1. Cho phép body cuộn tự nhiên */
+  .dashboard-page {
+    overflow: auto;
+    height: auto;
   }
 
+  /* 2. Phá vỡ layout cố định */
+  .dashboard-layout {
+    display: block; /* Không dùng flex row nữa */
+    height: auto; /* Chiều cao tự do theo nội dung */
+    margin-top: 60px; /* Navbar mobile thường nhỏ hơn */
+    padding: 10px 0; /* Bỏ padding 2 bên để rộng chỗ */
+  }
+
+  /* 3. Feed chiếm toàn màn hình */
   .feed {
     max-width: 100%;
-    height: auto;
+    height: auto; /* Không fix height */
+    overflow-y: visible; /* Bỏ thanh cuộn riêng của feed */
+    padding-right: 0;
+    padding-bottom: 60px; /* Chừa chỗ cho bottom navigation nếu có */
+  }
+
+  /* 4. Ẩn scrollbar trên mobile cho gọn */
+  .feed::-webkit-scrollbar {
+    display: none;
   }
 }

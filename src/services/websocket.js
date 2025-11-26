@@ -25,7 +25,6 @@ class WebSocketService {
       console.log("✅ WebSocket connected");
       this.reconnectAttempts = 0;
     };
-
     this.ws.onmessage = (event) => {
       try {
         const response = JSON.parse(event.data);
@@ -37,6 +36,10 @@ class WebSocketService {
           this.notifyListeners(response.data.event, response.data);
         } else {
           this.notifyListeners(response.type, response);
+
+          if (response.data && response.data.event) {
+            this.notifyListeners(response.data.event, response);
+          }
         }
       } catch (err) {
         console.error("WebSocket message error:", err);

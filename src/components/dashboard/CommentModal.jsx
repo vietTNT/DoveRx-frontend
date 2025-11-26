@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from "react";
 import "../../styles/CommentModal.css";
+import ReactDOM from "react-dom";
 import { CommentItem, CommentInput } from "./PostCard";
 
 // Fallback chung
@@ -134,7 +135,7 @@ const CommentModal = ({
 
   if (!isOpen) return null;
 
-  return (
+  return ReactDOM.createPortal(
     <div className="comment-modal-overlay" onClick={onClose}>
       <div
         className="comment-modal-container"
@@ -393,7 +394,8 @@ const CommentModal = ({
           />
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

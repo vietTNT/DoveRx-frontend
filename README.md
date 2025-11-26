@@ -14,11 +14,11 @@ This repository contains the **Full-stack** source code for the project, includi
 
 DoveRx operates on a decoupled Client-Server architecture:
 
-* **Frontend:** **React.js** (Single Page Application) providing a modern, optimized user experience, deployed on **Vercel**.
-* **Backend:** RESTful API built with **Django Rest Framework**, deployed on **Railway**.
-* **Database:** **Neon (PostgreSQL)** Serverless for high performance and scalability.
-* **Real-time Engine:** **Redis** + **Django Channels** handling instant Chat and Notifications.
-* **Media Storage:** **Cloudinary** for storage and optimization of images/videos.
+- **Frontend:** **React.js** (Single Page Application) providing a modern, optimized user experience, deployed on **Vercel**.
+- **Backend:** RESTful API built with **Django Rest Framework**, deployed on **Railway**.
+- **Database:** **Neon (PostgreSQL)** Serverless for high performance and scalability.
+- **Real-time Engine:** **Redis** + **Django Channels** handling instant Chat and Notifications.
+- **Media Storage:** **Cloudinary** for storage and optimization of images/videos.
 
 ---
 
@@ -26,14 +26,14 @@ DoveRx operates on a decoupled Client-Server architecture:
 
 The React interface is designed for fluidity and instant feedback:
 
-* **Optimistic UI:** Uses React State to update the interface (Like, Comment, Friend Requests) immediately before waiting for server confirmation.
-* **Real-time Feedback:**
-    * **Chat:** Real-time components update incoming messages, "typing..." indicators, and "seen" statuses via WebSocket.
-    * **Notifications:** Notification dropdown updates instantly without page reloads.
-* **Smart Components:**
-    * **Debounce Search:** Search input uses debounce techniques to minimize request load.
-    * **Dynamic Modals:** State-managed modals for creating posts, comments, and viewing media.
-* **Media Handling:** Multi-threaded uploads with instant browser-side previews.
+- **Optimistic UI:** Uses React State to update the interface (Like, Comment, Friend Requests) immediately before waiting for server confirmation.
+- **Real-time Feedback:**
+  - **Chat:** Real-time components update incoming messages, "typing..." indicators, and "seen" statuses via WebSocket.
+  - **Notifications:** Notification dropdown updates instantly without page reloads.
+- **Smart Components:**
+  - **Debounce Search:** Search input uses debounce techniques to minimize request load.
+  - **Dynamic Modals:** State-managed modals for creating posts, comments, and viewing media.
+- **Media Handling:** Multi-threaded uploads with instant browser-side previews.
 
 ---
 
@@ -42,34 +42,38 @@ The React interface is designed for fluidity and instant feedback:
 The project implements advanced Full-stack techniques:
 
 1.  **Security & Auth:**
-    * **React:** **Refresh Token Locking** mechanism in Axios Interceptors to handle expired tokens automatically and safely.
-    * **Backend:** JWT Authentication, Server-side Google OAuth2 verification.
-    * **WebSocket:** Custom Middleware for JWT authentication on socket connections.
+
+    - **React:** **Refresh Token Locking** mechanism in Axios Interceptors to handle expired tokens automatically and safely.
+    - **Backend:** JWT Authentication, Server-side Google OAuth2 verification.
+    - **WebSocket:** Custom Middleware for JWT authentication on socket connections.
 
 2.  **Role-Based Access Control (RBAC):**
-    * Strict separation between **User** and **Doctor** roles from Database to UI.
-    * Specialized Doctor registration flow with email OTP verification.
+
+    - Strict separation between **User** and **Doctor** roles from Database to UI.
+    - Specialized Doctor registration flow with email OTP verification.
 
 3.  **Friendship & Social Graph:**
-    * Complex status management: *Pending, Accepted, Rejected, Blocked*.
-    * Friend request processing directly via the Navbar dropdown.
+    - Complex status management: _Pending, Accepted, Rejected, Blocked_.
+    - Friend request processing directly via the Navbar dropdown.
 
 ---
 
 ## 🛠️ Technology & Libraries
 
 ### Frontend (React Ecosystem)
-* **Core:** React.js (Hooks, Context API).
-* **Routing:** React Router DOM (v6).
-* **HTTP Client:** Axios (Custom Instance & Interceptors).
-* **Real-time:** Native WebSocket API (Custom Services wrapper).
-* **UI/UX:** CSS Modules, React-Toastify, React-Easy-Crop (avatar processing).
+
+- **Core:** React.js (Hooks, Context API).
+- **Routing:** React Router DOM (v6).
+- **HTTP Client:** Axios (Custom Instance & Interceptors).
+- **Real-time:** Native WebSocket API (Custom Services wrapper).
+- **UI/UX:** CSS Modules, React-Toastify, React-Easy-Crop (avatar processing).
 
 ### Backend (Django Ecosystem)
-* **Core:** Python, Django, Django REST Framework.
-* **Real-time:** Django Channels, Daphne.
-* **Database:** PostgreSQL (Neon), Redis.
-* **Storage:** Cloudinary.
+
+- **Core:** Python, Django, Django REST Framework.
+- **Real-time:** Django Channels, Daphne.
+- **Database:** PostgreSQL (Neon), Redis.
+- **Storage:** Cloudinary.
 
 ---
 
@@ -125,3 +129,4 @@ npm install
 
 # Start Development Server
 npm start
+```

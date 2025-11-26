@@ -404,7 +404,9 @@ const ChatPopup = ({
 
     // GỬI SOCKET NGẦM
     chatWebSocketService.sendMessage(conversation.id, textToSend);
-
+    markAsRead(conversation.id).catch((e) => {
+      console.error("❌ Failed to mark as read after sending:", e);
+    });
     // TẮT TYPING (Gửi signal ngừng gõ)
     chatWebSocketService.sendTyping(conversation.id, false);
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);

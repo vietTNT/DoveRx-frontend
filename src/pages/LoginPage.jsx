@@ -66,7 +66,7 @@ const LoginPage = ({ onLoginSuccess }) => {
           </button>
         </div>
 
-        <footer>© 2025 DoveRx Healthcare Platform</footer>
+        <footer>DoveRx Healthcare Platform</footer>
       </div>
     </div>
   );

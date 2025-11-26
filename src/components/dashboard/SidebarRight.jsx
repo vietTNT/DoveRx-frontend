@@ -26,12 +26,12 @@ const SidebarRight = ({ contacts, onContactClick }) => {
   const [openChats, setOpenChats] = useState([]);
   const [conversations, setConversations] = useState({});
   const [cachedMessages, setCachedMessages] = useState({});
-  const [friends, setFriends] = useState([]); // ✅ State cho friends
+  const [friends, setFriends] = useState([]);
   const [loading, setLoading] = useState(true);
   const MAX_EXPANDED_CHATS = 4;
-  // ✅ THÊM: Ref để tránh re-render
+  // THÊM: Ref để tránh re-render
   const cachedMessagesRef = useRef({});
-  // ✅ Load danh sách bạn bè từ backend
+  //  Load danh sách bạn bè từ backend
   useEffect(() => {
     const loadFriends = async () => {
       try {
@@ -46,10 +46,10 @@ const SidebarRight = ({ contacts, onContactClick }) => {
       }
     };
 
-    // ✅ Load lần đầu
+    // Load lần đầu
     loadFriends();
 
-    // ✅ Lắng nghe sự kiện cập nhật từ Navbar
+    //  Lắng nghe sự kiện cập nhật từ Navbar
     const handleFriendsUpdated = (event) => {
       console.log(
         "🔄 SidebarRight: Received friendsUpdated event",
@@ -67,23 +67,23 @@ const SidebarRight = ({ contacts, onContactClick }) => {
 
     window.addEventListener("friendsUpdated", handleFriendsUpdated);
 
-    // ✅ Polling mỗi 60s để đồng bộ (optional, để backup)
+    //  Polling mỗi 60s để đồng bộ (optional, để backup)
     const interval = setInterval(() => {
       console.log("🔄 SidebarRight: Auto-refresh friends (polling)");
       loadFriends();
     }, 60000); // 60 seconds
 
-    // ✅ Cleanup
+    // Cleanup
     return () => {
       window.removeEventListener("friendsUpdated", handleFriendsUpdated);
       clearInterval(interval);
     };
   }, []);
 
-  // ✅ Dùng friends từ backend hoặc fallback sang contacts prop
+  //  Dùng friends từ backend hoặc fallback sang contacts prop
   const displayContacts = friends.length > 0 ? friends : contacts || [];
 
-  // ✅ Tự động minimize chat cũ nhất khi quá 4 popup lớn
+  //  Tự động minimize chat cũ nhất khi quá 4 popup lớn
   useEffect(() => {
     const expandedChats = openChats.filter((chat) => !chat.isMinimized);
 
@@ -100,20 +100,35 @@ const SidebarRight = ({ contacts, onContactClick }) => {
       );
     }
   }, [openChats]);
-  // ✅ SỬA: Dùng useCallback để stable function
+  //  LẮNG NGHE SỰ KIỆN TỪ NAVBAR ĐỂ MỞ CHAT
+  useEffect(() => {
+    const handleOpenChatEvent = (event) => {
+      const contact = event.detail;
+      if (contact && contact.id) {
+        console.log("🚀 Opening chat via Navbar:", contact);
+        handleClick(contact); // Gọi hàm mở chat có sẵn
+      }
+    };
+
+    window.addEventListener("open_chat_with_contact", handleOpenChatEvent);
+    return () => {
+      window.removeEventListener("open_chat_with_contact", handleOpenChatEvent);
+    };
+  }, [openChats]);
+  //  SỬA: Dùng useCallback để stable function
   const handleMessagesUpdate = useCallback((contactId, messages) => {
     console.log(
       `💾 [SidebarRight] Caching messages for contact ${contactId}:`,
       messages.length
     );
 
-    // ✅ Lưu vào ref trước
+    //  Lưu vào ref trước
     cachedMessagesRef.current = {
       ...cachedMessagesRef.current,
       [contactId]: messages,
     };
 
-    // ✅ CHỈ update state nếu thực sự thay đổi
+    //  CHỈ update state nếu thực sự thay đổi
     setCachedMessages((prev) => {
       const prevMessages = prev[contactId] || [];
 
@@ -137,68 +152,6 @@ const SidebarRight = ({ contacts, onContactClick }) => {
     });
   }, []);
 
-  // ✅ Xử lý khi click vào contact
-  // const handleClick = async (contact) => {
-  //   try {
-  //     console.log(`🖱️ [SidebarRight] Clicked contact:`, contact);
-
-  //     const token = localStorage.getItem("access");
-  //     if (!token) {
-  //       alert("⚠️ Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
-  //       window.location.href = "/login";
-  //       return;
-  //     }
-
-  //     console.log(
-  //       `🔄 [SidebarRight] Getting conversation with user ${contact.id}...`
-  //     );
-  //     const conversation = await getOrCreateConversation(contact.id);
-  //     console.log(`✅ [SidebarRight] Got conversation:`, conversation);
-
-  //     setConversations((prev) => ({
-  //       ...prev,
-  //       [contact.id]: conversation,
-  //     }));
-
-  //     const existingChatIndex = openChats.findIndex(
-  //       (chat) => chat.contact.id === contact.id
-  //     );
-
-  //     if (existingChatIndex === -1) {
-  //       console.log(`➕ [SidebarRight] Adding new chat for ${contact.name}`);
-  //       setOpenChats([...openChats, { contact, isMinimized: false }]);
-  //     } else {
-  //       const existingChat = openChats[existingChatIndex];
-
-  //       if (existingChat.isMinimized) {
-  //         console.log(`⬆️ [SidebarRight] Maximizing chat for ${contact.name}`);
-  //         const updatedChats = [...openChats];
-  //         updatedChats.splice(existingChatIndex, 1);
-  //         updatedChats.push({ ...existingChat, isMinimized: false });
-  //         setOpenChats(updatedChats);
-  //       } else {
-  //         console.log(`🔄 [SidebarRight] Focusing chat for ${contact.name}`);
-  //         const updatedChats = [...openChats];
-  //         updatedChats.splice(existingChatIndex, 1);
-  //         updatedChats.push(existingChat);
-  //         setOpenChats(updatedChats);
-  //       }
-  //     }
-  //   } catch (error) {
-  //     console.error("❌ [SidebarRight] Error in handleClick:", error);
-
-  //     if (
-  //       error.message?.includes("Session expired") ||
-  //       error.message?.includes("No access token")
-  //     ) {
-  //       alert("⚠️ Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
-  //       window.location.href = "/login";
-  //     } else {
-  //       alert(`❌ Không thể mở chat.\n\nLỗi: ${error.message}`);
-  //     }
-  //   }
-  // };
-  // ✅ Xử lý khi click vào contact (SỬA ĐỔI: Instant UI)
   const handleClick = (contact) => {
     // 1. Kiểm tra Auth trước (Giữ nguyên)
     const token = localStorage.getItem("access");
@@ -259,12 +212,12 @@ const SidebarRight = ({ contacts, onContactClick }) => {
         });
     }
   };
-  // ✅ Đóng chat
+  //  Đóng chat
   const handleCloseChat = (contactId) => {
     setOpenChats(openChats.filter((chat) => chat.contact.id !== contactId));
   };
 
-  // ✅ Minimize/Maximize chat
+  //  Minimize/Maximize chat
   const handleMinimizeChat = (contactId) => {
     const chatIndex = openChats.findIndex(
       (chat) => chat.contact.id === contactId
@@ -275,13 +228,13 @@ const SidebarRight = ({ contacts, onContactClick }) => {
     const chat = openChats[chatIndex];
 
     if (chat.isMinimized) {
-      // ✅ Đang minimize -> Maximize và di chuyển lên cuối (vị trí mới nhất)
+      // Đang minimize -> Maximize và di chuyển lên cuối (vị trí mới nhất)
       const updatedChats = [...openChats];
       updatedChats.splice(chatIndex, 1);
       updatedChats.push({ ...chat, isMinimized: false });
       setOpenChats(updatedChats);
     } else {
-      // ✅ Đang maximize -> Minimize
+      //  Đang maximize -> Minimize
       setOpenChats(
         openChats.map((c) =>
           c.contact.id === contactId ? { ...c, isMinimized: true } : c
@@ -289,34 +242,23 @@ const SidebarRight = ({ contacts, onContactClick }) => {
       );
     }
   };
-  // ✅ THÊM: Hàm update tin nhắn từ ChatPopup
-  // const handleMessagesUpdate = (contactId, messages) => {
-  //   console.log(
-  //     `💾 [SidebarRight] Caching messages for contact ${contactId}:`,
-  //     messages.length
-  //   );
-  //   setCachedMessages((prev) => ({
-  //     ...prev,
-  //     [contactId]: messages,
-  //   }));
-  // };
 
-  // ✅ Tính toán vị trí cho các chat popup
+  //  Tính toán vị trí cho các chat popup
   const getPositionStyle = (chat, index) => {
     const expandedChats = openChats.filter((c) => !c.isMinimized);
     const minimizedChats = openChats.filter((c) => c.isMinimized);
 
-    // ✅ Lấy kích thước màn hình để điều chỉnh
+    //  Lấy kích thước màn hình để điều chỉnh
     const screenWidth = window.innerWidth;
 
-    // ✅ Tính toán khoảng cách dựa trên màn hình
+    // Tính toán khoảng cách dựa trên màn hình
     let miniGap = 70; // Khoảng cách minisize (60px + 10px)
     let expandedWidth = 328; // Chiều rộng popup
     let expandedGap = 348; // Khoảng cách giữa các popup (328px + 20px)
     let miniWidth = 80; // Chiều rộng vùng minisize
     let rightMargin = 10; // Margin từ mép phải
 
-    // ⬅️ ĐIỀU CHỈNH theo màn hình
+    // ĐIỀU CHỈNH theo màn hình
     if (screenWidth <= 480) {
       miniGap = 58; // 48px + 10px
       expandedWidth = screenWidth - 16;
@@ -346,7 +288,7 @@ const SidebarRight = ({ contacts, onContactClick }) => {
     }
 
     if (chat.isMinimized) {
-      // ✅ Vị trí cho minimized - XẾP DỌC bên phải
+      //  Vị trí cho minimized - XẾP DỌC bên phải
       const minimizedIndex = minimizedChats.findIndex(
         (c) => c.contact.id === chat.contact.id
       );
@@ -355,7 +297,7 @@ const SidebarRight = ({ contacts, onContactClick }) => {
         bottom: `${rightMargin + minimizedIndex * miniGap}px`,
       };
     } else {
-      // ✅ Vị trí cho expanded - XẾP NGANG, TRÁNH minisize
+      //  Vị trí cho expanded - XẾP NGANG, TRÁNH minisize
       const expandedIndex = expandedChats.findIndex(
         (c) => c.contact.id === chat.contact.id
       );
@@ -411,7 +353,7 @@ const SidebarRight = ({ contacts, onContactClick }) => {
           key={chat.contact.id}
           contact={chat.contact}
           conversation={conversations[chat.contact.id]}
-          cachedMessages={cachedMessages[chat.contact.id] || []} // ✅ THÊM PROP
+          cachedMessages={cachedMessages[chat.contact.id] || []}
           onMessagesUpdate={(messages) =>
             handleMessagesUpdate(chat.contact.id, messages)
           }

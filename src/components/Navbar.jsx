@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useRef } from "react";
 import "../styles/Navbar.css";
 import logo from "../assets/logo.png";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import notificationIcon from "../assets/icons/notification.png";
-import chat from "../assets/icons/chat.png";
+import chatIconImg from "../assets/icons/chat.png";
 import dove from "../assets/icons/dove.png";
 import home from "../assets/icons/home.png";
 import friend from "../assets/icons/friend.png";
-// ✅ Import friend API functions
+import websocketService from "../services/websocket";
+
+import { fetchConversations, markAsRead } from "../services/chatApi";
 import {
   searchUsers,
   getFriendRequests,
@@ -15,241 +17,490 @@ import {
   rejectFriendRequest,
   getFriends,
 } from "../services/friendApi";
+import {
+  getNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
+} from "../services/socialApi";
+import thongbaosound from "../assets/MP3/thongbao.mp3";
+
+const NOTIF_SOUND_URL = thongbaosound;
+
 const Navbar = ({ user, onLogout }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
 
+  // State Tìm kiếm
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState("home");
   const [searchResults, setSearchResults] = useState([]);
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
-
-  const [friendRequestsOpen, setFriendRequestsOpen] = useState(false); // Trạng thái mở/đóng dropdown
-  const [friendRequests, setFriendRequests] = useState([]); // Danh sách lời mời kết bạn
-  const [friends, setFriends] = useState([]); // Danh sách bạn bè
   const searchTimeoutRef = useRef(null);
+
+  const [activeTab, setActiveTab] = useState("home");
+  const [friendRequestsOpen, setFriendRequestsOpen] = useState(false);
+  const [friendRequests, setFriendRequests] = useState([]);
+
+  // State Thông báo
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // State Chat
+  const [unreadChatCount, setUnreadChatCount] = useState(0);
+  const [chatNotifications, setChatNotifications] = useState([]);
+
+  // State Bạn bè & Ref
+  const [friends, setFriends] = useState([]);
+  const friendsRef = useRef([]);
+
+  // Audio Ref
+  const audioRef = useRef(new Audio(NOTIF_SOUND_URL));
+
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const displayName = (() => {
-    // Nếu có họ hoặc tên thì ghép lại
-    if (user?.first_name || user?.last_name) {
-      return `${user.first_name || ""} ${user.last_name || ""}`.trim();
-    }
-    // Nếu backend có field 'name' thì dùng
-    if (user?.name) return user.name;
-    // Nếu không thì fallback sang username hoặc email
-    if (user?.username) return user.username;
-    if (user?.email) return user.email.split("@")[0];
-    return "Người dùng"; // fallback cuối cùng
-  })();
-
-  const avatarUrl = (() => {
-    const defaultAvatar =
-      "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
-    const a = user?.avatar || "";
-    if (!a) return defaultAvatar;
-    // Nếu đã là full URL thì dùng luôn
-    if (a.startsWith("http")) return a;
-    // Ngược lại prefix API base (đảm bảo REACT_APP_API_BASE cấu hình)
+  const resolveAvatar = (url) => {
+    if (!url) return "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
+    if (url.startsWith("http")) return url;
     const base = (process.env.REACT_APP_API_BASE || "").replace(/\/$/, "");
-    const path = a.startsWith("/") ? a : `/${a}`;
-    return base ? `${base}${path}` : path;
-  })();
+    return `${base}${url.startsWith("/") ? url : `/${url}`}`;
+  };
 
-  // 🧩 Dữ liệu mẫu
-  const notifications = [];
+  const displayName = user?.name || user?.username || "Người dùng";
+  const avatarUrl = resolveAvatar(user?.avatar);
 
-  const messages = [];
-  // Load friend requests
+  // HÀM PHÁT ÂM THANH
+  const playSound = () => {
+    try {
+      const audio = audioRef.current;
+      audio.pause();
+      audio.currentTime = 0;
+      audio.volume = 0.8;
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {}); // Bỏ qua lỗi autoplay nếu chưa tương tác
+      }
+    } catch (e) {
+      console.error("Audio error:", e);
+    }
+  };
+
+  // ===========================
+  // 1. LOAD DỮ LIỆU TỪ DATABASE
+  // ===========================
   useEffect(() => {
-    const loadFriendRequests = async () => {
+    const fetchData = async () => {
       try {
-        console.log("📋 Loading friend requests...");
-        const requests = await getFriendRequests();
-        console.log("✅ Friend requests loaded:", requests);
-        setFriendRequests(requests);
+        const friendsList = await getFriends();
+        setFriends(friendsList);
+
+        const data = await getNotifications();
+        const formatted = data.map((n) => ({
+          id: n.id,
+          type: n.notification_type,
+          text: n.text,
+          avatar: resolveAvatar(n.sender.avatar),
+          time: new Date(n.created_at).toLocaleString("vi-VN"),
+          isRead: n.is_read,
+          postId: n.post,
+          commentId: n.comment,
+          senderId: n.sender.id,
+        }));
+        setNotifications(formatted);
       } catch (error) {
-        console.error("❌ Error loading friend requests:", error);
+        console.error("Lỗi tải dữ liệu:", error);
       }
     };
 
-    if (user) {
-      loadFriendRequests();
-
-      //  Auto refresh mỗi 30 giây
-      const interval = setInterval(loadFriendRequests, 30000);
-      return () => clearInterval(interval);
-    }
+    if (user) fetchData();
   }, [user]);
 
-  // Chấp nhận lời mời kết bạn
+  useEffect(() => {
+    friendsRef.current = friends;
+  }, [friends]);
 
-  const handleAccept = async (fromUserId, e) => {
-    // Ngăn event bubble lên parent
-    if (e) {
-      e.stopPropagation();
-      e.preventDefault();
+  useEffect(() => {
+    setUnreadCount(notifications.filter((n) => !n.isRead).length);
+  }, [notifications]);
+  // ===========================
+  //  LOAD LỊCH SỬ TIN NHẮN
+  // ===========================
+  useEffect(() => {
+    const loadChatHistory = async () => {
+      try {
+        if (!user) return;
+
+        const conversations = await fetchConversations();
+
+        // Map để lưu danh sách duy nhất theo senderId
+        const uniqueChatsMap = new Map();
+        let totalUnread = 0;
+
+        conversations.forEach((conv) => {
+          if (conv.last_message) {
+            const msg = conv.last_message;
+            const partner =
+              conv.participants.find((p) => String(p.id) !== String(user.id)) ||
+              {};
+            const partnerId = String(partner.id);
+
+            // Xử lý nội dung hiển thị
+            let previewText = msg.text;
+            if (!previewText && msg.attachment) {
+              if (msg.attachment.type === "image")
+                previewText = "Đã gửi một ảnh";
+              else if (msg.attachment.type === "video")
+                previewText = "Đã gửi một video";
+              else previewText = "Đã gửi một tệp đính kèm";
+            }
+
+            let unread = conv.unread_count || 0;
+            if (String(msg.sender.id) === String(user.id)) {
+              unread = 0;
+            }
+            // Nếu người này ĐÃ CÓ trong danh sách -> Cập nhật nếu tin này mới hơn
+            if (uniqueChatsMap.has(partnerId)) {
+              const existing = uniqueChatsMap.get(partnerId);
+              // Cộng dồn số lượng chưa đọc (nếu backend tách conversation, ta gộp lại)
+              existing.unreadCount += unread;
+
+              // Nếu tin này mới hơn tin đang lưu -> Ghi đè nội dung
+              if (new Date(msg.created_at) > new Date(existing.originalTime)) {
+                existing.text = previewText;
+                existing.time = new Date(msg.created_at).toLocaleString(
+                  "vi-VN"
+                );
+                existing.originalTime = msg.created_at;
+                existing.isRead = existing.unreadCount === 0;
+              }
+            } else {
+              // Nếu chưa có -> Thêm mới
+              uniqueChatsMap.set(partnerId, {
+                id: `msg_${msg.id}`,
+                conversationId: conv.id,
+                senderId: partnerId,
+                sender_name: partner.name || "Người dùng",
+                avatar: resolveAvatar(partner.avatar),
+                text: previewText || "Tin nhắn mới",
+                time: new Date(msg.created_at).toLocaleString("vi-VN"),
+                originalTime: msg.created_at, // Dùng để so sánh
+                unreadCount: unread,
+                isRead: unread === 0,
+              });
+
+              // Cộng vào tổng số badge đỏ trên thanh Navbar (chỉ đếm số người chưa đọc)
+              if (unread > 0) totalUnread++;
+            }
+          }
+        });
+
+        // Chuyển Map thành Mảng và set state
+        setChatNotifications(Array.from(uniqueChatsMap.values()));
+        setUnreadChatCount(totalUnread);
+      } catch (error) {
+        console.error("❌ [Navbar] Lỗi tải tin nhắn:", error);
+      }
+    };
+
+    loadChatHistory();
+  }, [user]);
+  // ===========================
+  // 2. XỬ LÝ CLICK THÔNG BÁO
+  // ===========================
+  const handleNotificationClick = async (notif) => {
+    if (!notif.isRead) {
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notif.id ? { ...n, isRead: true } : n))
+      );
+      markNotificationRead(notif.id).catch((err) => console.error(err));
     }
 
-    console.log("👥 [Navbar] Accepting friend request from user:", fromUserId);
+    setNotifOpen(false);
 
-    try {
-      // Gọi API chấp nhận
-      console.log("📤 [Navbar] Calling acceptFriendRequest API...");
-      const result = await acceptFriendRequest(fromUserId);
-      console.log("✅ [Navbar] API response:", result);
-
-      //  Xóa lời mời khỏi danh sách
-      console.log("🗑️ [Navbar] Removing request from list...");
-      setFriendRequests((prev) =>
-        prev.filter((req) => req.from_user.id !== fromUserId)
-      );
-
-      // 3 Reload toàn bộ danh sách bạn bè từ backend
-      console.log("🔄 [Navbar] Reloading friends list...");
-      const updatedFriends = await getFriends();
-      console.log("✅ [Navbar] Updated friends:", updatedFriends);
-
-      // 4️Dispatch event để SidebarRight cập nhật
-      console.log("📢 [Navbar] Dispatching friendsUpdated event...");
-      window.dispatchEvent(
-        new CustomEvent("friendsUpdated", {
-          detail: { friends: updatedFriends },
-        })
-      );
-      console.log("✅ [Navbar] Event dispatched successfully");
-
-      alert(
-        `✅ Đã chấp nhận lời mời kết bạn từ ${
-          result.friend?.name || "người dùng"
-        }!\n\nBạn có thể chat với họ trong danh sách "Bạn bè" bên phải.`
-      );
-    } catch (error) {
-      console.error("❌ [Navbar] Error accepting friend request:", error);
-      console.error("❌ [Navbar] Error details:", {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-      });
-
-      if (error.response?.status === 404) {
-        alert("❌ Lời mời kết bạn không tồn tại hoặc đã bị xóa");
-        // Xóa khỏi danh sách nếu không tồn tại
-        setFriendRequests((prev) =>
-          prev.filter((req) => req.from_user.id !== fromUserId)
+    if (notif.postId) {
+      if (location.pathname === "/dashboard") {
+        window.dispatchEvent(
+          new CustomEvent("open_post_notification", {
+            detail: { postId: notif.postId, commentId: notif.commentId },
+          })
         );
-      } else if (error.response?.status === 401) {
-        alert("❌ Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
-        // Redirect to login
-        window.location.href = "/login";
       } else {
-        alert(
-          `❌ Không thể chấp nhận lời mời.\n\nLỗi: ${
-            error.response?.data?.error || error.message
-          }`
-        );
+        navigate("/dashboard");
+        setTimeout(() => {
+          window.dispatchEvent(
+            new CustomEvent("open_post_notification", {
+              detail: { postId: notif.postId, commentId: notif.commentId },
+            })
+          );
+        }, 500);
       }
     }
   };
 
-  const handleReject = async (fromUserId, e) => {
-    if (e) {
-      e.stopPropagation();
-      e.preventDefault();
-    }
+  // ===========================
+  // 3. WEBSOCKET
+  // ===========================
+  useEffect(() => {
+    if (!user) return;
 
-    console.log("❌ [Navbar] Rejecting friend request from user:", fromUserId);
+    const handleSocketEvent = (data) => {
+      const msgType = data.type;
+      const payload = data.data;
+      const eventType = payload?.event || data.event || data.type;
+      console.log("🔥 Navbar nhận socket:", eventType, payload); // Debug xem có nhận ko
+      //  LỜI MỜI KẾT BẠN MỚI
+      if (eventType === "friend_request_received") {
+        console.log("🔔 Có lời mời kết bạn mới:", payload);
 
-    try {
-      // Xác nhận trước khi từ chối
-      const friendRequest = friendRequests.find(
-        (req) => req.from_user.id === fromUserId
-      );
+        const newRequest =
+          payload.request_data || payload.data?.request_data || payload;
+        if (!newRequest || !newRequest.id) {
+          console.warn(
+            "❌ [DEBUG] Dữ liệu request không hợp lệ (Thiếu ID):",
+            newRequest
+          );
+          return;
+        }
+        setFriendRequests((prev) => {
+          // Log để kiểm tra danh sách hiện tại
+          console.log("📋 [DEBUG] Danh sách cũ:", prev);
 
-      const confirmReject = window.confirm(
-        `Bạn có chắc muốn từ chối lời mời kết bạn từ ${
-          friendRequest?.from_user.name || "người dùng này"
-        }?`
-      );
+          // 3. Chống trùng lặp (Ép kiểu String để so sánh chính xác)
+          const isExist = prev.some(
+            (req) => String(req.id) === String(newRequest.id)
+          );
 
-      if (!confirmReject) {
-        console.log("⏸️ [Navbar] User cancelled rejection");
+          if (isExist) {
+            console.log("⚠️ [DEBUG] Request này đã tồn tại, bỏ qua.");
+            return prev;
+          }
+
+          // 4. Phát âm thanh & Cập nhật State
+          console.log("✅ [DEBUG] Đang thêm vào danh sách hiển thị!");
+          playSound();
+
+          // Đưa lên đầu danh sách
+          return [newRequest, ...prev];
+        });
+
+        return;
+      }
+      //  NHẬN THÔNG BÁO CHÍNH THỨC TỪ DB (Notification)
+      if (msgType === "notification") {
+        if (eventType === "friend_request_received" || !payload.sender) {
+          return;
+        }
+        const newNotif = {
+          id: payload.id,
+          type: payload.type,
+          text: payload.text,
+          avatar: resolveAvatar(payload.sender.avatar),
+          time: "Vừa xong",
+          isRead: false,
+          postId: payload.post_id,
+          commentId: payload.comment_id,
+          senderId: payload.sender.id,
+        };
+
+        setNotifications((prev) => {
+          if (prev.some((n) => n.id === newNotif.id)) return prev;
+          playSound();
+          return [newNotif, ...prev];
+        });
         return;
       }
 
-      // Gọi API từ chối
-      console.log("📤 [Navbar] Calling rejectFriendRequest API...");
-      await rejectFriendRequest(fromUserId);
-      console.log("✅ [Navbar] Friend request rejected");
+      //  BÀI VIẾT MỚI (Vì Backend chưa lưu cái này vào Notification DB)
+      if (eventType === "new_post" || eventType === "post_created") {
+        const incomingPost = payload.post;
+        const isFriend = (id) =>
+          friendsRef.current.some(
+            (f) =>
+              String(f.id) === String(id) || String(f.user?.id) === String(id)
+          );
 
-      // Xóa khỏi danh sách lời mời
-      setFriendRequests((prev) =>
-        prev.filter((req) => req.from_user.id !== fromUserId)
-      );
+        if (
+          incomingPost &&
+          String(incomingPost.author?.id) !== String(user.id) &&
+          isFriend(incomingPost.author?.id)
+        ) {
+          const newNotif = {
+            id: `new_post_${incomingPost.id}`,
+            type: "new_post",
+            text: `${incomingPost.author?.name} vừa đăng một bài viết mới.`,
+            avatar: resolveAvatar(incomingPost.author?.avatar),
+            time: "Vừa xong",
+            link: `/dashboard`,
+            isRead: false,
+          };
 
-      alert("✅ Đã từ chối lời mời kết bạn");
-    } catch (error) {
-      console.error("❌ [Navbar] Error rejecting friend request:", error);
-      console.error("❌ [Navbar] Error details:", {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-      });
+          setNotifications((prev) => {
+            if (prev.some((n) => n.id === newNotif.id)) return prev;
+            playSound();
+            return [newNotif, ...prev];
+          });
+        }
+      }
+    };
+    websocketService.on("friend_request_received", handleSocketEvent);
+    websocketService.on("notification", handleSocketEvent);
+    // websocketService.on("feed_update", handleSocketEvent);
 
-      if (error.response?.status === 404) {
-        alert("❌ Lời mời kết bạn không tồn tại hoặc đã bị xóa");
-        setFriendRequests((prev) =>
-          prev.filter((req) => req.from_user.id !== fromUserId)
-        );
-      } else {
-        alert("❌ Không thể từ chối lời mời. Vui lòng thử lại.");
+    return () => {
+      websocketService.off("friend_request_received", handleSocketEvent);
+      websocketService.off("notification", handleSocketEvent);
+      // websocketService.off("feed_update", handleSocketEvent);
+    };
+  }, [user]);
+
+  // 4. LOGIC TIN NHẮN (CHAT) - Realtime cập nhật số lượng
+  useEffect(() => {
+    const handleChatMessage = (event) => {
+      const data = event.detail;
+      const msg = data.message || {};
+      const senderObj = msg.sender || {};
+      const senderId = String(senderObj.id || data.sender_id);
+      const currentUserId = String(user.id);
+      if (senderId === currentUserId) {
+        return;
+      }
+
+      if (!chatOpen) {
+        playSound();
+
+        setChatNotifications((prev) => {
+          // 1. Tìm tin nhắn cũ của người này
+          const existingIndex = prev.findIndex(
+            (n) => String(n.senderId) === senderId
+          );
+          const existingChat = prev[existingIndex];
+
+          // 2. Tính số lượng mới (Cộng dồn)
+          const newCount = (existingChat?.unreadCount || 0) + 1;
+          if (!existingChat || existingChat.unreadCount === 0) {
+            setUnreadChatCount((c) => c + 1);
+          }
+          let previewText = msg.text;
+          if (!previewText && msg.attachment) {
+            if (msg.attachment.type === "image") previewText = "Đã gửi một ảnh";
+            else if (msg.attachment.type === "video")
+              previewText = "Đã gửi một video";
+            else previewText = "Đã gửi một tệp";
+          }
+          // 4. Tạo object mới (đưa lên đầu)
+          const newChatNotif = {
+            id: `msg_${msg.id || Date.now()}`,
+            senderId: senderId,
+            sender_name: senderObj.name || "Người dùng",
+            avatar: resolveAvatar(senderObj.avatar),
+            text: msg.text || "Đã gửi một tin nhắn",
+            time: new Date().toLocaleTimeString("vi-VN", {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+            isRead: false,
+            unreadCount: newCount,
+          };
+
+          // 5. Lọc bỏ cái cũ, thêm cái mới vào đầu
+          const otherChats = prev.filter(
+            (n) => String(n.senderId) !== senderId
+          );
+          return [newChatNotif, ...otherChats];
+        });
+      }
+    };
+
+    window.addEventListener("chat:new_message", handleChatMessage);
+    return () =>
+      window.removeEventListener("chat:new_message", handleChatMessage);
+  }, [user, chatOpen]);
+  // TỰ ĐỘNG CẬP NHẬT SỐ LƯỢNG TIN NHẮN CHƯA ĐỌC
+  useEffect(() => {
+    setUnreadChatCount(
+      chatNotifications.filter((n) => n.unreadCount > 0).length
+    );
+  }, [chatNotifications]);
+  // ===========================
+  // HANDLERS UI
+  // ===========================
+  const handleToggleNotif = async () => {
+    setNotifOpen(!notifOpen);
+    setChatOpen(false);
+    setMenuOpen(false);
+    setFriendRequestsOpen(false);
+
+    if (!notifOpen && unreadCount > 0) {
+      // Gọi API đánh dấu tất cả là đã đọc trên Server
+      try {
+        await markAllNotificationsRead();
+        setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      } catch (e) {
+        console.error(e);
       }
     }
   };
-  //  Debounced search
+
+  const handleToggleChat = () => {
+    setChatOpen(!chatOpen);
+    setNotifOpen(false);
+    setMenuOpen(false);
+  };
+
+  // ... Logic Search & Friend Request ...
   useEffect(() => {
-    if (searchQuery.trim().length < 2) {
+    if (!searchQuery.trim()) {
       setSearchResults([]);
       setShowSearchDropdown(false);
       return;
     }
-
-    // Clear timeout cũ
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-
-    // Set timeout mới (debounce 500ms)
+    setSearchLoading(true);
+    setShowSearchDropdown(true);
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     searchTimeoutRef.current = setTimeout(async () => {
       try {
-        setSearchLoading(true);
         const results = await searchUsers(searchQuery);
-        setSearchResults(results);
-        setShowSearchDropdown(true);
+        setSearchResults(results || []);
       } catch (error) {
-        console.error("Search error:", error);
       } finally {
         setSearchLoading(false);
       }
     }, 500);
-
-    return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-      }
-    };
+    return () => clearTimeout(searchTimeoutRef.current);
   }, [searchQuery]);
 
-  //  Click vào user trong search results
-  const handleUserClick = (userId) => {
-    navigate(`/profile/${userId}`);
+  useEffect(() => {
+    if (user)
+      getFriendRequests()
+        .then((r) => setFriendRequests(r))
+        .catch((e) => {});
+  }, [user]);
+
+  const handleAccept = async (id, e) => {
+    if (e) e.stopPropagation();
+    await acceptFriendRequest(id);
+    setFriendRequests((p) => p.filter((r) => r.from_user.id !== id));
+    const f = await getFriends();
+    setFriends(f);
+    window.dispatchEvent(
+      new CustomEvent("friendsUpdated", { detail: { friends: f } })
+    );
+    alert("Đã chấp nhận");
+  };
+  const handleReject = async (id, e) => {
+    if (e) e.stopPropagation();
+    await rejectFriendRequest(id);
+    setFriendRequests((p) => p.filter((r) => r.from_user.id !== id));
+  };
+  const handleUserClick = (id) => {
+    navigate(`/profile/${id}`);
     setShowSearchDropdown(false);
     setSearchQuery("");
   };
-  // Đóng khi click ra ngoài
+  const handleProfileClick = () => navigate("/profile");
+
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -257,24 +508,68 @@ const Navbar = ({ user, onLogout }) => {
         setNotifOpen(false);
         setChatOpen(false);
         setFriendRequestsOpen(false);
+        if (!e.target.closest(".search-wrapper")) setShowSearchDropdown(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+  const handleChatClick = async (chatItem) => {
+    setChatOpen(false);
+    if (chatItem.unreadCount > 0) {
+      // Trừ badge tổng đi 1 (vì tính theo số người nhắn)
+      setUnreadChatCount((prev) => Math.max(0, prev - 1));
 
-  const handleProfileClick = () => navigate("/profile");
+      // Reset số lượng của người này về 0 trong danh sách hiển thị
+      setChatNotifications((prev) =>
+        prev.map((item) =>
+          String(item.senderId) === String(chatItem.senderId)
+            ? { ...item, isRead: true, unreadCount: 0 }
+            : item
+        )
+      );
+    }
 
+    // --- XỬ LÝ LOGIC MỞ CHAT ---
+    const friendInfo = friendsRef.current.find(
+      (f) =>
+        String(f.id) === String(chatItem.senderId) ||
+        String(f.user?.id) === String(chatItem.senderId)
+    );
+
+    const contactToOpen = friendInfo || {
+      id: chatItem.senderId,
+      name: chatItem.sender_name,
+      avatar: chatItem.avatar,
+    };
+
+    window.dispatchEvent(
+      new CustomEvent("open_chat_with_contact", {
+        detail: contactToOpen,
+      })
+    );
+
+    // Gọi API báo cho Backend biết là "Tôi đã đọc tin nhắn của người này rồi"
+    if (chatItem.unreadCount > 0 && chatItem.conversationId) {
+      try {
+        await markAsRead(chatItem.conversationId);
+        console.log(
+          "✅ Đã đánh dấu đã đọc conversation:",
+          chatItem.conversationId
+        );
+      } catch (error) {
+        console.error("❌ Lỗi khi đánh dấu đã đọc:", error);
+      }
+    }
+  };
   return (
     <nav className="navbar">
-      {/* Logo + Thanh tìm kiếm bên trái */}
+      {/* LEFT */}
       <div className="navbar-left">
         <div className="logo-section" onClick={() => navigate("/dashboard")}>
           <img src={logo} alt="logo" className="navbar-logo" />
           <h1 className="navbar-title">DoveRx</h1>
         </div>
-
-        {/*  Search với dropdown results */}
         <div className="search-wrapper">
           <form className="navbar-search">
             <i className="fas fa-search search-icon"></i>
@@ -288,8 +583,6 @@ const Navbar = ({ user, onLogout }) => {
               }
             />
           </form>
-
-          {/*  Search Results Dropdown */}
           {showSearchDropdown && (
             <div className="search-dropdown">
               {searchLoading ? (
@@ -297,35 +590,49 @@ const Navbar = ({ user, onLogout }) => {
               ) : searchResults.length > 0 ? (
                 <>
                   <div className="search-header">Kết quả tìm kiếm</div>
-                  {searchResults.map((user) => (
-                    <div
-                      key={user.id}
-                      className="search-result-item"
-                      onClick={() => handleUserClick(user.id)}
-                    >
-                      <img
-                        src={
-                          user.avatar ||
-                          "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
-                        }
-                        alt={user.name}
-                      />
-                      <div className="search-result-info">
-                        <strong>{user.name}</strong>
-                        <span>
-                          {user.role === "doctor"
-                            ? "👨‍⚕️ Bác sĩ"
-                            : "👤 Người dùng"}
-                        </span>
+                  {searchResults.map((u) => {
+                    const isFriend = friendsRef.current.some(
+                      (f) =>
+                        String(f.id) === String(u.id) ||
+                        String(f.user?.id) === String(u.id)
+                    );
+                    return (
+                      <div
+                        key={u.id}
+                        className="search-result-item"
+                        onClick={() => handleUserClick(u.id)}
+                      >
+                        <img src={resolveAvatar(u.avatar)} alt={u.name} />
+                        <div className="search-result-info">
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "8px",
+                            }}
+                          >
+                            <strong>{u.name}</strong>
+                            {isFriend && (
+                              <span
+                                style={{
+                                  fontSize: "12px",
+                                  color: "#42b72a",
+                                  fontWeight: "600",
+                                }}
+                              >
+                                ✓ Bạn bè
+                              </span>
+                            )}
+                          </div>
+                          <span>
+                            {u.role === "doctor"
+                              ? "👨‍⚕️ Bác sĩ"
+                              : "👤 Người dùng"}
+                          </span>
+                        </div>
                       </div>
-                      {user.friendship_status === "accepted" && (
-                        <span className="badge-friend">✓ Bạn bè</span>
-                      )}
-                      {user.friendship_status === "pending" && (
-                        <span className="badge-pending">⏳ Đã gửi</span>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </>
               ) : (
                 <div className="search-empty">Không tìm thấy kết quả</div>
@@ -335,27 +642,31 @@ const Navbar = ({ user, onLogout }) => {
         </div>
       </div>
 
+      {/* CENTER */}
       <div className="navbar-center">
         <button
-          className={`nav-icon-btn ${activeTab === "home" ? "active" : ""}`}
+          className={`nav-icon-btn hide-on-mobile ${
+            activeTab === "home" ? "active" : ""
+          }`}
           onClick={() => {
             setActiveTab("home");
             navigate("/dashboard");
           }}
         >
-          <img src={home} alt="Home" className="home-icon" />
+          <img src={home} className="home-icon" alt="home" />
         </button>
-
         <button
-          className={`nav-icon-btn ${activeTab === "dove" ? "active" : ""}`}
+          className={`nav-icon-btn hide-on-mobile ${
+            activeTab === "dove" ? "active" : ""
+          }`}
           onClick={() => {
             setActiveTab("dove");
             navigate("/dove-community");
           }}
         >
-          <img src={dove} alt="dove" className="dove-icon" />
+          <img src={dove} className="dove-icon" alt="dove" />
         </button>
-        <div className="icon-wrapper friend-requests-wrapper" ref={dropdownRef}>
+        <div className="icon-wrapper friend-requests-wrapper">
           <button
             className={`nav-icon-btn ${activeTab === "friend" ? "active" : ""}`}
             onClick={() => {
@@ -365,94 +676,57 @@ const Navbar = ({ user, onLogout }) => {
               setMenuOpen(false);
             }}
           >
-            <img src={friend} alt="Friend Requests" className="friend-icon" />
-
-            {/* Badge hiển thị số lượng lời mời */}
+            <img src={friend} className="friend-icon" alt="friend" />
             {friendRequests.length > 0 && (
               <span className="friend-badge">{friendRequests.length}</span>
             )}
           </button>
-
-          {/*  DROPDOWN MENU */}
           {friendRequestsOpen && (
             <div className="popup-menu friend-requests-menu">
               <h4>Lời mời kết bạn ({friendRequests.length})</h4>
-
               {friendRequests.length > 0 ? (
-                friendRequests.map((req) => {
-                  console.log(
-                    "🟢 Rendering friend request item:",
-                    req.id,
-                    req.from_user.name
-                  );
-
-                  return (
-                    <div key={req.id} className="friend-request-item">
-                      {/* Avatar */}
-                      <img
-                        src={
-                          req.from_user.avatar ||
-                          "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
-                        }
-                        alt={req.from_user.name}
+                friendRequests.map((req) => (
+                  <div key={req.id} className="friend-request-item">
+                    <img
+                      src={resolveAvatar(req.from_user.avatar)}
+                      alt={req.from_user.name}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/profile/${req.from_user.id}`);
+                        setFriendRequestsOpen(false);
+                      }}
+                      style={{ cursor: "pointer" }}
+                    />
+                    <div className="friend-request-info">
+                      <strong
                         onClick={(e) => {
                           e.stopPropagation();
                           navigate(`/profile/${req.from_user.id}`);
                           setFriendRequestsOpen(false);
                         }}
-                        style={{ cursor: "pointer" }}
-                      />
-
-                      {/* Thông tin */}
-                      <div className="friend-request-info">
-                        <strong
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/profile/${req.from_user.id}`);
-                            setFriendRequestsOpen(false);
-                          }}
-                          style={{ cursor: "pointer" }}
+                      >
+                        {req.from_user.name}
+                      </strong>
+                      <span>
+                        {new Date(req.created_at).toLocaleDateString("vi-VN")}
+                      </span>
+                      <div className="friend-request-actions">
+                        <button
+                          className="btn-accept"
+                          onMouseDown={(e) => handleAccept(req.from_user.id, e)}
                         >
-                          {req.from_user.name}
-                        </strong>
-                        <span>
-                          {new Date(req.created_at).toLocaleDateString("vi-VN")}
-                        </span>
-
-                        {/* BUTTONS - KIỂM TRA KỸ ĐOẠN NÀY */}
-                        <div className="friend-request-actions">
-                          <button
-                            type="button"
-                            className="btn-accept"
-                            onMouseDown={(e) => {
-                              // Dùng onMouseDown thay vì onClick
-                              e.preventDefault();
-                              e.stopPropagation();
-
-                              handleAccept(req.from_user.id, e);
-                            }}
-                          >
-                            ✓ Chấp nhận
-                          </button>
-
-                          <button
-                            type="button"
-                            className="btn-reject"
-                            onMouseDown={(e) => {
-                              // Dùng onMouseDown thay vì onClick
-                              e.preventDefault();
-                              e.stopPropagation();
-
-                              handleReject(req.from_user.id, e);
-                            }}
-                          >
-                            ✗ Từ chối
-                          </button>
-                        </div>
+                          ✓ Chấp nhận
+                        </button>
+                        <button
+                          className="btn-reject"
+                          onMouseDown={(e) => handleReject(req.from_user.id, e)}
+                        >
+                          ✗ Từ chối
+                        </button>
                       </div>
                     </div>
-                  );
-                })
+                  </div>
+                ))
               ) : (
                 <p className="empty">Không có lời mời kết bạn</p>
               )}
@@ -461,105 +735,121 @@ const Navbar = ({ user, onLogout }) => {
         </div>
       </div>
 
+      {/* RIGHT */}
       <div className="navbar-right" ref={dropdownRef}>
-        {/* 🔔 Thông báo */}
         <div className="icon-wrapper notification-wrapper">
-          {/* Thay <i> bằng <img> hoặc <svg> */}
           <img
             src={notificationIcon}
-            alt="Thông báo"
             className="custom-icon notification-icon"
-            onClick={() => {
-              setNotifOpen(!notifOpen);
-              setChatOpen(false);
-              setMenuOpen(false);
-            }}
+            onClick={handleToggleNotif}
+            alt=""
           />
-          {/* Tooltip hiển thị "Thông báo" */}
+          {unreadCount > 0 && <span className="icon-badge">{unreadCount}</span>}
           <span className="icon-tooltip">Thông báo</span>
-
           {notifOpen && (
             <div className="popup-menu">
               <h4>Thông báo</h4>
               {notifications.length > 0 ? (
                 notifications.map((n) => (
-                  <div key={n.id} className="popup-item">
-                    <img src={n.avatar} alt={n.name} />
+                  <div
+                    key={n.id}
+                    className={`popup-item ${!n.isRead ? "unread" : ""}`}
+                    onClick={() => handleNotificationClick(n)}
+                  >
+                    <img src={n.avatar} alt="avatar" />
                     <div className="popup-text">
-                      <strong>{n.name}</strong>
-                      <p>{n.text}</p>
-                      <span>{n.time}</span>
+                      <p style={{ fontSize: "14px", margin: 0 }}>{n.text}</p>
+                      <span style={{ fontSize: "12px", color: "#1877f2" }}>
+                        {n.time}
+                      </span>
                     </div>
+                    {!n.isRead && (
+                      <div
+                        style={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: "50%",
+                          background: "#1877f2",
+                        }}
+                      ></div>
+                    )}
                   </div>
                 ))
               ) : (
-                <p className="empty">Không có thông báo</p>
+                <p className="empty">Không có thông báo mới</p>
               )}
             </div>
           )}
         </div>
 
-        {/* 💬 Tin nhắn */}
-        <div className="icon-wrapper  chat-wrapper">
+        <div className="icon-wrapper chat-wrapper">
           <img
-            src={chat}
-            alt="Tin nhắn"
+            src={chatIconImg}
             className="fas fa-comment-dots chat-icon"
-            onClick={() => {
-              setChatOpen(!chatOpen);
-              setNotifOpen(false);
-              setMenuOpen(false);
-            }}
-          ></img>
-          {/* Tooltip hiển thị "Tin nhắn" */}
+            onClick={handleToggleChat}
+            alt=""
+          />
+          {unreadChatCount > 0 && (
+            <span className="icon-badge">{unreadChatCount}</span>
+          )}
           <span className="icon-tooltip">Tin nhắn</span>
           {chatOpen && (
             <div className="popup-menu">
               <h4>Tin nhắn</h4>
-              {messages.length > 0 ? (
-                messages.map((m) => (
-                  <div key={m.id} className="popup-item">
-                    <img src={m.avatar} alt={m.name} />
+              {chatNotifications.length > 0 ? (
+                chatNotifications.map((n) => (
+                  <div
+                    key={n.id}
+                    className="popup-item"
+                    style={{ cursor: "pointer" }}
+                    onClick={() => handleChatClick(n)}
+                  >
+                    <img src={n.avatar} alt="avatar" />
                     <div className="popup-text">
-                      <strong>{m.name}</strong>
-                      <p>{m.text}</p>
-                      <span>{m.time}</span>
+                      <strong>{n.sender_name}</strong>
+                      <p
+                        className="truncate-text"
+                        style={{ maxWidth: "180px" }}
+                      >
+                        {n.text}
+                      </p>
+                      <span>{n.time}</span>
                     </div>
+
+                    {/*HIỂN THỊ SỐ LƯỢNG TIN NHẮN CHƯA ĐỌC */}
+                    {n.unreadCount > 0 && (
+                      <div className="message-badge">
+                        {n.unreadCount > 99 ? "99+" : n.unreadCount}
+                      </div>
+                    )}
                   </div>
                 ))
               ) : (
-                <p className="empty">Không có tin nhắn</p>
+                <p className="empty">Không có tin nhắn mới</p>
               )}
             </div>
           )}
         </div>
 
-        {/* Avatar người dùng */}
         {user && (
           <div className="user-section">
             <img
               src={avatarUrl}
-              alt="avatar"
               className="user-avatar"
               onClick={() => {
                 setMenuOpen(!menuOpen);
                 setNotifOpen(false);
                 setChatOpen(false);
               }}
+              alt="User Avatar"
             />
-
             {menuOpen && (
               <div className="dropdown-menu">
                 <p>
                   👋 <strong>{displayName}</strong>
                 </p>
-
                 <p className="user-role">
-                  {user.role === "doctor"
-                    ? "👨‍⚕️ Bác sĩ"
-                    : user.role === "admin"
-                    ? "🛠️ Quản trị viên"
-                    : "👤 Người dùng"}
+                  {user.role === "doctor" ? "👨‍⚕️ Bác sĩ" : "👤 Người dùng"}
                 </p>
                 <hr />
                 <button onClick={handleProfileClick} className="profile-btn">

@@ -66,3 +66,30 @@ export const deletePost = async (postId) => {
   await api.delete(`/api/social/posts/${postId}/`);
   return true;
 };
+// Lấy danh sách người thả cảm xúc
+export const getPostReactions = async (postId) => {
+  const { data } = await api.get(`/api/social/posts/${postId}/reactions/`);
+  return data;
+};
+// 1. Lấy danh sách thông báo
+export const getNotifications = async () => {
+  const { data } = await api.get("/api/social/notifications/");
+  return data;
+};
+
+// 2. Đánh dấu tất cả là đã đọc
+export const markAllNotificationsRead = async () => {
+  const { data } = await api.post("/api/social/notifications/mark_all_read/");
+  return data;
+};
+
+// 3. Đánh dấu 1 cái là đã đọc (khi click vào nó)
+export const markNotificationRead = async (id) => {
+  const { data } = await api.post(`/api/social/notifications/${id}/mark_read/`);
+  return data;
+};
+// Lấy chi tiết 1 bài viết theo ID
+export const getPostById = async (postId) => {
+  const { data } = await api.get(`/api/social/posts/${postId}/`);
+  return data;
+};

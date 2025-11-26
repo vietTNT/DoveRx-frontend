@@ -48,8 +48,13 @@ class ChatWebSocketService {
         // Phát sự kiện cho các listeners (ChatPopup)
         this.notifyListeners(data.type, data);
 
-        // Hỗ trợ thêm event generic 'message' nếu cần
-        this.notifyListeners("message", data);
+        // // Hỗ trợ thêm event generic 'message' nếu cần
+        // this.notifyListeners("message", data);
+        if (data.type === "new_message" || data.type === "send_message") {
+          window.dispatchEvent(
+            new CustomEvent("chat:new_message", { detail: data })
+          );
+        }
       } catch (err) {
         console.error("❌ [chatWebSocket] Parse error:", err);
       }

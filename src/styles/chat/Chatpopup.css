@@ -404,61 +404,94 @@
 .chat-empty-state p {
   font-size: 13px;
 }
-
 /* ================================================= */
-/* 📱 MEDIA QUERIES (RESPONSIVE)                     */
+/*  MEDIA QUERIES (RESPONSIVE NÂNG CAO)            */
 /* ================================================= */
 
 /* 1. Mobile (Màn hình < 480px) - Quan trọng nhất */
 @media (max-width: 480px) {
   .chat-popup {
-    /* ✅ Ghi đè width cứng, lấy gần hết chiều ngang */
-    width: calc(100vw - 20px) !important;
-    /* ✅ Tăng chiều cao để tận dụng màn hình dọc */
-    height: calc(100vh - 120px) !important;
-    /* ✅ Ghi đè inline style 'right' từ JS để căn giữa */
+    /* Chiếm gần hết chiều ngang, cách lề mỗi bên 10px */
+    width: calc(100% - 20px) !important;
+
+    /*  Tự động tính chiều cao hợp lý, trừ đi thanh điều hướng trình duyệt */
+    height: 80vh !important;
+    max-height: 600px;
+
+    /*  Căn giữa màn hình Mobile */
     left: 10px !important;
     right: 10px !important;
     bottom: 0 !important;
-    border-radius: 16px 16px 0 0;
+
+    /* Bo tròn đẹp hơn trên mobile */
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
   }
 
-  /* Ẩn bớt icon không cần thiết trên mobile để input rộng hơn */
+  /* Tăng vùng chạm cho các nút trên mobile */
+  .chat-header-actions i {
+    padding: 12px; /* Dễ bấm hơn */
+    font-size: 18px;
+  }
+
+  /* Ẩn bớt icon ít dùng để input rộng rãi */
   .chat-header-actions i[title="Gọi điện"],
   .chat-header-actions i[title="Gọi video"] {
     display: none;
   }
 
-  /* Điều chỉnh minimized bubble trên mobile */
-  .chat-popup-minimized {
-    width: 50px !important;
-    height: 50px !important;
-    /* Đẩy lên cao một chút tránh các thanh điều hướng của browser */
-    bottom: 70px !important;
-    right: 10px !important;
+  /* Chat Input trên mobile */
+  .chat-popup-footer input {
+    font-size: 16px; /* Chống zoom trên iOS khi focus */
+    padding: 12px;
   }
 
-  .message-content {
-    font-size: 13px; /* Chữ nhỏ hơn chút trên mobile */
-    max-width: 85%; /* Bong bóng rộng hơn */
+  /* Bong bóng chat thu gọn */
+  .chat-popup-minimized {
+    width: 56px !important;
+    height: 56px !important;
+    bottom: 80px !important; /* Đẩy lên trên thanh điều hướng bottom nếu có */
+    right: 16px !important;
+    border-width: 3px;
   }
 }
 
-/* 2. Tablet & Laptop nhỏ (481px -> 1024px) */
+/* 2. Tablet (481px -> 1024px) */
 @media (min-width: 481px) and (max-width: 1024px) {
   .chat-popup {
-    width: 300px; /* Thu nhỏ width một chút */
-    height: 400px;
+    width: 340px;
+    height: 480px;
+    right: 20px !important;
   }
 
   .chat-popup-minimized {
-    width: 52px;
-    height: 52px;
+    width: 60px;
+    height: 60px;
+    right: 20px !important;
+    bottom: 20px !important;
   }
 }
+
+/* 3. Desktop Lớn (> 1440px) - Tùy chọn */
+@media (min-width: 1441px) {
+  .chat-popup {
+    width: 360px; /* Tận dụng màn hình to */
+    height: 520px;
+  }
+}
+
 /* ============================================== */
-/* 🔥 1. HIỆU ỨNG TIN NHẮN XUẤT HIỆN MƯỢT MÀ */
+/* 🛠 FIX LỖI HIỂN THỊ TRÊN IPHONE (IOS) */
 /* ============================================== */
+@supports (-webkit-touch-callout: none) {
+  .chat-popup {
+    /* Fix chiều cao bàn phím ảo che mất input */
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+/* ========================================= */
+/*  1. HIỆU ỨNG TIN NHẮN XUẤT HIỆN MƯỢT MÀ */
+/* ========================================= */
 @keyframes messageSlideIn {
   from {
     opacity: 0;
@@ -475,9 +508,9 @@
   animation: messageSlideIn 0.3s ease-out forwards;
 }
 
-/* ============================================== */
-/* 🔥 2. LIGHTBOX (PHÓNG TO ẢNH) */
-/* ============================================== */
+/* ========================================= */
+/* 2. LIGHTBOX (PHÓNG TO ẢNH) */
+/* ========================================= */
 .lightbox-overlay {
   position: fixed; /* Phủ toàn màn hình */
   top: 0;

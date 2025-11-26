@@ -489,11 +489,7 @@
 }
 
 /* ================================================= */
-/* 📱 5. MEDIA QUERIES (RESPONSIVE)                  */
-/* ================================================= */
-
-/* ================================================= */
-/* 📱 5. RESPONSIVE (ĐA THIẾT BỊ - ICON NHỎ DẦN)     */
+/* 5. MEDIA QUERIES (RESPONSIVE)                  */
 /* ================================================= */
 
 /* --- 1. Laptop nhỏ & Tablet Ngang (1024px -> 1200px) --- */
@@ -596,23 +592,20 @@
     font-size: 14px;
   }
 
-  /* ✅ Icon cảm xúc siêu nhỏ gọn cho màn hình bé */
   .reaction-icon {
     font-size: 20px;
   }
 
   .reaction-popup {
-    left: -5px; /* Căn chỉnh lại vị trí */
+    left: -5px;
     padding: 4px 6px;
-    gap: 4px; /* Khoảng cách tối thiểu */
+    gap: 4px;
 
-    /* Đảm bảo không bị tràn màn hình */
     max-width: 260px;
     overflow-x: auto;
-    scrollbar-width: none; /* Ẩn thanh cuộn */
+    scrollbar-width: none;
   }
 
-  /* Ẩn thanh cuộn trên Chrome/Safari */
   .reaction-popup::-webkit-scrollbar {
     display: none;
   }
