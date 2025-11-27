@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Navbar from "../components/Navbar";
 import AvatarEditorModal from "../components/avatar/AvatarEditor";
 import "../styles/ProfilePage.css";
@@ -6,7 +6,6 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-// ✅ Helper: build full avatar URL (same logic as CreatePostBox / SidebarRight)
 const getAvatarUrl = (a) => {
   const defaultAvatar = "https://cdn-icons-png.flaticon.com/512/847/847969.png";
   const avatar = a || "";
@@ -53,8 +52,8 @@ const ProfilePage = ({ onLogout, user: appUser, setUser: setAppUser }) => {
   });
   const [avatarPreview, setAvatarPreview] = useState(user?.avatar || "");
   const [saving, setSaving] = useState(false);
-
-  // 🆕 State cho Avatar Editor
+  const fileInputRef = useRef(null);
+  //  State cho Avatar Editor
   const [showEditor, setShowEditor] = useState(false);
   const [rawImage, setRawImage] = useState(null);
 
@@ -87,7 +86,7 @@ const ProfilePage = ({ onLogout, user: appUser, setUser: setAppUser }) => {
     setFormData({ ...formData, [name]: value });
   };
 
-  // 🆕 Xử lý chọn ảnh
+  //  Xử lý chọn ảnh
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -96,9 +95,6 @@ const ProfilePage = ({ onLogout, user: appUser, setUser: setAppUser }) => {
     }
   };
 
-  // 🆕 Lưu ảnh đã crop
-  // 🆕 Xử lý Optimistic UI: Đổi ảnh ngay lập tức + Upload ngầm
-  // ⭐ Thay thế function cũ trong ProfilePage.jsx bằng đoạn này
   const handleSaveAvatar = (croppedFile) => {
     // KHÔNG block UI: không dùng async ở đây, chỉ chạy sync rất nhanh
     setRawImage(null); // dọn state ảnh raw
@@ -152,7 +148,7 @@ const ProfilePage = ({ onLogout, user: appUser, setUser: setAppUser }) => {
         setUser(updatedUser);
         setAvatarPreview(getAvatarUrl(updatedUser.avatar));
 
-        // 🔥 Đồng bộ lên App cha
+        // Đồng bộ lên App cha
         if (setAppUser) setAppUser(updatedUser);
 
         localStorage.setItem("user", JSON.stringify(updatedUser));
@@ -179,7 +175,7 @@ const ProfilePage = ({ onLogout, user: appUser, setUser: setAppUser }) => {
     })();
   };
 
-  // 🆕 Xóa avatar về mặc định
+  //  Xóa avatar về mặc định
   const handleRemoveAvatar = async () => {
     if (!window.confirm("Bạn có chắc muốn xóa ảnh đại diện?")) return;
 
@@ -285,17 +281,21 @@ const ProfilePage = ({ onLogout, user: appUser, setUser: setAppUser }) => {
             />
             {isEditing && (
               <div className="avatar-buttons">
-                <label className="upload-btn">
+                <button
+                  className="upload-btn"
+                  onClick={() => fileInputRef.current?.click()}
+                >
                   📸 Đổi ảnh
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleAvatarChange}
-                    hidden
-                  />
-                </label>
+                </button>
 
-                {/* 🆕 Nút xóa avatar */}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarChange}
+                  hidden
+                  ref={fileInputRef}
+                />
+
                 {avatarPreview &&
                   avatarPreview !==
                     "https://cdn-icons-png.flaticon.com/512/847/847969.png" && (

@@ -6,7 +6,6 @@ import api from "./api/api";
 import websocketService from "./services/websocket";
 import chatWebSocketService from "./services/chatWebSocket";
 
-// 🧩 Các trang
 import LoginPage from "./pages/LoginPage";
 import Dashboard from "./pages/DashBoard";
 import ProfilePage from "./pages/ProfilePage";
@@ -20,7 +19,7 @@ function App() {
   const [user, setUser] = useState(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // ✅ BƯỚC 1: Restore user từ localStorage
+  //  Restore user từ localStorage
   useEffect(() => {
     try {
       const stored = localStorage.getItem("user");
@@ -39,7 +38,7 @@ function App() {
     }
   }, []);
 
-  // ✅ BƯỚC 2: Refresh token SAU KHI đã restore user
+  // Refresh token SAU KHI đã restore user
   useEffect(() => {
     if (!isInitialized) return;
 
@@ -57,7 +56,7 @@ function App() {
     })();
   }, [isInitialized]);
 
-  // ✅ BƯỚC 3: Connect WebSocket CHỈ 1 LẦN (gộp cả Feed + Chat)
+  // Connect WebSocket CHỈ 1 LẦN (gộp cả Feed + Chat)
   useEffect(() => {
     if (!user) {
       console.log("⚠️ [App] No user, not connecting WebSocket");
@@ -81,11 +80,6 @@ function App() {
     // Connect Feed WebSocket
     websocketService.connect(token);
 
-    // Lắng nghe sự kiện real-time cho Feed
-    // websocketService.on("post_created", (data) => {
-    //   console.log("📢 New post:", data);
-    // });
-
     // Listen đúng event name mà backend broadcast ('post_react' / 'post_change_react' / 'post_unreact')
     websocketService.on("post_react", (data) => {
       console.log("❤️ Post reacted (WS):", data);
@@ -101,7 +95,7 @@ function App() {
     chatWebSocketService.connect(token);
   }, [user]);
 
-  // ✅ THÊM useEffect mới CHỈ cleanup khi logout
+  // THÊM useEffect mới CHỈ cleanup khi logout
   useEffect(() => {
     // Chỉ cleanup khi component App bị unmount HOÀN TOÀN
     return () => {
@@ -109,13 +103,13 @@ function App() {
       websocketService.disconnect();
       chatWebSocketService.disconnect();
     };
-  }, []); // ✅ Empty dependency - chỉ chạy 1 lần khi unmount
+  }, []); // Empty dependency - chỉ chạy 1 lần khi unmount
 
-  // ✅ Lắng nghe sự kiện user cập nhật từ ProfilePage
+  // Lắng nghe sự kiện user cập nhật từ ProfilePage
   useEffect(() => {
     // Thêm tham số 'event' vào hàm xử lý
     const handleUserUpdated = (event) => {
-      // 🔥 ƯU TIÊN 1: Lấy dữ liệu "nóng" từ event (URL tạm thời Blob)
+      //  Lấy dữ liệu "nóng" từ event (URL tạm thời Blob)
       // Đây là phần giúp Navbar đổi ảnh ngay lập tức
       if (event.detail && event.detail.user) {
         console.log("⚡ [App] Cập nhật nhanh từ Event:", event.detail.user);
@@ -123,7 +117,7 @@ function App() {
         return; // Dừng lại, không cần đọc localStorage nữa
       }
 
-      // 🔥 ƯU TIÊN 2: Fallback đọc từ localStorage (Logic cũ)
+      //  ƯU TIÊN 2: Fallback đọc từ localStorage (Logic cũ)
       // Dành cho trường hợp F5 hoặc các update không gửi kèm detail
       try {
         const updatedUser = localStorage.getItem("user");
@@ -139,7 +133,7 @@ function App() {
     return () => window.removeEventListener("user:updated", handleUserUpdated);
   }, []);
 
-  // ✅ Google login
+  // Google login
   const handleLoginSuccess = async (credentialResponse) => {
     try {
       const id_token = credentialResponse?.credential;
@@ -179,7 +173,7 @@ function App() {
   const handleLogout = () => {
     console.log("🚪 Logging out...");
 
-    // ✅ Disconnect WebSocket khi logout
+    // Disconnect WebSocket khi logout
     websocketService.disconnect();
     chatWebSocketService.disconnect();
 
@@ -191,7 +185,7 @@ function App() {
     setUser(null);
   };
 
-  // ✅ Loading spinner
+  // Loading spinner
   if (!isInitialized) {
     return (
       <div

@@ -299,7 +299,7 @@
 
   .action-buttons {
     flex-direction: column-reverse; /* Nút Save lên trên, Cancel xuống dưới */
-    gap: 10px;
+    gap: 8px;
   }
 
   .save-btn,

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import "../styles/Navbar.css";
-import logo from "../assets/logo.png";
+import logo from "../assets/logo_3.png";
 import { useNavigate, useLocation } from "react-router-dom";
 import notificationIcon from "../assets/icons/notification.png";
 import chatIconImg from "../assets/icons/chat.png";
@@ -566,7 +566,13 @@ const Navbar = ({ user, onLogout }) => {
     <nav className="navbar">
       {/* LEFT */}
       <div className="navbar-left">
-        <div className="logo-section" onClick={() => navigate("/dashboard")}>
+        <div
+          className="logo-section"
+          onClick={() => {
+            window.scrollTo(0, 0);
+            window.location.href = "/dashboard";
+          }}
+        >
           <img src={logo} alt="logo" className="navbar-logo" />
           <h1 className="navbar-title  hide-on-mobile">DoveRx</h1>
         </div>

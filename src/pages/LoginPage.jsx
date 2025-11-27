@@ -33,7 +33,7 @@ const LoginPage = ({ onLoginSuccess }) => {
       <div className="login-card">
         <img src={logo} alt="DoveRx Logo" className="logo-img" />
         <h2>Chào mừng đến với DoveRx</h2>
-        <p>Đăng nhập để truy cập hệ thống chăm sóc sức khỏe thông minh</p>
+        <p>Kết nối, hỏi đáp cùng cộng đồng và chuyên gia y tế.</p>
 
         {loading ? (
           <>

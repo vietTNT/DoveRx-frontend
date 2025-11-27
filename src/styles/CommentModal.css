@@ -1,7 +1,9 @@
 /* ========================================= */
-/* 🎨 COMMENT MODAL STYLES (RESPONSIVE)      */
+/* COMMENT MODAL STYLES (RESPONSIVE)      */
 /* ========================================= */
-
+body:has(.comment-modal-overlay) {
+  overflow: hidden !important;
+}
 /* 1. Overlay (Nền tối mờ) */
 .comment-modal-overlay {
   position: fixed;

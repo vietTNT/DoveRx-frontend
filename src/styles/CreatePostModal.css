@@ -1,4 +1,7 @@
-/* 🪟 Popup đăng bài */
+body:has(.modal-overlay) {
+  overflow: hidden !important;
+}
+/*  Popup đăng bài */
 .modal-overlay {
   position: fixed;
   top: 0;

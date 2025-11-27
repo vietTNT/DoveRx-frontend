@@ -1,4 +1,3 @@
-/* 📝 Ô tạo bài viết giống Facebook */
 .create-post-box {
   background: white;
   border-radius: 15px;
@@ -9,13 +8,8 @@
   cursor: pointer;
   transform-origin: center;
 }
-/* .create-post-box:hover {
-  background: #f9fafb;
-  transform: scale(1.02);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
-} */
 
-/* 🔹 Input giả trong ô đăng bài */
+/*  Input giả trong ô đăng bài */
 .create-input {
   flex: 1;
   background: #f0f2f5;

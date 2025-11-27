@@ -1,3 +1,6 @@
+body:has(.reaction-modal-overlay) {
+  overflow: hidden !important;
+}
 /* Overlay làm mờ nền */
 .reaction-modal-overlay {
   position: fixed;
