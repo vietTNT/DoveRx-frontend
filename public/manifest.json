@@ -1,36 +1,34 @@
 {
   "short_name": "DoveRx",
   "name": "DoveRx Healthcare Platform",
-  "icons": [
-    {
-      "src": "logo192.png",
-      "type": "image/png",
-      "sizes": "192x192",
-      "purpose": "any"
-    },
+  "id": "/",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#ffffff",
+  "background_color": "#ffffff",
+  "orientation": "portrait",
 
+  "icons": [
     {
       "purpose": "maskable",
       "sizes": "192x192",
-      "src": "logo192.png",
+      "src": "maskable_icon_x192.png",
       "type": "image/png"
     },
     {
-      "src": "logo512.png",
-      "type": "image/png",
+      "purpose": "maskable",
       "sizes": "512x512",
-      "purpose": "any"
-    },
-    {
-      "src": "logo512.png",
-      "type": "image/png",
-      "sizes": "512x512",
-      "purpose": "maskable"
+      "src": "maskable_icon_x512.png",
+      "type": "image/png"
     }
   ],
-  "start_url": "/",
-  "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff",
-  "orientation": "portrait"
+
+  "screenshots": [
+    {
+      "src": "image.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "wide"
+    }
+  ]
 }
