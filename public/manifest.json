@@ -8,11 +8,12 @@
       "sizes": "192x192",
       "purpose": "any"
     },
+
     {
-      "src": "logo192.png",
-      "type": "image/png",
+      "purpose": "maskable",
       "sizes": "192x192",
-      "purpose": "maskable"
+      "src": "logo192.png",
+      "type": "image/png"
     },
     {
       "src": "logo512.png",
