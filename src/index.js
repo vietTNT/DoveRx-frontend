@@ -17,7 +17,11 @@ if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker
       .register("/sw.js")
-      .then(() => console.log("SW registered"))
-      .catch((err) => console.log("SW registration failed: ", err));
+      .then((registration) => {
+        console.log("✅ PWA Service Worker đã đăng ký:", registration.scope);
+      })
+      .catch((error) => {
+        console.log("❌ Đăng ký PWA thất bại:", error);
+      });
   });
 }
