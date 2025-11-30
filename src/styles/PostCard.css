@@ -576,6 +576,42 @@
 
 /* --- 4. Mobile Nhỏ (Dưới 480px) --- */
 @media (max-width: 480px) {
+  .reaction-popup,
+  .comment-reaction-popup {
+    padding: 8px 12px; /* Tăng padding */
+    gap: 12px; /* Tăng khoảng cách giữa các icon */
+    bottom: 110%; /* Đẩy cao lên một chút khỏi ngón tay */
+    left: 0; /* Canh trái hoặc điều chỉnh tùy ý */
+    transform: none; /* Bỏ transform translate cũ nếu gây lệch */
+    background: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    border-radius: 50px;
+    z-index: 1000; /* Đảm bảo nổi lên trên cùng */
+  }
+  .reaction-icon {
+    font-size: 32px; /* To hẳn lên (Desktop là 24-28px) */
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  /* Hiệu ứng khi chạm vào icon (Active state) */
+  .reaction-icon:active {
+    transform: scale(1.5) translateY(-10px);
+  }
+
+  .reaction-popup {
+    animation: mobilePopupPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  @keyframes mobilePopupPop {
+    0% {
+      opacity: 0;
+      transform: scale(0.5) translateY(20px);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
   .post-buttons button span {
     display: none; /* Ẩn chữ */
   }

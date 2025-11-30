@@ -3,8 +3,10 @@ import "../styles/LoginPage.css"; // hoặc dùng LoginPage.css nếu chung styl
 import logo from "../assets/logo.png";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-
+import { useTranslation } from "react-i18next";
+import LanguageSwitcher from "../components/language/LanguageSwitcher";
 const DoctorRegisterPage = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     username: "",
@@ -16,7 +18,7 @@ const DoctorRegisterPage = () => {
     workplace: "",
     phone: "",
     license_number: "",
-    doctorType: "doctor", // mặc định
+    doctorType: "doctor",
   });
 
   const handleChange = (e) => {
@@ -32,30 +34,29 @@ const DoctorRegisterPage = () => {
           ...formData,
         }
       );
-      // await axios.post("http://localhost:8000/api/accounts/register/doctor/", {
-      //   // local
-      //   ...formData,
-      // });
-      alert("✅ Đăng ký thành công! Vui lòng xác minh email bằng mã OTP.");
+
+      alert("✅ " + t("common.success") + "! " + t("auth.verify_desc"));
       navigate("/doctor-verify", { state: { email: formData.email } });
     } catch (error) {
-      const msg =
-        error.response?.data?.error || "Có lỗi khi đăng ký, vui lòng thử lại!";
+      const msg = error.response?.data?.error || t("common.error");
       alert("⚠️ " + msg);
     }
   };
 
   return (
     <div className="login-container">
-      <div className="login-card">
+      <div className="login-card" style={{ position: "relative" }}>
+        <div style={{ position: "absolute", top: "15px", right: "15px" }}>
+          <LanguageSwitcher />
+        </div>
         <img src={logo} alt="DoveRx" className="logo-img" />
-        <h2>Đăng ký tài khoản bác sĩ 👨‍⚕️</h2>
-        <p>Vui lòng nhập thông tin để tham gia nền tảng DoveRx</p>
+        <h2>{t("auth.register_doctor_title")} 👨‍⚕️</h2>
+        <p>{t("auth.register_doctor_desc")}</p>
 
         <form onSubmit={handleSubmit} className="doctor-form">
           <input
             name="username"
-            placeholder="Tên đăng nhập"
+            placeholder={t("auth.placeholder_email_user")}
             onChange={handleChange}
             required
           />
@@ -69,30 +70,38 @@ const DoctorRegisterPage = () => {
           <input
             name="password"
             type="password"
-            placeholder="Mật khẩu"
+            placeholder={t("auth.placeholder_password")}
             onChange={handleChange}
             required
           />
-          <input name="first_name" placeholder="Họ" onChange={handleChange} />
-          <input name="last_name" placeholder="Tên" onChange={handleChange} />
+          <input
+            name="first_name"
+            placeholder={t("doctor_form.first_name")}
+            onChange={handleChange}
+          />
+          <input
+            name="last_name"
+            placeholder={t("doctor_form.last_name")}
+            onChange={handleChange}
+          />
           <input
             name="specialty"
-            placeholder="Chuyên khoa"
+            placeholder={t("doctor_form.specialty")}
             onChange={handleChange}
           />
           <input
             name="workplace"
-            placeholder="Nơi làm việc"
+            placeholder={t("doctor_form.workplace")}
             onChange={handleChange}
           />
           <input
             name="phone"
-            placeholder="Số điện thoại"
+            placeholder={t("doctor_form.phone")}
             onChange={handleChange}
           />
           <input
             name="license_number"
-            placeholder="Chứng chỉ hành nghề (nếu có)"
+            placeholder={t("doctor_form.license")}
             onChange={handleChange}
           />
 
@@ -106,7 +115,7 @@ const DoctorRegisterPage = () => {
                 checked={formData.doctorType === "doctor"}
                 onChange={handleChange}
               />
-              👨‍⚕️ Bác sĩ chính thức
+              👨‍⚕️ {t("doctor_form.type_doctor")}
             </label>
             <label>
               <input
@@ -116,7 +125,7 @@ const DoctorRegisterPage = () => {
                 checked={formData.doctorType === "student"}
                 onChange={handleChange}
               />
-              🎓 Sinh viên y khoa
+              🎓 {t("doctor_form.type_student")}
             </label>
             <label>
               <input
@@ -126,16 +135,18 @@ const DoctorRegisterPage = () => {
                 checked={formData.doctorType === "intern"}
                 onChange={handleChange}
               />
-              🧑‍🔬 Thực tập sinh
+              🧑‍🔬 {t("doctor_form.type_intern")}
             </label>
           </div>
 
-          <button type="submit">Đăng ký</button>
+          <button type="submit">{t("doctor_form.register_doctor")}</button>
         </form>
 
         <p>
-          Đã có tài khoản?{" "}
-          <span onClick={() => navigate("/doctor-login")}>Đăng nhập</span>
+          {t("auth.have_account")}{" "}
+          <span onClick={() => navigate("/doctor-login")}>
+            {t("auth.login_now")}
+          </span>
         </p>
       </div>
     </div>

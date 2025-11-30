@@ -8,9 +8,9 @@ import React, {
 import ChatPopup from "../Chat/Chatpopup";
 import "../../styles/SidebarRight.css";
 import { getOrCreateConversation } from "../../services/chatApi";
-import { getFriends } from "../../services/friendApi"; // ✅ Import
+import { getFriends } from "../../services/friendApi";
+import { useTranslation } from "react-i18next";
 
-// ✅ Helper: build full avatar URL (same logic as CreatePostBox)
 const getAvatarUrl = (a) => {
   const defaultAvatar =
     "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
@@ -23,6 +23,7 @@ const getAvatarUrl = (a) => {
 };
 
 const SidebarRight = ({ contacts, onContactClick }) => {
+  const { t } = useTranslation();
   const [openChats, setOpenChats] = useState([]);
   const [conversations, setConversations] = useState({});
   const [cachedMessages, setCachedMessages] = useState({});
@@ -316,16 +317,16 @@ const SidebarRight = ({ contacts, onContactClick }) => {
     <>
       <aside className="sidebar-right">
         <div className="contacts-header">
-          <h4>Bạn bè</h4>
+          <h4>{t("user_profile.friend_status")}</h4>
           <div className="contacts-actions">
-            <i className="fas fa-search" title="Tìm kiếm"></i>
-            <i className="fas fa-ellipsis-h" title="Tùy chọn"></i>
+            <i className="fas fa-search" title={t("chat.search")}></i>
+            <i className="fas fa-ellipsis-h" title={t("chat.options")}></i>
           </div>
         </div>
 
         <ul>
           {loading ? (
-            <li className="loading-contacts">⏳ Đang tải...</li>
+            <li className="loading-contacts">⏳ {t("user_profile.loading")}</li>
           ) : displayContacts.length > 0 ? (
             displayContacts.map((contact) => (
               <li key={contact.id} onClick={() => handleClick(contact)}>
@@ -342,7 +343,7 @@ const SidebarRight = ({ contacts, onContactClick }) => {
               </li>
             ))
           ) : (
-            <li className="no-contacts">Chưa có bạn bè nào</li>
+            <li className="no-contacts">{t("chat.no_friends")}</li>
           )}
         </ul>
       </aside>

@@ -458,6 +458,9 @@
 
 /* 2. Tablet (481px -> 1024px) */
 @media (min-width: 481px) and (max-width: 1024px) {
+  body:has(.chat-popup) {
+    overflow: hidden !important;
+  }
   .chat-popup {
     width: 340px;
     height: 480px;
@@ -480,8 +483,96 @@
   }
 }
 
+@media (max-width: 480px) {
+  .chat-popup {
+    width: 100% !important;
+    height: 100% !important;
+    max-height: none !important;
+
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+
+    border-radius: 0 !important;
+    margin: 0 !important;
+    border: none;
+    box-shadow: none;
+    z-index: 20000 !important;
+  }
+
+  .chat-popup-header {
+    padding: 15px;
+    height: 60px;
+    background: #fff;
+    border-radius: 0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+
+  .chat-header-actions .fa-minus {
+    display: none;
+  }
+
+  .chat-header-actions .fa-times {
+    font-size: 24px;
+    padding: 10px;
+    color: #000;
+  }
+
+  .chat-popup-body {
+    background: #ffffff;
+    padding: 15px 10px;
+
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .message-content {
+    font-size: 16px;
+    padding: 10px 14px;
+    max-width: 85%;
+  }
+
+  .chat-popup-footer {
+    padding: 10px;
+
+    padding-bottom: max(15px, env(safe-area-inset-bottom));
+    background: #fff;
+    border-top: 1px solid #eee;
+  }
+
+  .chat-popup-footer input {
+    font-size: 16px;
+    height: 45px;
+    padding-left: 15px;
+  }
+
+  .chat-popup-footer button {
+    padding: 10px;
+  }
+  .chat-popup-footer i {
+    font-size: 22px;
+  }
+
+  .chat-popup-minimized {
+    width: 60px !important;
+    height: 60px !important;
+
+    bottom: 90px !important;
+    right: 20px !important;
+
+    border: 3px solid #2563eb;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  }
+
+  .mini-online-indicator {
+    width: 16px;
+    height: 16px;
+    border-width: 3px;
+  }
+}
 /* ============================================== */
-/* 🛠 FIX LỖI HIỂN THỊ TRÊN IPHONE (IOS) */
+/*  FIX LỖI HIỂN THỊ TRÊN IPHONE (IOS) */
 /* ============================================== */
 @supports (-webkit-touch-callout: none) {
   .chat-popup {

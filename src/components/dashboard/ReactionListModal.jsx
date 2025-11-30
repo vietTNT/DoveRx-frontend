@@ -2,8 +2,9 @@ import React, { useEffect, useState, useMemo } from "react";
 import ReactDOM from "react-dom";
 import { getPostReactions } from "../../services/socialApi";
 import "../../styles/ReactionListModal.css";
-
+import { useTranslation } from "react-i18next";
 const ReactionListModal = ({ isOpen, onClose, postId, emojiList }) => {
+  const { t } = useTranslation();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
@@ -50,7 +51,6 @@ const ReactionListModal = ({ isOpen, onClose, postId, emojiList }) => {
 
   if (!isOpen) return null;
 
-  // 🔥 2. SỬA ĐOẠN RETURN: Dùng createPortal để đưa Modal ra ngoài cùng body
   return ReactDOM.createPortal(
     <div className="reaction-modal-overlay" onClick={onClose}>
       <div
@@ -58,7 +58,7 @@ const ReactionListModal = ({ isOpen, onClose, postId, emojiList }) => {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="reaction-modal-header">
-          <div className="header-title">Cảm xúc về bài viết</div>
+          <div className="header-title">{t("reaction.title")}</div>
           <button className="close-btn" onClick={onClose}>
             ✕
           </button>
@@ -69,7 +69,7 @@ const ReactionListModal = ({ isOpen, onClose, postId, emojiList }) => {
             className={`tab-item ${activeTab === "all" ? "active" : ""}`}
             onClick={() => setActiveTab("all")}
           >
-            <span className="tab-label">Tất cả</span>
+            <span className="tab-label">{t("reaction.all")}</span>
             <span className="tab-count">{users.length}</span>
           </button>
 
@@ -91,7 +91,7 @@ const ReactionListModal = ({ isOpen, onClose, postId, emojiList }) => {
               <div className="spinner"></div>
             </div>
           ) : filteredUsers.length === 0 ? (
-            <p className="empty-text">Chưa có ai thả cảm xúc này.</p>
+            <p className="empty-text">{t("reaction.empty")}</p>
           ) : (
             <ul className="reaction-user-list">
               {filteredUsers.map((item, index) => {
@@ -120,7 +120,7 @@ const ReactionListModal = ({ isOpen, onClose, postId, emojiList }) => {
         </div>
       </div>
     </div>,
-    document.body // 👈 QUAN TRỌNG: Gắn vào body
+    document.body
   );
 };
 

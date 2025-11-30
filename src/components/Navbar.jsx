@@ -8,7 +8,8 @@ import dove from "../assets/icons/dove.png";
 import home from "../assets/icons/home.png";
 import friend from "../assets/icons/friend.png";
 import websocketService from "../services/websocket";
-
+import { useTranslation } from "react-i18next";
+import LanguageSwitcher from "./language/LanguageSwitcher";
 import { fetchConversations, markAsRead } from "../services/chatApi";
 import {
   searchUsers,
@@ -23,10 +24,12 @@ import {
   markAllNotificationsRead,
 } from "../services/socialApi";
 import thongbaosound from "../assets/MP3/thongbao.mp3";
-
+import searchIconImg from "../assets/icons/search.png";
 const NOTIF_SOUND_URL = thongbaosound;
 
 const Navbar = ({ user, onLogout }) => {
+  const [isSearchActive, setIsSearchActive] = useState(false);
+  const { t } = useTranslation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
@@ -68,7 +71,7 @@ const Navbar = ({ user, onLogout }) => {
     return `${base}${url.startsWith("/") ? url : `/${url}`}`;
   };
 
-  const displayName = user?.name || user?.username || "Người dùng";
+  // const displayName = user?.name || user?.username || "Người dùng";
   const avatarUrl = resolveAvatar(user?.avatar);
 
   // HÀM PHÁT ÂM THANH
@@ -107,6 +110,7 @@ const Navbar = ({ user, onLogout }) => {
           postId: n.post,
           commentId: n.comment,
           senderId: n.sender.id,
+          senderName: n.sender.name,
         }));
         setNotifications(formatted);
       } catch (error) {
@@ -150,10 +154,10 @@ const Navbar = ({ user, onLogout }) => {
             let previewText = msg.text;
             if (!previewText && msg.attachment) {
               if (msg.attachment.type === "image")
-                previewText = "Đã gửi một ảnh";
+                previewText = t("chat.sent_image");
               else if (msg.attachment.type === "video")
-                previewText = "Đã gửi một video";
-              else previewText = "Đã gửi một tệp đính kèm";
+                previewText = t("chat.sent_video");
+              else previewText = t("chat.sent_file");
             }
 
             let unread = conv.unread_count || 0;
@@ -181,9 +185,9 @@ const Navbar = ({ user, onLogout }) => {
                 id: `msg_${msg.id}`,
                 conversationId: conv.id,
                 senderId: partnerId,
-                sender_name: partner.name || "Người dùng",
+                sender_name: partner.name || t("user_profile.not_updated"),
                 avatar: resolveAvatar(partner.avatar),
-                text: previewText || "Tin nhắn mới",
+                text: previewText || t("chat.sent_message"),
                 time: new Date(msg.created_at).toLocaleString("vi-VN"),
                 originalTime: msg.created_at, // Dùng để so sánh
                 unreadCount: unread,
@@ -205,7 +209,7 @@ const Navbar = ({ user, onLogout }) => {
     };
 
     loadChatHistory();
-  }, [user]);
+  }, [user, t]);
   // ===========================
   // 2. XỬ LÝ CLICK THÔNG BÁO
   // ===========================
@@ -249,11 +253,9 @@ const Navbar = ({ user, onLogout }) => {
       const msgType = data.type;
       const payload = data.data;
       const eventType = payload?.event || data.event || data.type;
-      console.log("🔥 Navbar nhận socket:", eventType, payload); // Debug xem có nhận ko
+
       //  LỜI MỜI KẾT BẠN MỚI
       if (eventType === "friend_request_received") {
-        console.log("🔔 Có lời mời kết bạn mới:", payload);
-
         const newRequest =
           payload.request_data || payload.data?.request_data || payload;
         if (!newRequest || !newRequest.id) {
@@ -265,7 +267,6 @@ const Navbar = ({ user, onLogout }) => {
         }
         setFriendRequests((prev) => {
           // Log để kiểm tra danh sách hiện tại
-          console.log("📋 [DEBUG] Danh sách cũ:", prev);
 
           // 3. Chống trùng lặp (Ép kiểu String để so sánh chính xác)
           const isExist = prev.some(
@@ -273,12 +274,11 @@ const Navbar = ({ user, onLogout }) => {
           );
 
           if (isExist) {
-            console.log("⚠️ [DEBUG] Request này đã tồn tại, bỏ qua.");
             return prev;
           }
 
           // 4. Phát âm thanh & Cập nhật State
-          console.log("✅ [DEBUG] Đang thêm vào danh sách hiển thị!");
+
           playSound();
 
           // Đưa lên đầu danh sách
@@ -297,11 +297,12 @@ const Navbar = ({ user, onLogout }) => {
           type: payload.type,
           text: payload.text,
           avatar: resolveAvatar(payload.sender.avatar),
-          time: "Vừa xong",
+          time: t("time.just_now"),
           isRead: false,
           postId: payload.post_id,
           commentId: payload.comment_id,
           senderId: payload.sender.id,
+          senderName: payload.sender.name || payload.sender.username,
         };
 
         setNotifications((prev) => {
@@ -329,11 +330,12 @@ const Navbar = ({ user, onLogout }) => {
           const newNotif = {
             id: `new_post_${incomingPost.id}`,
             type: "new_post",
-            text: `${incomingPost.author?.name} vừa đăng một bài viết mới.`,
+            text: "...",
             avatar: resolveAvatar(incomingPost.author?.avatar),
-            time: "Vừa xong",
+            time: t("time.just_now"),
             link: `/dashboard`,
             isRead: false,
+            senderName: incomingPost.author?.name,
           };
 
           setNotifications((prev) => {
@@ -353,7 +355,7 @@ const Navbar = ({ user, onLogout }) => {
       websocketService.off("notification", handleSocketEvent);
       // websocketService.off("feed_update", handleSocketEvent);
     };
-  }, [user]);
+  }, [user, t]);
 
   // 4. LOGIC TIN NHẮN (CHAT) - Realtime cập nhật số lượng
   useEffect(() => {
@@ -384,18 +386,19 @@ const Navbar = ({ user, onLogout }) => {
           }
           let previewText = msg.text;
           if (!previewText && msg.attachment) {
-            if (msg.attachment.type === "image") previewText = "Đã gửi một ảnh";
+            if (msg.attachment.type === "image")
+              previewText = t("chat.sent_image");
             else if (msg.attachment.type === "video")
-              previewText = "Đã gửi một video";
-            else previewText = "Đã gửi một tệp";
+              previewText = t("chat.sent_video");
+            else previewText = t("chat.sent_file");
           }
           // 4. Tạo object mới (đưa lên đầu)
           const newChatNotif = {
             id: `msg_${msg.id || Date.now()}`,
             senderId: senderId,
-            sender_name: senderObj.name || "Người dùng",
+            sender_name: senderObj.name || t("user_profile.not_updated"),
             avatar: resolveAvatar(senderObj.avatar),
-            text: msg.text || "Đã gửi một tin nhắn",
+            text: msg.text || t("chat.sent_message"),
             time: new Date().toLocaleTimeString("vi-VN", {
               hour: "2-digit",
               minute: "2-digit",
@@ -416,7 +419,7 @@ const Navbar = ({ user, onLogout }) => {
     window.addEventListener("chat:new_message", handleChatMessage);
     return () =>
       window.removeEventListener("chat:new_message", handleChatMessage);
-  }, [user, chatOpen]);
+  }, [user, chatOpen, t]);
   // TỰ ĐỘNG CẬP NHẬT SỐ LƯỢNG TIN NHẮN CHƯA ĐỌC
   useEffect(() => {
     setUnreadChatCount(
@@ -487,7 +490,7 @@ const Navbar = ({ user, onLogout }) => {
     window.dispatchEvent(
       new CustomEvent("friendsUpdated", { detail: { friends: f } })
     );
-    alert("Đã chấp nhận");
+    alert("✅ " + t("user_profile.accepted_success"));
   };
   const handleReject = async (id, e) => {
     if (e) e.stopPropagation();
@@ -562,26 +565,61 @@ const Navbar = ({ user, onLogout }) => {
       }
     }
   };
+  const getNotificationText = (n) => {
+    // Kiểm tra an toàn: nếu không có sender thì trả về text gốc
+    const senderName = n.senderName || n.sender?.name || "Ai đó";
+
+    if (n.type === "new_post")
+      return t("notification_msg.new_post", { name: senderName });
+    if (n.type === "new_comment")
+      return t("notification_msg.comment", { name: senderName });
+    if (n.type === "post_react")
+      return t("notification_msg.like", { name: senderName });
+    if (n.type === "comment_react")
+      return t("notification_msg.like", { name: senderName });
+    if (n.type === "friend_request") return t("navbar.friend_request");
+
+    return n.text;
+  };
+
   return (
-    <nav className="navbar">
+    <nav className={`navbar ${isSearchActive ? "search-mode" : ""}`}>
       {/* LEFT */}
       <div className="navbar-left">
-        <div
-          className="logo-section"
-          onClick={() => {
-            window.scrollTo(0, 0);
-            window.location.href = "/dashboard";
-          }}
-        >
-          <img src={logo} alt="logo" className="navbar-logo" />
-          <h1 className="navbar-title  hide-on-mobile">DoveRx</h1>
-        </div>
+        {!isSearchActive && (
+          <div
+            className="logo-section"
+            onClick={() => {
+              window.scrollTo(0, 0);
+              window.location.href = "/dashboard";
+            }}
+          >
+            <img src={logo} alt="logo" className="navbar-logo" />
+            <h1 className="navbar-title hide-on-mobile">DoveRx</h1>
+          </div>
+        )}
         <div className="search-wrapper">
+          {isSearchActive && (
+            <button
+              className="mobile-search-back"
+              onClick={() => {
+                setIsSearchActive(false);
+                setSearchQuery("");
+              }}
+            >
+              <i className="fas fa-arrow-left"></i>
+            </button>
+          )}
           <form className="navbar-search">
-            <i className="fas fa-search search-icon"></i>
+            <img
+              src={searchIconImg}
+              className="search-custom-icon"
+              alt="Search"
+              onClick={() => setIsSearchActive(true)}
+            />
             <input
               type="text"
-              placeholder="Tìm kiếm bạn bè..."
+              placeholder={t("navbar.search")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() =>
@@ -592,10 +630,14 @@ const Navbar = ({ user, onLogout }) => {
           {showSearchDropdown && (
             <div className="search-dropdown">
               {searchLoading ? (
-                <div className="search-loading">Đang tìm kiếm...</div>
+                <div className="search-loading">
+                  {t("navbar.search_loading")}
+                </div>
               ) : searchResults.length > 0 ? (
                 <>
-                  <div className="search-header">Kết quả tìm kiếm</div>
+                  <div className="search-header">
+                    {t("navbar.search_result")}
+                  </div>
                   {searchResults.map((u) => {
                     const isFriend = friendsRef.current.some(
                       (f) =>
@@ -626,14 +668,14 @@ const Navbar = ({ user, onLogout }) => {
                                   fontWeight: "600",
                                 }}
                               >
-                                ✓ Bạn bè
+                                ✓ {t("user_profile.friend_status")}
                               </span>
                             )}
                           </div>
                           <span>
                             {u.role === "doctor"
-                              ? "👨‍⚕️ Bác sĩ"
-                              : "👤 Người dùng"}
+                              ? `👨‍⚕️ ${t("navbar.role_doctor")}`
+                              : `👤 ${t("navbar.role_user")}`}
                           </span>
                         </div>
                       </div>
@@ -641,7 +683,9 @@ const Navbar = ({ user, onLogout }) => {
                   })}
                 </>
               ) : (
-                <div className="search-empty">Không tìm thấy kết quả</div>
+                <div className="search-empty">
+                  {t("navbar.search_not_found")}
+                </div>
               )}
             </div>
           )}
@@ -649,226 +693,237 @@ const Navbar = ({ user, onLogout }) => {
       </div>
 
       {/* CENTER */}
-      <div className="navbar-center">
-        <button
-          className={`nav-icon-btn hide-on-mobile ${
-            activeTab === "home" ? "active" : ""
-          }`}
-          onClick={() => {
-            setActiveTab("home");
-            navigate("/dashboard");
-          }}
-        >
-          <img src={home} className="home-icon" alt="home" />
-        </button>
-        <button
-          className={`nav-icon-btn hide-on-mobile ${
-            activeTab === "dove" ? "active" : ""
-          }`}
-          onClick={() => {
-            setActiveTab("dove");
-            // navigate("/dove-community");
-          }}
-        >
-          <img src={dove} className="dove-icon" alt="dove" />
-        </button>
-      </div>
-
-      {/* RIGHT */}
-      <div className="navbar-right" ref={dropdownRef}>
-        <div className="icon-wrapper friend-requests-wrapper">
+      {!isSearchActive && (
+        <div className="navbar-center">
           <button
-            className={`nav-icon-btn ${activeTab === "friend" ? "active" : ""}`}
+            className={`nav-icon-btn hide-on-mobile ${
+              activeTab === "home" ? "active" : ""
+            }`}
             onClick={() => {
-              setFriendRequestsOpen(!friendRequestsOpen);
-              setNotifOpen(false);
-              setChatOpen(false);
-              setMenuOpen(false);
+              setActiveTab("home");
+              navigate("/dashboard");
             }}
           >
-            <img src={friend} className="friend-icon" alt="friend" />
-            {friendRequests.length > 0 && (
-              <span className="friend-badge">{friendRequests.length}</span>
-            )}
+            <img src={home} className="home-icon" alt="home" />
           </button>
-          {friendRequestsOpen && (
-            <div className="popup-menu friend-requests-menu">
-              <h4>Lời mời kết bạn ({friendRequests.length})</h4>
-              {friendRequests.length > 0 ? (
-                friendRequests.map((req) => (
-                  <div key={req.id} className="friend-request-item">
-                    <img
-                      src={resolveAvatar(req.from_user.avatar)}
-                      alt={req.from_user.name}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/profile/${req.from_user.id}`);
-                        setFriendRequestsOpen(false);
-                      }}
-                      style={{ cursor: "pointer" }}
-                    />
-                    <div className="friend-request-info">
-                      <strong
+          <button
+            className={`nav-icon-btn hide-on-mobile ${
+              activeTab === "dove" ? "active" : ""
+            }`}
+            onClick={() => {
+              setActiveTab("dove");
+              // navigate("/dove-community");
+            }}
+          >
+            <img src={dove} className="dove-icon" alt="dove" />
+          </button>
+        </div>
+      )}
+      {/* RIGHT */}
+      {!isSearchActive && (
+        <div className="navbar-right" ref={dropdownRef}>
+          <div style={{ marginRight: "10px" }}>
+            <LanguageSwitcher />
+          </div>
+          <div className="icon-wrapper friend-requests-wrapper">
+            <button
+              className={`nav-icon-btn ${
+                activeTab === "friend" ? "active" : ""
+              }`}
+              onClick={() => {
+                setFriendRequestsOpen(!friendRequestsOpen);
+                setNotifOpen(false);
+                setChatOpen(false);
+                setMenuOpen(false);
+              }}
+            >
+              <img src={friend} className="friend-icon" alt="friend" />
+              {friendRequests.length > 0 && (
+                <span className="friend-badge">{friendRequests.length}</span>
+              )}
+            </button>
+            {friendRequestsOpen && (
+              <div className="popup-menu friend-requests-menu">
+                <h4>
+                  {t("navbar.friend_request")} ({friendRequests.length})
+                </h4>
+                {friendRequests.length > 0 ? (
+                  friendRequests.map((req) => (
+                    <div key={req.id} className="friend-request-item">
+                      <img
+                        src={resolveAvatar(req.from_user.avatar)}
+                        alt={req.from_user.name}
                         onClick={(e) => {
                           e.stopPropagation();
                           navigate(`/profile/${req.from_user.id}`);
                           setFriendRequestsOpen(false);
                         }}
-                      >
-                        {req.from_user.name}
-                      </strong>
-                      <span>
-                        {new Date(req.created_at).toLocaleDateString("vi-VN")}
-                      </span>
-                      <div className="friend-request-actions">
-                        <button
-                          className="btn-accept"
-                          onMouseDown={(e) => handleAccept(req.from_user.id, e)}
+                        style={{ cursor: "pointer" }}
+                      />
+                      <div className="friend-request-info">
+                        <strong
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/profile/${req.from_user.id}`);
+                            setFriendRequestsOpen(false);
+                          }}
                         >
-                          ✓ Chấp nhận
-                        </button>
-                        <button
-                          className="btn-reject"
-                          onMouseDown={(e) => handleReject(req.from_user.id, e)}
-                        >
-                          ✗ Từ chối
-                        </button>
+                          {req.from_user.name}
+                        </strong>
+                        <span>
+                          {new Date(req.created_at).toLocaleDateString("vi-VN")}
+                        </span>
+                        <div className="friend-request-actions">
+                          <button
+                            className="btn-accept"
+                            onMouseDown={(e) =>
+                              handleAccept(req.from_user.id, e)
+                            }
+                          >
+                            ✓ {t("navbar.accept")}
+                          </button>
+                          <button
+                            className="btn-reject"
+                            onMouseDown={(e) =>
+                              handleReject(req.from_user.id, e)
+                            }
+                          >
+                            ✗ {t("navbar.reject")}
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))
-              ) : (
-                <p className="empty">Không có lời mời kết bạn</p>
-              )}
-            </div>
-          )}
-        </div>
-        <div className="icon-wrapper notification-wrapper">
-          <img
-            src={notificationIcon}
-            className="custom-icon notification-icon"
-            onClick={handleToggleNotif}
-            alt=""
-          />
-          {unreadCount > 0 && <span className="icon-badge">{unreadCount}</span>}
-          <span className="icon-tooltip">Thông báo</span>
-          {notifOpen && (
-            <div className="popup-menu">
-              <h4>Thông báo</h4>
-              {notifications.length > 0 ? (
-                notifications.map((n) => (
-                  <div
-                    key={n.id}
-                    className={`popup-item ${!n.isRead ? "unread" : ""}`}
-                    onClick={() => handleNotificationClick(n)}
-                  >
-                    <img src={n.avatar} alt="avatar" />
-                    <div className="popup-text">
-                      <p style={{ fontSize: "14px", margin: 0 }}>{n.text}</p>
-                      <span style={{ fontSize: "12px", color: "#1877f2" }}>
-                        {n.time}
-                      </span>
-                    </div>
-                    {!n.isRead && (
-                      <div
-                        style={{
-                          width: 10,
-                          height: 10,
-                          borderRadius: "50%",
-                          background: "#1877f2",
-                        }}
-                      ></div>
-                    )}
-                  </div>
-                ))
-              ) : (
-                <p className="empty">Không có thông báo mới</p>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div className="icon-wrapper chat-wrapper">
-          <img
-            src={chatIconImg}
-            className="fas fa-comment-dots chat-icon"
-            onClick={handleToggleChat}
-            alt=""
-          />
-          {unreadChatCount > 0 && (
-            <span className="icon-badge">{unreadChatCount}</span>
-          )}
-          <span className="icon-tooltip">Tin nhắn</span>
-          {chatOpen && (
-            <div className="popup-menu">
-              <h4>Tin nhắn</h4>
-              {chatNotifications.length > 0 ? (
-                chatNotifications.map((n) => (
-                  <div
-                    key={n.id}
-                    className="popup-item"
-                    style={{ cursor: "pointer" }}
-                    onClick={() => handleChatClick(n)}
-                  >
-                    <img src={n.avatar} alt="avatar" />
-                    <div className="popup-text">
-                      <strong>{n.sender_name}</strong>
-                      <p
-                        className="truncate-text"
-                        style={{ maxWidth: "180px" }}
-                      >
-                        {n.text}
-                      </p>
-                      <span>{n.time}</span>
-                    </div>
-
-                    {/*HIỂN THỊ SỐ LƯỢNG TIN NHẮN CHƯA ĐỌC */}
-                    {n.unreadCount > 0 && (
-                      <div className="message-badge">
-                        {n.unreadCount > 99 ? "99+" : n.unreadCount}
-                      </div>
-                    )}
-                  </div>
-                ))
-              ) : (
-                <p className="empty">Không có tin nhắn mới</p>
-              )}
-            </div>
-          )}
-        </div>
-
-        {user && (
-          <div className="user-section">
-            <img
-              src={avatarUrl}
-              className="user-avatar"
-              onClick={() => {
-                setMenuOpen(!menuOpen);
-                setNotifOpen(false);
-                setChatOpen(false);
-              }}
-              alt="User Avatar"
-            />
-            {menuOpen && (
-              <div className="dropdown-menu">
-                <p>
-                  👋 <strong>{displayName}</strong>
-                </p>
-                <p className="user-role">
-                  {user.role === "doctor" ? "👨‍⚕️ Bác sĩ" : "👤 Người dùng"}
-                </p>
-                <hr />
-                <button onClick={handleProfileClick} className="profile-btn">
-                  Hồ sơ cá nhân
-                </button>
-                <button onClick={onLogout} className="logout-btn">
-                  Đăng xuất
-                </button>
+                  ))
+                ) : (
+                  <p className="empty">{t("navbar.no_friend_req")}</p>
+                )}
               </div>
             )}
           </div>
-        )}
-      </div>
+          <div className="icon-wrapper notification-wrapper">
+            <img
+              src={notificationIcon}
+              className="custom-icon notification-icon"
+              onClick={handleToggleNotif}
+              alt=""
+            />
+            {unreadCount > 0 && (
+              <span className="icon-badge">{unreadCount}</span>
+            )}
+            <span className="icon-tooltip">{t("navbar.notification")}</span>
+            {notifOpen && (
+              <div className="popup-menu">
+                <h4>{t("navbar.notification")}</h4>
+                {notifications.length > 0 ? (
+                  notifications.map((n) => (
+                    <div
+                      key={n.id}
+                      className={`popup-item ${!n.isRead ? "unread" : ""}`}
+                      onClick={() => handleNotificationClick(n)}
+                    >
+                      <img src={n.avatar} alt="avatar" />
+                      <div className="popup-text">
+                        <p style={{ fontSize: "14px", margin: 0 }}>
+                          {getNotificationText(n)}
+                        </p>
+                        <span style={{ fontSize: "12px", color: "#1877f2" }}>
+                          {n.time}
+                        </span>
+                      </div>
+                      {!n.isRead && (
+                        <div
+                          style={{
+                            width: 10,
+                            height: 10,
+                            borderRadius: "50%",
+                            background: "#1877f2",
+                          }}
+                        ></div>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <p className="empty">{t("navbar.no_notif")}</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="icon-wrapper chat-wrapper">
+            <img
+              src={chatIconImg}
+              className="fas fa-comment-dots chat-icon"
+              onClick={handleToggleChat}
+              alt=""
+            />
+            {unreadChatCount > 0 && (
+              <span className="icon-badge">{unreadChatCount}</span>
+            )}
+            <span className="icon-tooltip">{t("navbar.message")}</span>
+            {chatOpen && (
+              <div className="popup-menu">
+                <h4>{t("navbar.message")}</h4>
+                {chatNotifications.length > 0 ? (
+                  chatNotifications.map((n) => (
+                    <div
+                      key={n.id}
+                      className="popup-item"
+                      style={{ cursor: "pointer" }}
+                      onClick={() => handleChatClick(n)}
+                    >
+                      <img src={n.avatar} alt="avatar" />
+                      <div className="popup-text">
+                        <strong>{n.sender_name}</strong>
+                        <p
+                          className="truncate-text"
+                          style={{ maxWidth: "180px" }}
+                        >
+                          {n.text}
+                        </p>
+                        <span>{n.time}</span>
+                      </div>
+
+                      {/*HIỂN THỊ SỐ LƯỢNG TIN NHẮN CHƯA ĐỌC */}
+                      {n.unreadCount > 0 && (
+                        <div className="message-badge">
+                          {n.unreadCount > 99 ? "99+" : n.unreadCount}
+                        </div>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <p className="empty">{t("navbar.no_msg")}</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {user && (
+            <div className="user-section">
+              <img
+                src={avatarUrl}
+                className="user-avatar"
+                onClick={() => {
+                  setMenuOpen(!menuOpen);
+                  setNotifOpen(false);
+                  setChatOpen(false);
+                }}
+                alt="User Avatar"
+              />
+              {menuOpen && (
+                <div className="dropdown-menu">
+                  <button onClick={handleProfileClick} className="profile-btn">
+                    {t("navbar.profile")}
+                  </button>
+                  <button onClick={onLogout} className="logout-btn">
+                    {t("navbar.logout")}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </nav>
   );
 };

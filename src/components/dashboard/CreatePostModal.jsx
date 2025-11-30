@@ -1,6 +1,6 @@
 import React from "react";
 import "../../styles/CreatePostModal.css";
-
+import { useTranslation } from "react-i18next";
 // Thêm helper resolveAvatar
 const DEFAULT_AVATAR =
   "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
@@ -64,13 +64,14 @@ const CreatePostModal = ({
   handleImageChange,
   handlePost,
 }) => {
+  const { t } = useTranslation();
   if (!isOpen) return null;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h3>Tạo bài viết</h3>
+          <h3>{t("dashboard.create_post")}</h3>
           <button className="close-btn" onClick={onClose}>
             ×
           </button>
@@ -91,45 +92,47 @@ const CreatePostModal = ({
 
           {postType === "normal" ? (
             <textarea
-              placeholder={`${user?.name || "Bạn"} ơi, bạn đang nghĩ gì thế?`}
+              placeholder={t("dashboard.what_thinking", {
+                name: user?.name || "Bạn",
+              })}
               value={newPost}
               onChange={(e) => setNewPost(e.target.value)}
             />
           ) : (
             <div className="medical-form scrollable-form">
-              <h4>🩺 Về triệu chứng và tình trạng hiện tại</h4>
+              <h4>🩺 {t("dashboard.medical_form.title_symptom")}</h4>
               <textarea
-                placeholder="Bạn đang gặp những triệu chứng gì?"
+                placeholder={t("dashboard.medical_form.symptom")}
                 value={medicalForm.symptom}
                 onChange={(e) =>
                   setMedicalForm({ ...medicalForm, symptom: e.target.value })
                 }
               />
               <textarea
-                placeholder="Triệu chứng xuất hiện từ khi nào, diễn ra liên tục hay ngắt quãng?"
+                placeholder={t("dashboard.medical_form.duration")}
                 value={medicalForm.duration}
                 onChange={(e) =>
                   setMedicalForm({ ...medicalForm, duration: e.target.value })
                 }
               />
               <textarea
-                placeholder="Mức độ nghiêm trọng đến mức nào?"
+                placeholder={t("dashboard.medical_form.severity")}
                 value={medicalForm.severity}
                 onChange={(e) =>
                   setMedicalForm({ ...medicalForm, severity: e.target.value })
                 }
               />
               <textarea
-                placeholder="Có yếu tố nào làm triệu chứng nặng hơn hoặc đỡ hơn không?"
+                placeholder={t("dashboard.medical_form.factors")}
                 value={medicalForm.factors}
                 onChange={(e) =>
                   setMedicalForm({ ...medicalForm, factors: e.target.value })
                 }
               />
 
-              <h4>💊 Về tiền sử bệnh lý và điều trị</h4>
+              <h4>💊 {t("dashboard.medical_form.title_history")}</h4>
               <textarea
-                placeholder="Tiền sử cá nhân: bạn đã từng mắc bệnh hay phẫu thuật chưa?"
+                placeholder={t("dashboard.medical_form.history_personal")}
                 value={medicalForm.historyPersonal}
                 onChange={(e) =>
                   setMedicalForm({
@@ -139,7 +142,7 @@ const CreatePostModal = ({
                 }
               />
               <textarea
-                placeholder="Tiền sử gia đình: có ai mắc bệnh di truyền, tim mạch, ung thư không?"
+                placeholder={t("dashboard.medical_form.history_family")}
                 value={medicalForm.historyFamily}
                 onChange={(e) =>
                   setMedicalForm({
@@ -149,16 +152,16 @@ const CreatePostModal = ({
                 }
               />
               <textarea
-                placeholder="Thuốc bạn đang dùng hiện tại?"
+                placeholder={t("dashboard.medical_form.medication")}
                 value={medicalForm.medication}
                 onChange={(e) =>
                   setMedicalForm({ ...medicalForm, medication: e.target.value })
                 }
               />
 
-              <h4>🧠 Về lối sống và tâm lý</h4>
+              <h4>🧠 {t("dashboard.medical_form.title_lifestyle")}</h4>
               <textarea
-                placeholder="Bạn có hút thuốc, uống rượu, thức khuya hay gặp căng thẳng không?"
+                placeholder={t("dashboard.medical_form.lifestyle")}
                 value={medicalForm.lifestyle}
                 onChange={(e) =>
                   setMedicalForm({ ...medicalForm, lifestyle: e.target.value })
@@ -172,13 +175,16 @@ const CreatePostModal = ({
               className="modal-action"
               onClick={() => fileInputRef.current?.click()}
             >
-              <i className="fas fa-images"></i> Ảnh/video
+              <i className="fas fa-images"></i>{" "}
+              {t("dashboard.modal_actions.photo_video")}
             </button>
             <button className="modal-action">
-              <i className="fas fa-user-tag"></i> Gắn thẻ bạn bè
+              <i className="fas fa-user-tag"></i>{" "}
+              {t("dashboard.modal_actions.tag_friends")}
             </button>
             <button className="modal-action">
-              <i className="fas fa-face-smile"></i> Cảm xúc
+              <i className="fas fa-face-smile"></i>{" "}
+              {t("dashboard.modal_actions.feeling")}
             </button>
           </div>
 
@@ -256,9 +262,8 @@ const CreatePostModal = ({
             accept="image/*,video/*"
             onChange={handleImageChange}
           />
-
           <button className="modal-post-btn" onClick={handlePost}>
-            Đăng
+            {t("dashboard.post_btn")}
           </button>
         </div>
       </div>

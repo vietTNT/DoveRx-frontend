@@ -5,7 +5,7 @@ import "../styles/ProfilePage.css";
 import axios from "axios";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-
+import { useTranslation } from "react-i18next";
 const getAvatarUrl = (a) => {
   const defaultAvatar = "https://cdn-icons-png.flaticon.com/512/847/847969.png";
   const avatar = a || "";
@@ -34,6 +34,7 @@ const apiToLabelGender = (g) => {
 };
 
 const ProfilePage = ({ onLogout, user: appUser, setUser: setAppUser }) => {
+  const { t } = useTranslation();
   const [user, setUser] = useState(appUser || null);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
@@ -56,7 +57,11 @@ const ProfilePage = ({ onLogout, user: appUser, setUser: setAppUser }) => {
   //  State cho Avatar Editor
   const [showEditor, setShowEditor] = useState(false);
   const [rawImage, setRawImage] = useState(null);
-
+  const genderLabel = (g) => {
+    if (g === "Nam" || g === "male") return t("profile.gender_male");
+    if (g === "Nữ" || g === "female") return t("profile.gender_female");
+    return t("profile.gender_other");
+  };
   useEffect(() => {
     // Ưu tiên lấy từ prop appUser nếu có, fallback localStorage
     const storedUser =
@@ -177,7 +182,7 @@ const ProfilePage = ({ onLogout, user: appUser, setUser: setAppUser }) => {
 
   //  Xóa avatar về mặc định
   const handleRemoveAvatar = async () => {
-    if (!window.confirm("Bạn có chắc muốn xóa ảnh đại diện?")) return;
+    if (!window.confirm(t("profile.confirm_remove_avatar"))) return;
 
     try {
       const token = localStorage.getItem("access");
@@ -285,7 +290,7 @@ const ProfilePage = ({ onLogout, user: appUser, setUser: setAppUser }) => {
                   className="upload-btn"
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  📸 Đổi ảnh
+                  📸 {t("profile.change_avatar")}
                 </button>
 
                 <input
@@ -303,7 +308,7 @@ const ProfilePage = ({ onLogout, user: appUser, setUser: setAppUser }) => {
                       onClick={handleRemoveAvatar}
                       className="remove-avatar-btn"
                     >
-                      🗑️ Xóa ảnh
+                      🗑️ {t("profile.remove_avatar")}
                     </button>
                   )}
               </div>
@@ -317,13 +322,13 @@ const ProfilePage = ({ onLogout, user: appUser, setUser: setAppUser }) => {
                   name="first_name"
                   value={formData.first_name}
                   onChange={handleChange}
-                  placeholder="Họ"
+                  placeholder={t("profile.first_name")}
                 />
                 <input
                   name="last_name"
                   value={formData.last_name}
                   onChange={handleChange}
-                  placeholder="Tên"
+                  placeholder={t("profile.last_name")}
                 />
               </div>
 
@@ -333,16 +338,16 @@ const ProfilePage = ({ onLogout, user: appUser, setUser: setAppUser }) => {
                   value={formData.gender}
                   onChange={handleChange}
                 >
-                  <option value="">Giới tính</option>
-                  <option value="Nam">Nam</option>
-                  <option value="Nữ">Nữ</option>
-                  <option value="Khác">Khác</option>
+                  <option value="">{t("profile.gender")}</option>
+                  <option value="Nam">{t("profile.gender_male")}</option>
+                  <option value="Nữ">{t("profile.gender_female")}</option>
+                  <option value="Khác">{t("profile.gender_other")}</option>
                 </select>
                 <input
                   name="age"
                   value={formData.age}
                   onChange={handleChange}
-                  placeholder="Tuổi"
+                  placeholder={t("profile.age")}
                   type="number"
                 />
               </div>
@@ -350,13 +355,13 @@ const ProfilePage = ({ onLogout, user: appUser, setUser: setAppUser }) => {
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
-                placeholder="Số điện thoại"
+                placeholder={t("profile.phone")}
               />
               <input
                 name="address"
                 value={formData.address}
                 onChange={handleChange}
-                placeholder="Địa chỉ"
+                placeholder={t("profile.address")}
               />
               {user.role === "doctor" && (
                 <>
@@ -364,26 +369,26 @@ const ProfilePage = ({ onLogout, user: appUser, setUser: setAppUser }) => {
                     name="specialty"
                     value={formData.specialty}
                     onChange={handleChange}
-                    placeholder="Chuyên khoa"
+                    placeholder={t("profile.specialty")}
                   />
                   <input
                     name="workplace"
                     value={formData.workplace}
                     onChange={handleChange}
-                    placeholder="Nơi làm việc"
+                    placeholder={t("profile.workplace")}
                   />
                   <input
                     name="experience_years"
                     value={formData.experience_years}
                     onChange={handleChange}
-                    placeholder="Số năm kinh nghiệm"
+                    placeholder={t("profile.experience_years")}
                     type="number"
                   />
                   <input
                     name="license_number"
                     value={formData.license_number}
                     onChange={handleChange}
-                    placeholder="Số chứng chỉ hành nghề"
+                    placeholder={t("profile.license_number")}
                   />
                 </>
               )}
@@ -391,10 +396,10 @@ const ProfilePage = ({ onLogout, user: appUser, setUser: setAppUser }) => {
                 name="bio"
                 value={formData.bio}
                 onChange={handleChange}
-                placeholder="Giới thiệu bản thân / kinh nghiệm chuyên môn"
+                placeholder={t("profile.bio")}
               />
               <button onClick={handleSave} className="save-btn">
-                💾 Lưu thay đổi
+                💾 {t("profile.save_changes")}
               </button>
             </div>
           ) : (
@@ -406,46 +411,53 @@ const ProfilePage = ({ onLogout, user: appUser, setUser: setAppUser }) => {
                 <b>Email:</b> {user.email}
               </p>
               <p>
-                <b>Giới tính:</b>{" "}
-                {apiToLabelGender(user.gender) || "Chưa cập nhật"}
+                <b>{t("profile.gender")}:</b>{" "}
+                {apiToLabelGender(user.gender) || t("profile.not_updated")}
               </p>
               <p>
-                <b>Tuổi:</b> {user.age || "Chưa cập nhật"}
+                <b>{t("profile.age")}:</b>{" "}
+                {user.age || t("profile.not_updated")}
               </p>
               <p>
-                <b>Số điện thoại:</b> {user.phone || "Chưa cập nhật"}
+                <b>{t("profile.phone")}:</b>{" "}
+                {user.phone || t("profile.not_updated")}
               </p>
               <p>
-                <b>Địa chỉ:</b> {user.address || "Chưa cập nhật"}
+                <b>{t("profile.address")}:</b>{" "}
+                {user.address || t("profile.not_updated")}
               </p>
 
               {user.role === "doctor" && (
                 <>
                   <p>
-                    <b>Chuyên khoa:</b> {user.specialty || "Chưa cập nhật"}
+                    <b>{t("profile.specialty")}:</b>{" "}
+                    {user.specialty || t("profile.not_updated")}
                   </p>
                   <p>
-                    <b>Nơi làm việc:</b> {user.workplace || "Chưa cập nhật"}
+                    <b>{t("profile.workplace")}:</b>{" "}
+                    {user.workplace || t("profile.not_updated")}
                   </p>
                   <p>
-                    <b>Loại bác sĩ:</b> {user.doctor_type || "Không xác định"}
+                    <b>{t("profile.doctor_type")}:</b>{" "}
+                    {user.doctor_type || t("profile.not_updated")}
                   </p>
                   <p>
-                    <b>Số năm kinh nghiệm:</b>{" "}
-                    {user.experience_years || "Chưa cập nhật"}
+                    <b>{t("profile.experience_years")}:</b>{" "}
+                    {user.experience_years || t("profile.not_updated")}
                   </p>
                   <p>
-                    <b>Chứng chỉ hành nghề:</b>{" "}
-                    {user.license_number || "Chưa cập nhật"}
+                    <b>{t("profile.license_number")}:</b>{" "}
+                    {user.license_number || t("profile.not_updated")}
                   </p>
                 </>
               )}
 
               <p>
-                <b>Bio:</b> {user.bio || "Chưa có mô tả."}
+                <b>{t("profile.bio")}:</b>{" "}
+                {user.bio || t("profile.not_updated")}
               </p>
               <button className="edit-btn" onClick={() => setIsEditing(true)}>
-                ✏️ Chỉnh sửa
+                ✏️ {t("common.edit")}
               </button>
             </div>
           )}

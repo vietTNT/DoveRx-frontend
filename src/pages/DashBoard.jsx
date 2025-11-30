@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import "../styles/DashBoard.css";
 import { getPostById } from "../services/socialApi";
 import {
@@ -24,17 +24,17 @@ import Lightbox from "../components/dashboard/Lightbox";
 import CommentModal from "../components/dashboard/CommentModal";
 import websocketService from "../services/websocket";
 import { toast } from "react-toastify";
-
+import { useTranslation } from "react-i18next";
 // --- HELPER CONSTANTS & FUNCTIONS ---
-const emojiList = [
-  { type: "like", icon: "👍", label: "Thích", color: "#1b74e4" },
-  { type: "love", icon: "❤️", label: "Yêu thích", color: "#f33e58" },
-  { type: "care", icon: "🥰", label: "Thương thương", color: "#f7b125" },
-  { type: "haha", icon: "😂", label: "Haha", color: "#f7b125" },
-  { type: "wow", icon: "😮", label: "Wow", color: "#f7b125" },
-  { type: "sad", icon: "😢", label: "Buồn", color: "#f7b125" },
-  { type: "angry", icon: "😡", label: "Phẫn nộ", color: "#e9710f" },
-];
+// const emojiList = [
+//   { type: "like", icon: "👍", label: "Thích", color: "#1b74e4" },
+//   { type: "love", icon: "❤️", label: "Yêu thích", color: "#f33e58" },
+//   { type: "care", icon: "🥰", label: "Thương thương", color: "#f7b125" },
+//   { type: "haha", icon: "😂", label: "Haha", color: "#f7b125" },
+//   { type: "wow", icon: "😮", label: "Wow", color: "#f7b125" },
+//   { type: "sad", icon: "😢", label: "Buồn", color: "#f7b125" },
+//   { type: "angry", icon: "😡", label: "Phẫn nộ", color: "#e9710f" },
+// ];
 
 const updateNode = (l, id, up) =>
   l.map((n) =>
@@ -52,6 +52,7 @@ const removeNode = (l, id) =>
     }));
 
 const Dashboard = ({ user, onLogout }) => {
+  const { t, i18n } = useTranslation();
   // --- STATE: FEED ---
   const [posts, setPosts] = useState([]);
   const [comments, setComments] = useState({});
@@ -89,7 +90,43 @@ const Dashboard = ({ user, onLogout }) => {
   });
 
   const fileInputRef = useRef();
-
+  const emojiList = useMemo(
+    () => [
+      {
+        type: "like",
+        icon: "👍",
+        label: t("reactions.like"),
+        color: "#1b74e4",
+      },
+      {
+        type: "love",
+        icon: "❤️",
+        label: t("reactions.love"),
+        color: "#f33e58",
+      },
+      {
+        type: "care",
+        icon: "🥰",
+        label: t("reactions.care"),
+        color: "#f7b125",
+      },
+      {
+        type: "haha",
+        icon: "😂",
+        label: t("reactions.haha"),
+        color: "#f7b125",
+      },
+      { type: "wow", icon: "😮", label: t("reactions.wow"), color: "#f7b125" },
+      { type: "sad", icon: "😢", label: t("reactions.sad"), color: "#f7b125" },
+      {
+        type: "angry",
+        icon: "😡",
+        label: t("reactions.angry"),
+        color: "#e9710f",
+      },
+    ],
+    [t]
+  );
   // =======================================================
   // 1. LOGIC MỞ BÀI VIẾT TỪ THÔNG BÁO
   // =======================================================
@@ -132,7 +169,7 @@ const Dashboard = ({ user, onLogout }) => {
   }, [posts]);
 
   // =======================================================
-  // 2. CÁC HÀM XỬ LÝ TƯƠNG TÁC TRONG MODAL VIEW (🔥 MỚI THÊM)
+  // 2. CÁC HÀM XỬ LÝ TƯƠNG TÁC TRONG MODAL VIEW
   // =======================================================
 
   // 2.1 Thả tim bài viết (Trong Modal)
@@ -159,7 +196,7 @@ const Dashboard = ({ user, onLogout }) => {
     setActivePostPopup(null);
   };
 
-  // 2.2 Gửi bình luận mới (Trong Modal)
+  // 2.2 Gửi bình luận mới
   const handleModalSubmitComment = async () => {
     const text = modalCommentDraft.trim();
     if (!text || !viewPost) return;
@@ -172,7 +209,7 @@ const Dashboard = ({ user, onLogout }) => {
     }
   };
 
-  // 2.3 Thả tim bình luận (Trong Modal)
+  // 2.3 Thả tim bình luận
   const handleModalCommentReact = (cid, type) => {
     if (!viewPost) return;
     const emoji = emojiList.find((e) => e.type === type);
@@ -195,7 +232,7 @@ const Dashboard = ({ user, onLogout }) => {
     setActiveCommentPopup(null);
   };
 
-  // 2.4 Trả lời bình luận (Trong Modal)
+  // 2.4 Trả lời bình luận
   const handleModalSubmitReply = (cid, mentionUser) => {
     const draft = modalReplyDrafts[cid] || "";
     const text = draft.trim();
@@ -220,9 +257,9 @@ const Dashboard = ({ user, onLogout }) => {
       .catch(() => toast.error("Lỗi trả lời"));
   };
 
-  // 2.5 Xóa bình luận (Trong Modal)
+  // 2.5 Xóa bình luận
   const handleModalDeleteComment = async (cid) => {
-    if (!window.confirm("Xóa bình luận này?")) return;
+    if (!window.confirm(t("common.confirm_delete_comment"))) return;
     try {
       await apiDeleteComment(cid);
       setComments((prev) => {
@@ -232,13 +269,13 @@ const Dashboard = ({ user, onLogout }) => {
           [viewPost.id]: { ...ps, list: removeNode(ps.list, cid) },
         };
       });
-      toast.success("Đã xóa bình luận");
+      toast.success(t("common.deleted_comment"));
     } catch {
-      toast.error("Lỗi xóa bình luận");
+      toast.error(t("common.error_delete_comment"));
     }
   };
 
-  // 2.6 Toggle Reply Box (Trong Modal)
+  // 2.6 Toggle Reply Box
   const handleModalToggleReplyBox = (cid) => {
     setComments((prev) => {
       const ps = prev[viewPost.id];
@@ -251,7 +288,7 @@ const Dashboard = ({ user, onLogout }) => {
   };
 
   // =======================================================
-  // 3. LOAD DATA & WEBSOCKET (LOGIC CŨ GIỮ NGUYÊN)
+  // 3. LOAD DATA & WEBSOCKET
   // =======================================================
 
   // Load Feed & Cache
@@ -267,7 +304,7 @@ const Dashboard = ({ user, onLogout }) => {
         setPosts(uiPosts);
         savePostsToCache(uiPosts);
       } catch (err) {
-        console.error("Tải bài viết thất bại:", err);
+        console.error(t("common.error_load_posts"), err);
       }
     };
     loadData();
@@ -305,7 +342,6 @@ const Dashboard = ({ user, onLogout }) => {
     websocketService.connect(token);
 
     const handleFeedUpdate = (data) => {
-      console.log("📢 [Dashboard] WebSocket feed_update:", data);
       const eventType = data.event || data.type || data.data?.event;
       const payload = data.data || data;
 
@@ -474,14 +510,16 @@ const Dashboard = ({ user, onLogout }) => {
   // 4. CÁC HÀM UTILS & HANDLERS CŨ
   // =======================================================
   const getTimeAgo = (timestamp) => {
-    if (!timestamp) return "Vừa xong";
+    if (!timestamp) return t("time.just_now");
     const date = new Date(timestamp);
-    if (isNaN(date.getTime())) return "Vừa xong";
+    if (isNaN(date.getTime())) return t("time.just_now");
     const diffMins = Math.floor((new Date() - date) / 60000);
-    if (diffMins < 1) return "Vừa xong";
-    if (diffMins < 60) return `${diffMins} phút trước`;
-    if (diffMins < 1440) return `${Math.floor(diffMins / 60)} giờ trước`;
-    return date.toLocaleString("vi-VN", {
+    if (diffMins < 1) return t("time.just_now");
+    if (diffMins < 60) return t("time.mins_ago", { count: diffMins });
+    if (diffMins < 1440)
+      return t("time.hours_ago", { count: Math.floor(diffMins / 60) });
+    const localeMap = { vi: "vi-VN", en: "en-US", ja: "ja-JP" };
+    return date.toLocaleString(localeMap[i18n.language] || "vi-VN", {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
@@ -633,7 +671,6 @@ const Dashboard = ({ user, onLogout }) => {
         <SidebarRight />
       </div>
 
-      {/* 🔥 MODAL VIEW POST (ĐÃ LIÊN KẾT ĐẦY ĐỦ) */}
       {viewPost && (
         <CommentModal
           isOpen={true}

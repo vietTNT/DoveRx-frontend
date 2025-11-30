@@ -17,6 +17,7 @@ import {
 } from "../../services/socialApi";
 import websocketService from "../../services/websocket";
 import ReactionListModal from "./ReactionListModal";
+import { useTranslation } from "react-i18next";
 // HELPER FUNCTION
 const getCurrentUserId = () => {
   try {
@@ -37,24 +38,27 @@ export const CommentInput = ({
   onChange,
   onSubmit,
   autoFocus = false,
-}) => (
-  <div className="comment-input">
-    <input
-      type="text"
-      placeholder={placeholder}
-      value={value}
-      autoFocus={autoFocus}
-      onChange={(e) => onChange(e.target.value)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" && !e.shiftKey) {
-          e.preventDefault();
-          onSubmit();
-        }
-      }}
-    />
-    <button onClick={onSubmit}>Gửi</button>
-  </div>
-);
+}) => {
+  const { t } = useTranslation();
+  return (
+    <div className="comment-input">
+      <input
+        type="text"
+        placeholder={placeholder}
+        value={value}
+        autoFocus={autoFocus}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            onSubmit();
+          }
+        }}
+      />
+      <button onClick={onSubmit}>{t("chat.send")}</button>
+    </div>
+  );
+};
 
 /* ---------- Comment Item ---------- */
 export const CommentItem = ({
@@ -81,6 +85,7 @@ export const CommentItem = ({
   currentUser,
   getTimeAgo,
 }) => {
+  const { t } = useTranslation();
   const hidePopupTimer = useRef(null);
 
   const armCommentPopup = (id) => {
@@ -116,7 +121,7 @@ export const CommentItem = ({
 
           {c.editing ? (
             <CommentInput
-              placeholder="Chỉnh sửa bình luận..."
+              placeholder={t("dashboard.edit_comment")}
               value={getEditDraft(c.id)}
               onChange={(val) => setEditDraft(c.id, val)}
               onSubmit={() => saveEdit(c.id)}
@@ -133,8 +138,19 @@ export const CommentItem = ({
             onMouseEnter={() => armCommentPopup(`c-${c.id}`)}
             onMouseLeave={disarmCommentPopup}
             // hỗ trợ mobile
-            onTouchStart={() => armCommentPopup(`c-${c.id}`)}
-            onTouchEnd={disarmCommentPopup}
+            // onTouchStart={() => armCommentPopup(`c-${c.id}`)}
+            // onTouchEnd={disarmCommentPopup}
+            onClick={(e) => {
+              if (
+                window.innerWidth <= 481 &&
+                activeCommentPopup !== `c-${c.id}`
+              ) {
+                e.preventDefault();
+                setActiveCommentPopup(`c-${c.id}`);
+              } else {
+                toggleCommentLike(c.id);
+              }
+            }}
           >
             <span
               className={`comment-react ${c.reaction ? "active" : ""}`}
@@ -147,7 +163,7 @@ export const CommentItem = ({
                 </>
               ) : (
                 <>
-                  <i className="far fa-thumbs-up" /> Thích
+                  <i className="far fa-thumbs-up" /> {t("dashboard.like")}
                 </>
               )}
             </span>
@@ -182,14 +198,14 @@ export const CommentItem = ({
                 className="comment-reply"
                 onClick={() => toggleReplyBox(c.id)}
               >
-                <i className="far fa-comment-dots" /> Trả lời
+                <i className="far fa-comment-dots" /> {t("dashboard.comment")}
               </span>
             </>
           )}
 
           <span> · </span>
           <span className="comment-time">
-            {timeData ? getTimeAgo(timeData) : "Vừa xong"}
+            {timeData ? getTimeAgo(timeData) : t("time.just_now")}
           </span>
 
           {c.likes > 0 && (
@@ -206,14 +222,14 @@ export const CommentItem = ({
                 className="comment-edit"
                 onClick={() => startEdit(c.id, c.text)}
               >
-                <i className="far fa-edit" /> Sửa
+                <i className="far fa-edit" /> {t("common.edit")}
               </span>
               <span> · </span>
               <span
                 className="comment-delete"
                 onClick={() => deleteComment(c.id)}
               >
-                <i className="far fa-trash-alt" /> Xóa
+                <i className="far fa-trash-alt" /> {t("common.delete")}
               </span>
             </>
           )}
@@ -307,6 +323,7 @@ const PostCard = ({
   onUpdatePost,
   lightbox,
 }) => {
+  const { t } = useTranslation();
   // State & Refs
   const MAX_REPLIES_VISIBLE = 2;
   const MAX_NEST_LEVEL = 2;
@@ -343,6 +360,7 @@ const PostCard = ({
     if (apiReaction && reactions[p.id] === undefined) {
       setReactions((prev) => ({ ...prev, [p.id]: apiReaction }));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [p.id]);
 
   useEffect(() => {
@@ -356,7 +374,7 @@ const PostCard = ({
         })
         .catch(() => {});
     }
-    // eslint-disable-next-line
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [p.id]);
 
   useEffect(() => {
@@ -370,13 +388,13 @@ const PostCard = ({
 
   // Handlers Post
   const handleDeleteClick = async () => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa bài viết này không?")) {
+    if (window.confirm(t("dashboard.delete_post_confirm"))) {
       try {
         await deletePost(p.id);
         if (onDeletePost) onDeletePost(p.id);
-        toast.success("Đã xóa bài viết");
+        toast.success(t("dashboard.delete_success"));
       } catch (error) {
-        toast.error("Lỗi khi xóa bài viết");
+        toast.error(t("dashboard.delete_error"));
       }
     }
   };
@@ -392,9 +410,9 @@ const PostCard = ({
       const updatedData = await updatePost(p.id, editContent);
       setIsEditing(false);
       if (onUpdatePost) onUpdatePost(updatedData);
-      toast.success("Đã cập nhật bài viết");
+      toast.success(t("dashboard.update_success"));
     } catch (error) {
-      toast.error("Lỗi khi cập nhật bài viết");
+      toast.error(t("dashboard.update_error"));
     }
   };
 
@@ -634,7 +652,7 @@ const PostCard = ({
                   }}
                 >
                   <i className="fas fa-edit" style={{ marginRight: "8px" }}></i>{" "}
-                  Chỉnh sửa
+                  {t("common.edit")}
                 </button>
                 <button
                   onClick={handleDeleteClick}
@@ -653,7 +671,7 @@ const PostCard = ({
                     className="fas fa-trash-alt"
                     style={{ marginRight: "8px" }}
                   ></i>{" "}
-                  Xóa bài viết
+                  {t("common.delete")}
                 </button>
               </div>
             )}
@@ -693,7 +711,7 @@ const PostCard = ({
                 cursor: "pointer",
               }}
             >
-              Hủy
+              {t("common.cancel")}
             </button>
             <button
               onClick={handleSaveEdit}
@@ -706,7 +724,7 @@ const PostCard = ({
                 cursor: "pointer",
               }}
             >
-              Lưu
+              {t("common.save")}
             </button>
           </div>
         </div>
@@ -724,13 +742,18 @@ const PostCard = ({
             return (
               <div className="post-content medical-post">
                 <p>
-                  <strong>🩺 Triệu chứng:</strong> {content.symptom || "—"}
+                  <strong>
+                    🩺 {t("dashboard.medical_form.title_symptom")}:
+                  </strong>{" "}
+                  {content.symptom || "—"}
                 </p>
                 <p>
-                  <strong>⏱️ Thời gian:</strong> {content.duration || "—"}
+                  <strong>⏱️ {t("dashboard.medical_form.duration")}:</strong>{" "}
+                  {content.duration || "—"}
                 </p>
                 <p>
-                  <strong>⚖️ Mức độ:</strong> {content.severity || "—"}
+                  <strong>⚖️ {t("dashboard.medical_form.severity")}:</strong>{" "}
+                  {content.severity || "—"}
                 </p>
               </div>
             );
@@ -749,7 +772,7 @@ const PostCard = ({
                       onClick={() => setIsExpanded(true)}
                     >
                       {" "}
-                      Xem thêm
+                      {t("dashboard.more_see")}
                     </span>
                   )}
                 </p>
@@ -759,7 +782,7 @@ const PostCard = ({
                     onClick={() => setIsExpanded(false)}
                   >
                     {" "}
-                    Thu gọn
+                    {t("dashboard.less_see")}
                   </span>
                 )}
               </div>
@@ -836,7 +859,7 @@ const PostCard = ({
           )}
           {countAllComments(list) > 0 && (
             <span className="comment-share-count">
-              {countAllComments(list)} bình luận
+              {countAllComments(list)} {t("dashboard.comment_count")}
             </span>
           )}
         </div>
@@ -846,15 +869,24 @@ const PostCard = ({
             onMouseEnter={() => armPostPopup(`p-${p.id}`)}
             onMouseLeave={disarmPostPopup}
             // hỗ trợ mobile
-            onTouchStart={() => armPostPopup(`p-${p.id}`)}
-            onTouchEnd={disarmPostPopup}
+            onClick={(e) => {}}
+            onTouchStart={() => {
+              postPopupTimer.current = setTimeout(() => {
+                setActivePostPopup(`p-${p.id}`);
+              }, 500); // Giữ 0.5s để hiện popup
+            }}
+            onTouchEnd={() => {
+              if (postPopupTimer.current) clearTimeout(postPopupTimer.current);
+            }}
+            // onTouchStart={() => armPostPopup(`p-${p.id}`)}
+            // onTouchEnd={disarmPostPopup}
           >
             <button
               className={`post-like-btn ${myReactionType ? "active" : ""}`}
               onClick={togglePostReaction}
             >
               {myReactionEmoji?.icon || "👍"}{" "}
-              {myReactionEmoji?.label || "Thích"}
+              {myReactionEmoji?.label || t("dashboard.like")}
             </button>
             {activePostPopup === `p-${p.id}` && (
               <div
@@ -876,11 +908,13 @@ const PostCard = ({
           </div>
           <div className="post-action-group">
             <button onClick={() => setCommentModalOpen(true)}>
-              💬 Bình luận
+              💬 {t("dashboard.comment")}
             </button>
           </div>
           <div className="post-action-group">
-            <button onClick={() => setShareOpen(true)}>🔗 Chia sẻ</button>
+            <button onClick={() => setShareOpen(true)}>
+              🔗 {t("dashboard.share")}
+            </button>
             {shareOpen && (
               <ShareModal
                 onClose={() => setShareOpen(false)}

@@ -15,7 +15,7 @@ import {
 import { v4 as uuidv4 } from "uuid";
 import likeIcon from "../../assets/icons/like.png";
 import { saveToCache, loadFromCache } from "../../utils/chatCache";
-
+import { useTranslation } from "react-i18next";
 //  HÀM NÀY ĐỂ XỬ LÝ ẢNH
 const getAttachmentUrl = (url) => {
   if (!url) return "";
@@ -80,6 +80,7 @@ const ChatPopup = ({
   isMinimized,
   style,
 }) => {
+  const { t } = useTranslation();
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState(cachedMessages);
   const [isTyping, setIsTyping] = useState(false);
@@ -453,7 +454,7 @@ const ChatPopup = ({
           <div className="chat-header-info">
             <span className="contact-name">{contact.name}</span>
             <span className="contact-status">
-              {contact.online ? "Đang hoạt động" : "Không hoạt động"}
+              {contact.online ? t("chat.active") : t("chat.offline")}
             </span>
           </div>
         </div>
@@ -472,20 +473,19 @@ const ChatPopup = ({
       >
         {loading ? (
           <div className="chat-loading">
-            <i className="fas fa-spinner fa-spin"></i> Đang tải tin nhắn...
+            <i className="fas fa-spinner fa-spin"></i> {t("chat.loading")}
           </div>
         ) : messages.length === 0 ? (
           <div className="chat-empty-state">
             <i className="far fa-comments"></i>
-            <p>Chưa có tin nhắn nào</p>
+            <p>{t("chat.empty")}</p>
             <p style={{ fontSize: "12px", opacity: 0.7 }}>
-              Hãy bắt đầu cuộc trò chuyện!
+              {t("chat.start_conversation")}
             </p>
           </div>
         ) : (
           <>
             {messages.map((msg) => {
-              // ✅ FIX 4: Dùng currentUser.id
               const isMine = msg.sender?.id === currentUser.id;
               const isLikeEmoji = msg.text === "👍";
               return (
@@ -511,11 +511,11 @@ const ChatPopup = ({
                         : {}
                     }
                   >
-                    {/* ✅ RENDER ẢNH/VIDEO VỚI SỰ KIỆN ONLOAD */}
+                    {/*  RENDER ẢNH/VIDEO VỚI SỰ KIỆN ONLOAD */}
                     {msg.attachment?.type === "image" && (
                       <div
                         className="media-container"
-                        // ✅ Bắt sự kiện click để mở Lightbox
+                        // Bắt sự kiện click để mở Lightbox
                         onClick={() =>
                           setPreviewImage(getAttachmentUrl(msg.attachment.url))
                         }

@@ -1,0 +1,151 @@
+.language-switcher {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+/* --- Nút bấm Icon Quả địa cầu --- */
+.lang-btn {
+  background: transparent;
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  outline: none;
+}
+
+.globe-icon {
+  width: 25px;
+  height: 25px;
+  object-fit: contain;
+  transition: all 0.5s ease;
+}
+
+/* Hiệu ứng Hover */
+.lang-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.lang-btn:hover .globe-icon {
+  transform: scale(1.1);
+}
+
+/* --- TRẠNG THÁI ACTIVE (KHI CLICK MỞ MENU) --- */
+.lang-btn.active {
+  background-color: rgba(37, 99, 235, 0.1);
+}
+
+.lang-btn.active .globe-icon {
+  /* Hiệu ứng Sáng lên (Glow) cho ảnh PNG trong suốt */
+  filter: drop-shadow(0 0 5px rgba(8, 205, 231, 0.8));
+
+  /* Hiệu ứng Quay tròn */
+  animation: rotate-globe 1s ease-in-out; /* Quay chậm hơn 1 chút cho đẹp */
+}
+/* Keyframes cho hiệu ứng quay */
+@keyframes rotate-globe {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    transform: rotate(180deg) scale(1.2);
+  } /* Kết hợp phóng to khi quay */
+  100% {
+    transform: rotate(360deg) scale(1);
+  }
+}
+
+/* --- Dropdown Menu --- */
+.lang-dropdown {
+  position: absolute;
+  top: 120%;
+  right: -10px; /* Căn chỉnh để không bị hụt lề phải */
+  background: white;
+  min-width: 180px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  padding: 8px 0;
+  overflow: hidden;
+  border: 1px solid #f0f2f5;
+  animation: fadeIn 0.2s ease;
+  transform-origin: top right;
+}
+
+.lang-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #050505;
+  transition: background 0.2s;
+}
+
+.lang-item:hover {
+  background-color: #f2f2f2;
+}
+
+.lang-item.selected {
+  background-color: #e7f3ff;
+  color: #1877f2;
+  font-weight: 600;
+}
+
+.lang-flag {
+  font-size: 18px;
+}
+
+.lang-label {
+  flex: 1; /* Đẩy dấu tick sang phải */
+}
+
+.check-mark {
+  font-size: 12px;
+  font-weight: bold;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ========================================= */
+/* RESPONSIVE (ĐA PHƯƠNG TIỆN) */
+/* ========================================= */
+
+/* Mobile (Màn hình nhỏ < 480px) */
+@media (max-width: 480px) {
+  .lang-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .globe-icon {
+    width: 20px;
+    height: 20px;
+  }
+  .lang-dropdown {
+    min-width: 160px;
+    right: -5px;
+    top: 110%;
+  }
+
+  .lang-item {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+}

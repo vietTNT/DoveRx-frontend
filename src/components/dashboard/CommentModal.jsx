@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState } from "react";
 import "../../styles/CommentModal.css";
 import ReactDOM from "react-dom";
 import { CommentItem, CommentInput } from "./PostCard";
-
+import { useTranslation } from "react-i18next";
 // Fallback chung
 const DEFAULT_AVATAR =
   "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
@@ -73,6 +73,7 @@ const CommentModal = ({
   onTogglePostReaction,
   onSetPostReaction,
 }) => {
+  const { t } = useTranslation();
   const commentListRef = useRef(null);
   const hidePopupTimer = useRef(null);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -143,7 +144,7 @@ const CommentModal = ({
       >
         {/* Header */}
         <div className="comment-modal-header">
-          <h3>Bài viết của {authorName}</h3>
+          <h3>{t("dashboard.post_of", { name: authorName })}</h3>
           <button className="modal-close-btn" onClick={onClose}>
             ✕
           </button>
@@ -182,16 +183,21 @@ const CommentModal = ({
                 return (
                   <div className="post-content medical-post">
                     <p>
-                      <strong>🩺 Triệu chứng:</strong> {content.symptom || "—"}
+                      <strong>
+                        🩺 {t("dashboard.medical_form.title_symptom")}
+                      </strong>{" "}
+                      {content.symptom || "—"}
                     </p>
                     <p>
-                      <strong>⏱️ Thời gian:</strong> {content.duration || "—"}
+                      <strong>⏱️ {t("dashboard.medical_form.duration")}</strong>{" "}
+                      {content.duration || "—"}
                     </p>
                     <p>
-                      <strong>⚖️ Mức độ:</strong> {content.severity || "—"}
+                      <strong>⚖️ {t("dashboard.medical_form.severity")}</strong>{" "}
+                      {content.severity || "—"}
                     </p>
                     <p>
-                      <strong>📈 Yếu tố ảnh hưởng:</strong>{" "}
+                      <strong>📈 {t("dashboard.medical_form.factors")}</strong>{" "}
                       {content.factors || "—"}
                     </p>
                   </div>
@@ -210,7 +216,7 @@ const CommentModal = ({
                           className="see-more-btn"
                           onClick={() => setIsExpanded(true)}
                         >
-                          Xem thêm
+                          {t("dashboard.more_see")}
                         </span>
                       )}
                     </p>
@@ -219,7 +225,7 @@ const CommentModal = ({
                         className="see-less-btn"
                         onClick={() => setIsExpanded(false)}
                       >
-                        Thu gọn
+                        {t("dashboard.less_see")}
                       </span>
                     )}
                   </div>
@@ -281,7 +287,9 @@ const CommentModal = ({
                   </div>
                 )}
               </div>
-              <span className="comment-count">{list.length} bình luận</span>
+              <span className="comment-count">
+                {list.length} {t("dashboard.comment_count")}
+              </span>
             </div>
 
             <div className="post-buttons">
@@ -306,7 +314,7 @@ const CommentModal = ({
                   ) : (
                     <>
                       <span>👍</span>
-                      <span>Thích</span>
+                      <span>{t("dashboard.like")}</span>
                     </>
                   )}
                 </button>
@@ -332,7 +340,9 @@ const CommentModal = ({
                 )}
               </div>
               <div className="post-action-group">
-                <button onClick={() => onShareClick(post)}>🔗 Chia sẻ</button>
+                <button onClick={() => onShareClick(post)}>
+                  🔗 {t("dashboard.share")}
+                </button>
               </div>
             </div>
           </div>
@@ -367,9 +377,7 @@ const CommentModal = ({
                 />
               ))
             ) : (
-              <p className="no-comments">
-                Chưa có bình luận nào. Hãy là người đầu tiên!
-              </p>
+              <p className="no-comments">{t("dashboard.no_comments_yet")}</p>
             )}
           </div>
         </div>
@@ -386,7 +394,7 @@ const CommentModal = ({
             }}
           />
           <CommentInput
-            placeholder="Viết bình luận..."
+            placeholder={t("dashboard.write_comment")}
             value={commentDraft}
             onChange={setCommentDraft}
             onSubmit={onSubmitComment}

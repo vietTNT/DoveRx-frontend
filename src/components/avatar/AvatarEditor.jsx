@@ -1,8 +1,9 @@
 import React, { useState, useCallback } from "react";
 import Cropper from "react-easy-crop";
 import "../../styles/AvatarEditor.css";
-
+import { useTranslation } from "react-i18next";
 const AvatarEditorModal = ({ image, onSave, onCancel }) => {
+  const { t } = useTranslation();
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
@@ -53,7 +54,7 @@ const AvatarEditorModal = ({ image, onSave, onCancel }) => {
   return (
     <div className="avatar-editor-overlay" onClick={onCancel}>
       <div className="avatar-editor-modal" onClick={(e) => e.stopPropagation()}>
-        <h3>✨ Chỉnh sửa ảnh đại diện</h3>
+        <h3>✨ {t("avatarEditor.title")}</h3>
 
         <div className="cropper-container">
           <Cropper
@@ -79,7 +80,7 @@ const AvatarEditorModal = ({ image, onSave, onCancel }) => {
         <div className="editor-controls">
           <label>
             <span className="zoom-label">
-              <i className="fas fa-search-plus"></i> Phóng to/Thu nhỏ
+              <i className="fas fa-search-plus"></i> {t("avatarEditor.zoom")}:
             </span>
             <input
               type="range"
@@ -94,10 +95,10 @@ const AvatarEditorModal = ({ image, onSave, onCancel }) => {
 
         <div className="editor-actions">
           <button onClick={onCancel} className="btn-cancel" type="button">
-            <i className="fas fa-times"></i> Hủy
+            <i className="fas fa-times"></i> {t("common.cancel")}
           </button>
           <button onClick={handleSave} className="btn-save" type="button">
-            <i className="fas fa-check"></i> Lưu
+            <i className="fas fa-check"></i> {t("avatarEditor.save_changes")}
           </button>
         </div>
       </div>

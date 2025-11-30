@@ -3,8 +3,10 @@ import { GoogleLogin } from "@react-oauth/google";
 import { useNavigate } from "react-router-dom";
 import "../styles/LoginPage.css";
 import logo from "../assets/logo.png";
-
+import { useTranslation } from "react-i18next";
+import LanguageSwitcher from "../components/language/LanguageSwitcher";
 const LoginPage = ({ onLoginSuccess }) => {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -22,7 +24,6 @@ const LoginPage = ({ onLoginSuccess }) => {
       if (user) {
         navigate("/dashboard");
       } else {
-        // alert("Đăng nhập thất bại, vui lòng thử lại!");
         setLoading(false);
       }
     }, 1200);
@@ -30,43 +31,43 @@ const LoginPage = ({ onLoginSuccess }) => {
 
   return (
     <div className="login-container">
-      <div className="login-card">
+      <div className="login-card" style={{ position: "relative" }}>
+        <div style={{ position: "absolute", top: "20px", right: "20px" }}>
+          <LanguageSwitcher />
+        </div>
         <img src={logo} alt="DoveRx Logo" className="logo-img" />
-        <h2>Chào mừng đến với DoveRx</h2>
-        <p>Kết nối, hỏi đáp cùng cộng đồng và chuyên gia y tế.</p>
+        <h2>{t("auth.welcome")}</h2>
+        <p>{t("auth.tagline")}</p>
 
         {loading ? (
           <>
             <div className="loading-spinner"></div>
-            <p>Đang đăng nhập...</p>
+            <p>{t("auth.logging_in")}</p>
           </>
         ) : (
           <div className="login-button">
-            <GoogleLogin
-              onSuccess={handleSuccess}
-              // onError={() => alert("Đăng nhập thất bại, vui lòng thử lại!")}
-            />
+            <GoogleLogin onSuccess={handleSuccess} />
           </div>
         )}
 
         {/* 🔹 Thêm phần dành riêng cho bác sĩ */}
         <div className="doctor-login-section">
-          <p>👨‍⚕️ Dành cho bác sĩ:</p>
+          <p>👨‍⚕️ {t("auth.login_doctor")}</p>
           <button
             className="doctor-btn"
             onClick={() => navigate("/doctor-login")}
           >
-            Đăng nhập bác sĩ
+            {t("auth.login_doctor")}
           </button>
           <button
             className="doctor-btn-outline"
             onClick={() => navigate("/doctor-register")}
           >
-            Đăng ký bác sĩ
+            {t("auth.register_doctor")}
           </button>
         </div>
 
-        <footer>DoveRx Healthcare Platform</footer>
+        <footer>{t("auth.copyright")}</footer>
       </div>
     </div>
   );
