@@ -27,12 +27,23 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-// 3. QUAN TRỌNG: Phải có sự kiện FETCH thì mới hiện nút Cài Đặt
 self.addEventListener("fetch", (event) => {
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      // Trả về cache nếu có, nếu không thì tải từ mạng
-      return response || fetch(event.request);
-    })
+    fetch(event.request)
+      .then((response) => {
+        // Nếu có mạng: Trả về dữ liệu mới và cập nhật vào cache
+        if (!response || response.status !== 200 || response.type !== "basic") {
+          return response;
+        }
+        const responseToCache = response.clone();
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, responseToCache);
+        });
+        return response;
+      })
+      .catch(() => {
+        // Nếu mất mạng: Mới lấy từ cache
+        return caches.match(event.request);
+      })
   );
 });

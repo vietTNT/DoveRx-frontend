@@ -14,14 +14,12 @@ root.render(
 reportWebVitals();
 
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register("/sw.js")
-      .then((registration) => {
-        console.log("✅ PWA Service Worker đã đăng ký:", registration.scope);
-      })
-      .catch((error) => {
-        console.log("❌ Đăng ký PWA thất bại:", error);
+  navigator.serviceWorker.getRegistrations().then((registrations) => {
+    for (let registration of registrations) {
+      registration.unregister().then(() => {
+        // Reload lại trang để tải code mới nhất từ server
+        // window.location.reload();
       });
+    }
   });
 }
