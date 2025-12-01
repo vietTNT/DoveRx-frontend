@@ -26,11 +26,10 @@ const getAvatarUrl = (a) => {
 const apiToLabelGender = (g) => {
   if (!g && g !== 0) return "";
   const s = String(g).toLowerCase().trim();
-  if (s.includes("male") || s === "m" || s === "nam") return "Nam";
+  if (s.includes("male") || s === "m" || s === "nam") return "male";
   if (s.includes("female") || s === "f" || s === "nữ" || s === "nu")
-    return "Nữ";
-  if (s.includes("other") || s === "khác" || s === "khac") return "Khác";
-  return String(g);
+    return "female";
+  return "other";
 };
 const getDoctorTypeLabel = (type, t) => {
   const mapping = {
@@ -64,7 +63,12 @@ const ProfilePage = ({ onLogout, user: appUser, setUser: setAppUser }) => {
   //  State cho Avatar Editor
   const [showEditor, setShowEditor] = useState(false);
   const [rawImage, setRawImage] = useState(null);
-
+  const displayGender = (genderKey) => {
+    if (!genderKey) return t("profile.not_updated");
+    if (genderKey === "male") return t("profile.gender_male");
+    if (genderKey === "female") return t("profile.gender_female");
+    return t("profile.gender_other");
+  };
   useEffect(() => {
     // Ưu tiên lấy từ prop appUser nếu có, fallback localStorage
     const storedUser =
@@ -437,7 +441,7 @@ const ProfilePage = ({ onLogout, user: appUser, setUser: setAppUser }) => {
               </p>
               <p>
                 <b>{t("profile.gender")}:</b>{" "}
-                {apiToLabelGender(user.gender) || t("profile.not_updated")}
+                {displayGender(apiToLabelGender(user.gender))}
               </p>
               <p>
                 <b>{t("profile.age")}:</b>{" "}
