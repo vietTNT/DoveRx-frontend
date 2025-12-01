@@ -9,7 +9,6 @@ const DoctorRegisterPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    username: "",
     email: "",
     password: "",
     first_name: "",
@@ -54,12 +53,6 @@ const DoctorRegisterPage = () => {
         <p>{t("auth.register_doctor_desc")}</p>
 
         <form onSubmit={handleSubmit} className="doctor-form">
-          <input
-            name="username"
-            placeholder={t("auth.placeholder_email_user")}
-            onChange={handleChange}
-            required
-          />
           <input
             name="email"
             type="email"

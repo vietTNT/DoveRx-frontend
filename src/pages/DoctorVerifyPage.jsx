@@ -4,8 +4,10 @@ import logo from "../assets/logo.png";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router-dom";
-
+import { useTranslation } from "react-i18next";
+import LanguageSwitcher from "../components/language/LanguageSwitcher";
 const DoctorVerifyPage = () => {
+  const { t } = useTranslation();
   const location = useLocation();
   const [email, setEmail] = useState(location.state?.email || "");
 
@@ -13,7 +15,7 @@ const DoctorVerifyPage = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // ✅ Gửi yêu cầu xác minh OTP
+  //  Gửi yêu cầu xác minh OTP
   const handleVerify = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -48,10 +50,6 @@ const DoctorVerifyPage = () => {
         `${process.env.REACT_APP_API_BASE}/api/accounts/register/doctor/`, // server
         { email }
       );
-      // await axios.post("http://localhost:8000/api/accounts/register/doctor/", {
-      //   // local
-      //   email,
-      // });
       alert("✅ Mã xác nhận mới đã được gửi lại!");
     } catch (error) {
       alert("❌ Không thể gửi lại mã, vui lòng thử lại.");
@@ -60,22 +58,25 @@ const DoctorVerifyPage = () => {
 
   return (
     <div className="login-container">
-      <div className="login-card">
+      <div className="login-card" style={{ position: "relative" }}>
+        <div style={{ position: "absolute", top: "15px", right: "15px" }}>
+          <LanguageSwitcher />
+        </div>
         <img src={logo} alt="DoveRx" className="logo-img" />
-        <h2>Xác minh tài khoản bác sĩ 🩺</h2>
-        <p>Nhập email và mã OTP đã được gửi để kích hoạt tài khoản</p>
+        <h2>{t("auth.verify_title")} 🩺</h2>
+        <p>{t("auth.verify_desc")}</p>
 
         <form onSubmit={handleVerify} className="doctor-form">
           <input
             type="email"
-            placeholder="Nhập email đã đăng ký"
+            placeholder={t("auth.placeholder_email_register")}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
           />
           <input
             type="text"
-            placeholder="Nhập mã OTP (6 chữ số)"
+            placeholder={t("auth.placeholder_otp")}
             value={otp}
             onChange={(e) => setOtp(e.target.value)}
             maxLength={6}
@@ -83,21 +84,21 @@ const DoctorVerifyPage = () => {
           />
 
           <button type="submit" disabled={loading}>
-            {loading ? "Đang xác minh..." : "Xác minh"}
+            {loading ? t("auth.logging_in") : t("auth.verify_btn")}
           </button>
         </form>
 
         <p style={{ marginTop: "15px" }}>
-          Không nhận được mã?{" "}
+          {t("auth.otp_not_received")}{" "}
           <span
             style={{ color: "#2563eb", cursor: "pointer" }}
             onClick={handleResend}
           >
-            Gửi lại mã
+            {t("auth.resend_otp")}
           </span>
         </p>
 
-        <footer>© 2025 DoveRx Healthcare Platform</footer>
+        <footer>{t("auth.copyright")}</footer>
       </div>
     </div>
   );

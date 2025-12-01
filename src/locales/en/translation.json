@@ -17,7 +17,7 @@
     "login_google": "Sign in with Google",
     "login_doctor": "Doctor Login",
     "register_doctor": "Doctor Register",
-    "copyright": "© 2025 DoveRx Healthcare Platform",
+    "copyright": "© 2025 DoveRx Medical Platform",
     "back_to_user": "Back to User Login",
     "no_account": "Don't have an account?",
     "have_account": "Already have an account?",
@@ -32,7 +32,9 @@
     "otp_not_received": "Didn't receive code?",
     "register_doctor_title": "Register Doctor Account",
     "register_doctor_desc": "Please enter your information to join DoveRx",
-    "logging_in": "Logging in..."
+    "logging_in": "Logging in...",
+    "placeholder_email_register": "Enter your registered email",
+    "placeholder_otp": "Enter the 6-digit OTP"
   },
   "doctor_form": {
     "username": "Username",
@@ -129,7 +131,12 @@
     "info": "Information",
     "avatar_editor_title": "Edit Profile Picture",
     "zoom": "Zoom In/Out",
-    "save_changes": "Save Changes"
+    "save_changes": "Save Changes",
+    "specialty": "Specialty",
+    "workplace": "Workplace",
+    "doctor_type": "Occupation",
+    "experience_years": "Years of Experience",
+    "license_number": "License Number"
   },
   "user_profile": {
     "message_btn": "Message",
@@ -141,7 +148,8 @@
     "not_found": "User not found",
     "sent_success": "Friend request sent!",
     "accepted_success": "Friend request accepted!",
-    "rejected_success": "Friend request declined"
+    "rejected_success": "Friend request declined",
+    "loading": "Loading profile..."
   },
   "chat": {
     "search": "Search",

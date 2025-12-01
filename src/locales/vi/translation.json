@@ -9,7 +9,8 @@
     "back": "Quay lại",
     "error": "Có lỗi xảy ra",
     "success": "Thành công",
-    "close": "Đóng"
+    "close": "Đóng",
+    "verifying": "Đang xác minh..."
   },
   "auth": {
     "welcome": "Chào mừng đến với DoveRx",
@@ -32,7 +33,9 @@
     "otp_not_received": "Không nhận được mã?",
     "register_doctor_title": "Đăng ký tài khoản bác sĩ",
     "register_doctor_desc": "Vui lòng nhập thông tin để tham gia nền tảng DoveRx",
-    "logging_in": "Đang đăng nhập..."
+    "logging_in": "Đang đăng nhập...",
+    "placeholder_email_register": "Nhập email đã đăng ký",
+    "placeholder_otp": "Nhập mã OTP (6 chữ số)"
   },
   "doctor_form": {
     "username": "Tên đăng nhập",
@@ -131,7 +134,12 @@
     "info": "Thông tin",
     "avatar_editor_title": "Chỉnh sửa ảnh đại diện",
     "zoom": "Phóng to/Thu nhỏ",
-    "save_changes": "Lưu thay đổi"
+    "save_changes": "Lưu thay đổi",
+    "specialty": "Chuyên khoa",
+    "workplace": "Nơi làm việc",
+    "doctor_type": "nghề nghiệp",
+    "experience_years": "Năm kinh nghiệm",
+    "license_number": "Chứng chỉ hành nghề"
   },
   "user_profile": {
     "message_btn": "Nhắn tin",
@@ -143,7 +151,8 @@
     "not_found": "Không tìm thấy người dùng",
     "sent_success": "Đã gửi lời mời kết bạn!",
     "accepted_success": "Đã chấp nhận lời mời kết bạn!",
-    "rejected_success": "Đã từ chối lời mời kết bạn"
+    "rejected_success": "Đã từ chối lời mời kết bạn",
+    "loading": "Đang tải hồ sơ..."
   },
   "chat": {
     "search": "Tìm kiếm",

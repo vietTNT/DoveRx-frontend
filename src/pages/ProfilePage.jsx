@@ -32,7 +32,14 @@ const apiToLabelGender = (g) => {
   if (s.includes("other") || s === "khác" || s === "khac") return "Khác";
   return String(g);
 };
-
+const getDoctorTypeLabel = (type, t) => {
+  const mapping = {
+    doctor: t("doctor_form.type_doctor"),
+    student: t("doctor_form.type_student"),
+    intern: t("doctor_form.type_intern"),
+  };
+  return mapping[type] || type;
+};
 const ProfilePage = ({ onLogout, user: appUser, setUser: setAppUser }) => {
   const { t } = useTranslation();
   const [user, setUser] = useState(appUser || null);
@@ -57,11 +64,7 @@ const ProfilePage = ({ onLogout, user: appUser, setUser: setAppUser }) => {
   //  State cho Avatar Editor
   const [showEditor, setShowEditor] = useState(false);
   const [rawImage, setRawImage] = useState(null);
-  const genderLabel = (g) => {
-    if (g === "Nam" || g === "male") return t("profile.gender_male");
-    if (g === "Nữ" || g === "female") return t("profile.gender_female");
-    return t("profile.gender_other");
-  };
+
   useEffect(() => {
     // Ưu tiên lấy từ prop appUser nếu có, fallback localStorage
     const storedUser =
@@ -71,13 +74,19 @@ const ProfilePage = ({ onLogout, user: appUser, setUser: setAppUser }) => {
       setFormData({
         first_name: storedUser.first_name || "",
         last_name: storedUser.last_name || "",
-        // map giá trị API về label để select hiển thị đúng
+
         gender: apiToLabelGender(storedUser.gender),
         age: storedUser.age || "",
         phone: storedUser.phone || "",
         address: storedUser.address || "",
         bio: storedUser.bio || "",
+        doctorType: storedUser.doctor_type || "doctor",
         avatar: "",
+        doctorType: storedUser.doctor_type || "doctor",
+        specialty: storedUser.specialty || "",
+        workplace: storedUser.workplace || "",
+        experience_years: storedUser.experience_years || "",
+        license_number: storedUser.license_number || "",
       });
 
       setAvatarPreview(
@@ -377,6 +386,22 @@ const ProfilePage = ({ onLogout, user: appUser, setUser: setAppUser }) => {
                     onChange={handleChange}
                     placeholder={t("profile.workplace")}
                   />
+                  <select
+                    name="doctorType"
+                    value={formData.doctorType}
+                    onChange={handleChange}
+                    className="profile-select"
+                  >
+                    <option value="doctor">
+                      {t("doctor_form.type_doctor")}
+                    </option>
+                    <option value="student">
+                      {t("doctor_form.type_student")}
+                    </option>
+                    <option value="intern">
+                      {t("doctor_form.type_intern")}
+                    </option>
+                  </select>
                   <input
                     name="experience_years"
                     value={formData.experience_years}
@@ -439,7 +464,9 @@ const ProfilePage = ({ onLogout, user: appUser, setUser: setAppUser }) => {
                   </p>
                   <p>
                     <b>{t("profile.doctor_type")}:</b>{" "}
-                    {user.doctor_type || t("profile.not_updated")}
+                    {user.doctor_type
+                      ? getDoctorTypeLabel(user.doctor_type, t)
+                      : t("profile.not_updated")}
                   </p>
                   <p>
                     <b>{t("profile.experience_years")}:</b>{" "}

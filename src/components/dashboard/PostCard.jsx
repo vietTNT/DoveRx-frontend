@@ -18,6 +18,8 @@ import {
 import websocketService from "../../services/websocket";
 import ReactionListModal from "./ReactionListModal";
 import { useTranslation } from "react-i18next";
+import commentIcon from "../../assets/icons/comment.png";
+import shareIcon from "../../assets/icons/share.png";
 // HELPER FUNCTION
 const getCurrentUserId = () => {
   try {
@@ -908,12 +910,18 @@ const PostCard = ({
           </div>
           <div className="post-action-group">
             <button onClick={() => setCommentModalOpen(true)}>
-              💬 {t("dashboard.comment")}
+              <img
+                src={commentIcon}
+                alt="Comment"
+                className="post-action-icon"
+              />{" "}
+              {t("dashboard.comment")}
             </button>
           </div>
           <div className="post-action-group">
             <button onClick={() => setShareOpen(true)}>
-              🔗 {t("dashboard.share")}
+              <img src={shareIcon} alt="Share" className="post-action-icon" />{" "}
+              {t("dashboard.share")}
             </button>
             {shareOpen && (
               <ShareModal

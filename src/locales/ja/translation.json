@@ -17,7 +17,7 @@
     "login_google": "Googleでログイン",
     "login_doctor": "医師ログイン",
     "register_doctor": "医師登録",
-    "copyright": "© 2025 DoveRx ヘルスケアプラットフォーム",
+    "copyright": "© 2025 DoveRx 医療プラットフォーム",
     "back_to_user": "ユーザーログインに戻る",
     "no_account": "アカウントをお持ちでないですか？",
     "have_account": "すでにアカウントをお持ちですか？",
@@ -32,7 +32,9 @@
     "otp_not_received": "コードが届きませんか？",
     "register_doctor_title": "医師アカウント登録",
     "register_doctor_desc": "DoveRxに参加するために情報を入力してください",
-    "logging_in": "ログイン中..."
+    "logging_in": "ログイン中...",
+    "placeholder_email_register": "登録済みのメールアドレスを入力してください",
+    "placeholder_otp": "6桁のOTPを入力してください"
   },
   "doctor_form": {
     "username": "ユーザー名",
@@ -129,7 +131,12 @@
     "info": "情報",
     "avatar_editor_title": "プロフィール写真の編集",
     "zoom": "ズームイン/アウト",
-    "save_changes": "変更を保存"
+    "save_changes": "変更を保存",
+    "specialty": "専門分野",
+    "workplace": "勤務先",
+    "doctor_type": "職業",
+    "experience_years": "経験年数",
+    "license_number": "医師免許番号"
   },
   "user_profile": {
     "message_btn": "メッセージ",
@@ -141,7 +148,8 @@
     "not_found": "ユーザーが見つかりません",
     "sent_success": "友達リクエストを送信しました！",
     "accepted_success": "友達リクエストを承認しました！",
-    "rejected_success": "友達リクエストを拒否しました"
+    "rejected_success": "友達リクエストを拒否しました",
+    "loading": "プロフィールを読み込み中..."
   },
   "chat": {
     "search": "検索",

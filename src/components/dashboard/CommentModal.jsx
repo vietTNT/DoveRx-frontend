@@ -3,6 +3,7 @@ import "../../styles/CommentModal.css";
 import ReactDOM from "react-dom";
 import { CommentItem, CommentInput } from "./PostCard";
 import { useTranslation } from "react-i18next";
+import shareIcon from "../../assets/icons/share.png";
 // Fallback chung
 const DEFAULT_AVATAR =
   "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
@@ -341,7 +342,12 @@ const CommentModal = ({
               </div>
               <div className="post-action-group">
                 <button onClick={() => onShareClick(post)}>
-                  🔗 {t("dashboard.share")}
+                  <img
+                    src={shareIcon}
+                    alt="Share"
+                    className="post-action-icon"
+                  />{" "}
+                  {t("dashboard.share")}
                 </button>
               </div>
             </div>
