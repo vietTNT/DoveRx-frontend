@@ -9,8 +9,10 @@ import {
 } from "../services/friendApi";
 import api from "../api/api";
 import "../styles/userProfile/UserProfilepage.css";
+import { useTranslation } from "react-i18next";
 
 const UserProfilePage = ({ user: currentUser, onLogout }) => {
+  const { t } = useTranslation();
   const { userId } = useParams();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -20,7 +22,6 @@ const UserProfilePage = ({ user: currentUser, onLogout }) => {
     const loadUserProfile = async () => {
       try {
         setLoading(true);
-        // Giả sử bạn có API get user by ID
         const { data } = await api.get(`/api/accounts/users/${userId}/`);
         setUser(data);
         setFriendshipStatus(data.friendship_status);
@@ -38,9 +39,9 @@ const UserProfilePage = ({ user: currentUser, onLogout }) => {
     try {
       await sendFriendRequest(userId);
       setFriendshipStatus("pending");
-      alert("✅ Đã gửi lời mời kết bạn!");
+      alert(`✅ ${t("user_profile.friend_request_sent")}`);
     } catch (error) {
-      alert("❌ Không thể gửi lời mời kết bạn");
+      alert(`❌ ${t("common.error")}`);
     }
   };
 
@@ -48,9 +49,9 @@ const UserProfilePage = ({ user: currentUser, onLogout }) => {
     try {
       await acceptFriendRequest(userId);
       setFriendshipStatus("accepted");
-      alert("✅ Đã chấp nhận lời mời kết bạn!");
+      alert(`✅ ${t("user_profile.friend_request_accepted")}`);
     } catch (error) {
-      alert("❌ Không thể chấp nhận lời mời");
+      alert(`❌ ${t("common.error")}`);
     }
   };
 
@@ -58,9 +59,9 @@ const UserProfilePage = ({ user: currentUser, onLogout }) => {
     try {
       await rejectFriendRequest(userId);
       setFriendshipStatus("rejected");
-      alert("✅ Đã từ chối lời mời kết bạn");
+      alert(`✅ ${t("user_profile.friend_request_rejected")}`);
     } catch (error) {
-      alert("❌ Không thể từ chối lời mời");
+      alert(`❌ ${t("common.error")}`);
     }
   };
 
@@ -68,7 +69,7 @@ const UserProfilePage = ({ user: currentUser, onLogout }) => {
     return (
       <div>
         <Navbar user={currentUser} onLogout={onLogout} />
-        <div className="loading">Đang tải...</div>
+        <div className="loading">{t("common.loading")}...</div>
       </div>
     );
   }
@@ -77,7 +78,7 @@ const UserProfilePage = ({ user: currentUser, onLogout }) => {
     return (
       <div>
         <Navbar user={currentUser} onLogout={onLogout} />
-        <div className="error">Không tìm thấy người dùng</div>
+        <div className="error">{t("user_profile.user_not_found")}</div>
       </div>
     );
   }
@@ -88,63 +89,64 @@ const UserProfilePage = ({ user: currentUser, onLogout }) => {
       <div className="user-profile-container">
         <div className="user-profile-card">
           <img
-            // src={
-            //   user.avatar ||
-            //   "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
-            // }
             src={resolveImageUrl(user.avatar)}
             alt={user.name}
             className="user-profile-avatar"
           />
           <h2>{user.name}</h2>
-          <p className="user-role">
-            {user.role === "doctor" ? "👨‍⚕️ Bác sĩ" : "👤 Người dùng"}
-          </p>
+
           <p className="user-email">{user.email}</p>
 
           {/* Friend Actions */}
           <div className="friend-actions">
             {friendshipStatus === "accepted" && (
               <>
-                <button className="btn-primary">💬 Nhắn tin</button>
-                <span className="friend-badge">✓ Bạn bè</span>
+                <button className="btn-primary">
+                  💬 {t("user_profile.message")}
+                </button>
+                <span className="friend-badge">
+                  ✓ {t("user_profile.friend_status")}
+                </span>
               </>
             )}
 
             {friendshipStatus === "pending" && (
-              <span className="pending-badge">⏳ Đã gửi lời mời</span>
+              <span className="pending-badge">
+                ⏳ {t("user_profile.request_sent")}
+              </span>
             )}
 
             {friendshipStatus?.startsWith("received_pending") && (
               <>
                 <button className="btn-success" onClick={handleAcceptRequest}>
-                  ✓ Chấp nhận
+                  ✓ {t("user_profile.accept")}
                 </button>
                 <button className="btn-danger" onClick={handleRejectRequest}>
-                  ✗ Từ chối
+                  ✗ {t("user_profile.reject")}
                 </button>
               </>
             )}
 
             {!friendshipStatus && (
               <button className="btn-primary" onClick={handleSendFriendRequest}>
-                <i className="fas fa-user-plus"></i> Kết bạn
+                <i className="fas fa-user-plus"></i>{" "}
+                {t("user_profile.add_friend")}
               </button>
             )}
           </div>
 
           {/* User Info */}
           <div className="user-info">
-            <h3>Thông tin</h3>
+            <h3>{t("user_profile.info_title")}</h3>
             {user.bio && <p>{user.bio}</p>}
             {user.specialty && (
               <p>
-                <strong>Chuyên khoa:</strong> {user.specialty}
+                <strong>{t("profile.specialty")}:</strong> {user.specialty}
               </p>
             )}
             {user.workplace && (
               <p>
-                <strong>Nơi làm việc:</strong> {user.workplace}
+                <strong>{t("profile.workplace")}:</strong> {user.workplace}
               </p>
             )}
           </div>
