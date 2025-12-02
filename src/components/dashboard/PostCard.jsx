@@ -182,6 +182,13 @@ export const CommentItem = ({
                     className="reaction-icon"
                     onMouseDown={(ev) => {
                       ev.preventDefault();
+                      ev.stopPropagation();
+                      setCommentReaction(c.id, e.type);
+                      setActiveCommentPopup(null);
+                    }}
+                    onTouchStart={(ev) => {
+                      ev.preventDefault();
+                      ev.stopPropagation();
                       setCommentReaction(c.id, e.type);
                       setActiveCommentPopup(null);
                     }}
@@ -950,7 +957,18 @@ const PostCard = ({
                   <span
                     key={e.type}
                     className="reaction-icon"
-                    onClick={() => setPostReaction(e.type)}
+                    // onClick={() => setPostReaction(e.type)}
+                    onMouseDown={(ev) => {
+                      ev.preventDefault();
+                      ev.stopPropagation();
+                      setPostReaction(e.type);
+                    }}
+                    // 2. Xử lý cho Mobile (Chạm cảm ứng)
+                    onTouchStart={(ev) => {
+                      ev.preventDefault(); // Ngăn click ảo
+                      ev.stopPropagation();
+                      setPostReaction(e.type);
+                    }}
                   >
                     {e.icon}
                   </span>
