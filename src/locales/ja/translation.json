@@ -142,17 +142,21 @@
     "license_number": "医師免許番号"
   },
   "user_profile": {
-    "message_btn": "メッセージ",
+    "info_title": "基本情報",
+    "friend_request_sent": "友達リクエストを送信しました！",
+    "friend_request_accepted": "友達リクエストを承認しました！",
+    "friend_request_rejected": "友達リクエストを削除しました",
+    "user_not_found": "ユーザーが見つかりません",
+    "message": "メッセージ",
     "friend_status": "友達",
-    "sent_request": "リクエスト送信済み",
+    "request_sent": "リクエスト送信済み",
     "accept": "承認",
-    "reject": "拒否",
-    "add_friend": "友達追加",
-    "not_found": "ユーザーが見つかりません",
+    "reject": "削除",
+    "add_friend": "友達になる",
+    "loading": "プロフィールを読み込み中...",
     "sent_success": "友達リクエストを送信しました！",
     "accepted_success": "友達リクエストを承認しました！",
-    "rejected_success": "友達リクエストを拒否しました",
-    "loading": "プロフィールを読み込み中..."
+    "rejected_success": "友達リクエストを削除しました"
   },
   "chat": {
     "search": "検索",

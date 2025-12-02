@@ -155,7 +155,14 @@
     "sent_success": "Đã gửi lời mời kết bạn!",
     "accepted_success": "Đã chấp nhận lời mời kết bạn!",
     "rejected_success": "Đã từ chối lời mời kết bạn",
-    "loading": "Đang tải hồ sơ..."
+    "loading": "Đang tải hồ sơ...",
+    "info_title": "Thông tin",
+    "friend_request_sent": "Đã gửi lời mời kết bạn!",
+    "friend_request_accepted": "Đã chấp nhận lời mời kết bạn!",
+    "friend_request_rejected": "Đã từ chối lời mời kết bạn",
+    "user_not_found": "Không tìm thấy người dùng",
+    "message": "Nhắn tin",
+    "request_sent": "Đã gửi lời mời"
   },
   "chat": {
     "search": "Tìm kiếm",

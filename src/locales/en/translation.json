@@ -142,17 +142,21 @@
     "license_number": "License Number"
   },
   "user_profile": {
-    "message_btn": "Message",
+    "info_title": "Information",
+    "friend_request_sent": "Friend request sent!",
+    "friend_request_accepted": "Friend request accepted!",
+    "friend_request_rejected": "Friend request rejected",
+    "user_not_found": "User not found",
+    "message": "Message",
     "friend_status": "Friends",
-    "sent_request": "Request Sent",
-    "accept": "Accept",
-    "reject": "Decline",
+    "request_sent": "Request Sent",
+    "accept": "Confirm",
+    "reject": "Delete",
     "add_friend": "Add Friend",
-    "not_found": "User not found",
+    "loading": "Loading profile...",
     "sent_success": "Friend request sent!",
     "accepted_success": "Friend request accepted!",
-    "rejected_success": "Friend request declined",
-    "loading": "Loading profile..."
+    "rejected_success": "Friend request rejected"
   },
   "chat": {
     "search": "Search",
