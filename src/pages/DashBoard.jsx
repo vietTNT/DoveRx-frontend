@@ -8,8 +8,8 @@ import {
   addComment,
   reactComment,
   deleteComment as apiDeleteComment,
-  updatePost,
-  deletePost,
+  // updatePost,
+  // deletePost,
 } from "../services/socialApi";
 import { savePostsToCache, loadPostsFromCache } from "../utils/postCache";
 import { mapPostToUI } from "../utils/mapPost";
@@ -166,7 +166,7 @@ const Dashboard = ({ user, onLogout }) => {
         "open_post_notification",
         handleOpenNotification
       );
-  }, [posts]);
+  }, [posts, t]);
 
   // =======================================================
   // 2. CÁC HÀM XỬ LÝ TƯƠNG TÁC TRONG MODAL VIEW
@@ -308,7 +308,7 @@ const Dashboard = ({ user, onLogout }) => {
       }
     };
     loadData();
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (posts.length > 0) savePostsToCache(posts);
@@ -485,6 +485,8 @@ const Dashboard = ({ user, onLogout }) => {
           }
           break;
         }
+        default:
+          break;
       }
     };
 
@@ -504,7 +506,7 @@ const Dashboard = ({ user, onLogout }) => {
       console.log("🧹 [Dashboard] Cleaning up listeners");
       events.forEach((evt) => websocketService.off(evt, handleFeedUpdate));
     };
-  }, [user?.id]);
+  }, [user?.id, emojiList]);
 
   // =======================================================
   // 4. CÁC HÀM UTILS & HANDLERS CŨ

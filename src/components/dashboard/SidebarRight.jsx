@@ -1,10 +1,4 @@
-import React, {
-  useState,
-  useRef,
-  useEffect,
-  useCallback,
-  useMemo,
-} from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import ChatPopup from "../Chat/Chatpopup";
 import "../../styles/SidebarRight.css";
 import { getOrCreateConversation } from "../../services/chatApi";

@@ -82,7 +82,9 @@ const CommentModal = ({
 
   const list = comments[post.id]?.list || [];
   const myReaction = reactions[post.id];
-
+  const myReactionEmoji = myReaction
+    ? emojiList.find((e) => e.type === myReaction)
+    : null;
   // Thông tin tác giả
   const authorName = post.author?.name || post.author || "Người dùng";
   const authorAvatar = post.author?.avatar || post.avatar;
@@ -110,11 +112,16 @@ const CommentModal = ({
 
   const handleToggleReaction = () => {
     if (onTogglePostReaction) onTogglePostReaction();
-    else
-      setReactions((prev) => ({
-        ...prev,
-        [post.id]: prev[post.id] ? null : "like",
-      }));
+    else {
+      // Fallback local nếu không có hàm từ cha
+      const newType = myReaction ? null : "like";
+      setReactions((prev) => {
+        const copy = { ...prev };
+        if (newType) copy[post.id] = newType;
+        else delete copy[post.id];
+        return copy;
+      });
+    }
     setActivePopup(null);
   };
 
@@ -298,6 +305,17 @@ const CommentModal = ({
                 className="post-action-group"
                 onMouseEnter={() => armPopup(`modal-${post.id}`)}
                 onMouseLeave={disarmPopup}
+                onClick={(e) => {
+                  if (
+                    window.innerWidth <= 480 &&
+                    activePopup !== `modal-${post.id}`
+                  ) {
+                    e.preventDefault();
+                    setActivePopup(`modal-${post.id}`);
+                  } else {
+                    handleToggleReaction();
+                  }
+                }}
               >
                 <button
                   className={`post-like-btn ${myReaction ? "active" : ""}`}
@@ -305,12 +323,8 @@ const CommentModal = ({
                 >
                   {myReaction ? (
                     <>
-                      <span>
-                        {emojiList.find((e) => e.type === myReaction)?.icon}
-                      </span>
-                      <span>
-                        {emojiList.find((e) => e.type === myReaction)?.label}
-                      </span>
+                      <span>{myReactionEmoji?.icon}</span>
+                      <span>{myReactionEmoji?.label}</span>
                     </>
                   ) : (
                     <>
@@ -330,6 +344,11 @@ const CommentModal = ({
                         key={e.type}
                         className="reaction-icon"
                         onMouseDown={(ev) => {
+                          ev.preventDefault();
+                          handleSelectReaction(e.type);
+                        }}
+                        onTouchStart={(ev) => {
+                          // Mobile
                           ev.preventDefault();
                           handleSelectReaction(e.type);
                         }}

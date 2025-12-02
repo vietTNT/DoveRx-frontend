@@ -86,7 +86,6 @@ const ProfilePage = ({ onLogout, user: appUser, setUser: setAppUser }) => {
         bio: storedUser.bio || "",
         doctorType: storedUser.doctor_type || "doctor",
         avatar: "",
-        doctorType: storedUser.doctor_type || "doctor",
         specialty: storedUser.specialty || "",
         workplace: storedUser.workplace || "",
         experience_years: storedUser.experience_years || "",
@@ -199,7 +198,7 @@ const ProfilePage = ({ onLogout, user: appUser, setUser: setAppUser }) => {
 
     try {
       const token = localStorage.getItem("access");
-      const res = await axios.delete(
+      await axios.delete(
         `${process.env.REACT_APP_API_BASE}/api/accounts/remove-avatar/`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -213,8 +212,6 @@ const ProfilePage = ({ onLogout, user: appUser, setUser: setAppUser }) => {
       localStorage.setItem("user", JSON.stringify(updatedUser));
       setUser(updatedUser);
       if (setAppUser) setAppUser(updatedUser);
-
-      toast.success("✅ Đã xóa ảnh đại diện!");
     } catch (error) {
       console.error("❌ Lỗi khi xóa avatar:", error);
       toast.error("Không thể xóa ảnh đại diện!");

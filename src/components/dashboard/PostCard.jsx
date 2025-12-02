@@ -544,16 +544,16 @@ const PostCard = ({
       toast.error("❌ Không có quyền xóa");
       return;
     }
-    if (!window.confirm("Xóa bình luận này?")) return;
+    if (!window.confirm(t("dashboard.delete_comment_confirm"))) return;
     try {
       await apiDeleteComment(cid);
       setComments((prev) => ({
         ...prev,
         [p.id]: { ...ps, list: removeNode(ps.list, cid) },
       }));
-      toast.success("Đã xóa bình luận");
+      toast.success(t("dashboard.comment_deleted"));
     } catch {
-      toast.error("Lỗi xóa bình luận");
+      toast.error(t("dashboard.error_comment_delete"));
     }
   };
 
@@ -731,7 +731,6 @@ const PostCard = ({
           </div>
         </div>
       ) : (
-        /* Logic hiển thị Text/Medical giữ nguyên */
         (() => {
           let content = p.content;
           try {
@@ -743,20 +742,71 @@ const PostCard = ({
           if (typeof content === "object") {
             return (
               <div className="post-content medical-post">
+                {/* 1. Triệu chứng & Tình trạng */}
                 <p>
-                  <strong>
-                    🩺 {t("dashboard.medical_form.title_symptom")}:
-                  </strong>{" "}
+                  <strong>{t("dashboard.medical_form.title_symptom")}:</strong>{" "}
                   {content.symptom || "—"}
                 </p>
                 <p>
-                  <strong>⏱️ {t("dashboard.medical_form.duration")}:</strong>{" "}
+                  <strong>{t("dashboard.medical_form.duration")}:</strong>{" "}
                   {content.duration || "—"}
                 </p>
                 <p>
-                  <strong>⚖️ {t("dashboard.medical_form.severity")}:</strong>{" "}
+                  <strong>{t("dashboard.medical_form.severity")}:</strong>{" "}
                   {content.severity || "—"}
                 </p>
+
+                {/* 2. Các yếu tố liên quan (nếu có) */}
+                {content.factors && (
+                  <p>
+                    <strong> {t("dashboard.medical_form.factors")}:</strong>{" "}
+                    {content.factors}
+                  </p>
+                )}
+
+                {/* 3. Tiền sử bệnh */}
+                {(content.historyPersonal || content.historyFamily) && (
+                  <div className="medical-divider">
+                    {content.historyPersonal && (
+                      <p>
+                        <strong>
+                          {t("dashboard.medical_form.history_personal")}:
+                        </strong>{" "}
+                        {content.historyPersonal}
+                      </p>
+                    )}
+                    {content.historyFamily && (
+                      <p>
+                        <strong>
+                          {t("dashboard.medical_form.history_family")}:
+                        </strong>{" "}
+                        {content.historyFamily}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* 4. Thuốc & Lối sống (ngăn cách bằng nét đứt) */}
+                {(content.medication || content.lifestyle) && (
+                  <div className="medical-divider">
+                    {content.medication && (
+                      <p>
+                        <strong>
+                          {t("dashboard.medical_form.medication")}:
+                        </strong>{" "}
+                        {content.medication}
+                      </p>
+                    )}
+                    {content.lifestyle && (
+                      <p>
+                        <strong>
+                          {t("dashboard.medical_form.lifestyle")}:
+                        </strong>{" "}
+                        {content.lifestyle}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             );
           } else {

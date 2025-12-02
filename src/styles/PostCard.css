@@ -119,7 +119,11 @@
 .medical-post strong {
   color: #2563eb;
 }
-
+.medical-divider {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed #cbd5e1;
+}
 /* ================================================= */
 /* 📸 2. MEDIA CONTAINER (Grid Ảnh & Video)          */
 /* ================================================= */
