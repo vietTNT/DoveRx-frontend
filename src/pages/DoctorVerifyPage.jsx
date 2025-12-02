@@ -21,7 +21,7 @@ const DoctorVerifyPage = () => {
     setLoading(true);
 
     try {
-      const res = await axios.post(
+      await axios.post(
         `${process.env.REACT_APP_API_BASE}/api/accounts/verify-otp/`,
         {
           email,
@@ -29,7 +29,6 @@ const DoctorVerifyPage = () => {
         }
       );
 
-      alert("🎉 Xác minh thành công! Hãy đăng nhập để tiếp tục.");
       navigate("/doctor-login");
     } catch (error) {
       alert(error.response?.data?.error || "Mã xác nhận không hợp lệ!");
@@ -47,7 +46,7 @@ const DoctorVerifyPage = () => {
 
     try {
       await axios.post(
-        `${process.env.REACT_APP_API_BASE}/api/accounts/register/doctor/`, // server
+        `${process.env.REACT_APP_API_BASE}/api/accounts/resend-otp/`,
         { email }
       );
       alert("✅ Mã xác nhận mới đã được gửi lại!");
