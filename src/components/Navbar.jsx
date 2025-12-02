@@ -780,7 +780,7 @@ const Navbar = ({ user, onLogout }) => {
                               handleAccept(req.from_user.id, e)
                             }
                           >
-                            ✓ {t("navbar.accept")}
+                            ✓ {t("user_profile.accept")}
                           </button>
                           <button
                             className="btn-reject"
@@ -788,7 +788,7 @@ const Navbar = ({ user, onLogout }) => {
                               handleReject(req.from_user.id, e)
                             }
                           >
-                            ✗ {t("navbar.reject")}
+                            ✗ {t("user_profile.reject")}
                           </button>
                         </div>
                       </div>
