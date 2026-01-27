@@ -45,7 +45,7 @@
     "specialty": "専門分野",
     "workplace": "勤務先",
     "phone": "電話番号",
-    "license": "医師免許証（あれば）",
+    "license": "医師免許証（写真/PDF）",
     "type_doctor": "医師",
     "type_student": "医学生",
     "type_intern": "研修医"

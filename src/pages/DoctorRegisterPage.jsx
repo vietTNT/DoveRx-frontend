@@ -19,23 +19,36 @@ const DoctorRegisterPage = () => {
     license_number: "",
     doctorType: "doctor",
   });
-
+  // State lưu file
+  const [files, setFiles] = useState([]);
+  const handleFileChange = (e) => {
+    // e.target.files là FileList, cần chuyển sang Array
+    setFiles(Array.from(e.target.files));
+  };
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const data = new FormData();
+    Object.keys(formData).forEach((key) => {
+      data.append(key, formData[key]);
+    });
+
+    files.forEach((file) => {
+      data.append("license_files", file);
+    });
     try {
       await axios.post(
-        `${process.env.REACT_APP_API_BASE}/api/accounts/register/doctor/`, // server
-        {
-          ...formData,
-        }
+        `${process.env.REACT_APP_API_BASE}/api/accounts/register/doctor/`,
+        data,
+        { headers: { "Content-Type": "multipart/form-data" } }, // Header bắt buộc
       );
-
-      alert("✅ " + t("common.success") + "! " + t("auth.verify_desc"));
-      navigate("/doctor-verify", { state: { email: formData.email } });
+      alert(+t("common.success") + "! " + t("auth.verify_desc"));
+      navigate("/doctor-login");
+      // alert(+t("common.success") + "! " + t("auth.verify_desc"));
+      // navigate("/doctor-verify", { state: { email: formData.email } });
     } catch (error) {
       const msg = error.response?.data?.error || t("common.error");
       alert("⚠️ " + msg);
@@ -92,12 +105,24 @@ const DoctorRegisterPage = () => {
             placeholder={t("doctor_form.phone")}
             onChange={handleChange}
           />
-          <input
-            name="license_number"
-            placeholder={t("doctor_form.license")}
-            onChange={handleChange}
-          />
-
+          <div className="form-group">
+            <label>{t("doctor_form.license")}</label>
+            <input
+              type="file"
+              accept="image/*,.pdf"
+              multiple
+              onChange={handleFileChange}
+              required
+            />
+            {/* Hiển thị tên file đã chọn cho user biết */}
+            {files.length > 0 && (
+              <ul style={{ fontSize: "12px", marginTop: "5px", color: "#666" }}>
+                {files.map((f, index) => (
+                  <li key={index}>📎 {f.name}</li>
+                ))}
+              </ul>
+            )}
+          </div>
           {/* 🩺 Chọn loại bác sĩ */}
           <div className="doctor-type-group">
             <label>

@@ -93,3 +93,5 @@ export const getPostById = async (postId) => {
   const { data } = await api.get(`/api/social/posts/${postId}/`);
   return data;
 };
+
+export const adminDeletePost = (id) => api.delete(`/api/social/posts/${id}/`);

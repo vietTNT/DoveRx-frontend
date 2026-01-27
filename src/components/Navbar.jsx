@@ -722,6 +722,26 @@ const Navbar = ({ user, onLogout }) => {
       {/* RIGHT */}
       {!isSearchActive && (
         <div className="navbar-right" ref={dropdownRef}>
+          {/* ✅ THÊM NÚT ADMIN */}
+          {user?.role === "admin" && (
+            <button
+              className="nav-icon"
+              onClick={() => navigate("/admin")}
+              style={{
+                background: "#dc2626",
+                color: "white",
+                padding: "8px 12px",
+                borderRadius: "8px",
+                fontWeight: "bold",
+                border: "none",
+                cursor: "pointer",
+              }}
+              title="Admin Dashboard"
+            >
+              <i className="fas fa-user-shield"></i> Admin
+            </button>
+          )}
+
           <div style={{ marginRight: "10px" }}>
             <LanguageSwitcher />
           </div>

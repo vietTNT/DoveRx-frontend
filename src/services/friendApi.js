@@ -70,3 +70,8 @@ export const rejectFriendRequest = async (fromUserId) => {
     throw error;
   }
 };
+// api/friendApi.js
+export const getSuggestions = async () => {
+  const { data } = await api.get("/api/accounts/friends/suggestions/");
+  return data;
+};

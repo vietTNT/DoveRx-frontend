@@ -45,7 +45,7 @@
     "specialty": "Specialty",
     "workplace": "Workplace",
     "phone": "Phone Number",
-    "license": "Medical License (if any)",
+    "license": "Medical License (Photo/PDF)",
     "type_doctor": "Official Doctor",
     "type_student": "Medical Student",
     "type_intern": "Intern"

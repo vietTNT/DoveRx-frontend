@@ -14,6 +14,7 @@ import DoctorRegisterPage from "./pages/DoctorRegisterPage";
 import DoctorVerifyPage from "./pages/DoctorVerifyPage";
 import UserProfilePage from "./pages/UserProfilepage";
 import { refreshTokenIfNeeded } from "./services/auth";
+import AdminDashboard from "./components/dashboard/admin/AdminDashboard";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -273,6 +274,20 @@ function App() {
             element={
               <ProtectedRoute>
                 <UserProfilePage user={user} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* ✅ Thêm route Admin */}
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute>
+                {user?.role === "admin" ? (
+                  <AdminDashboard user={user} onLogout={handleLogout} />
+                ) : (
+                  <Navigate to="/dashboard" />
+                )}
               </ProtectedRoute>
             }
           />

@@ -26,6 +26,11 @@ const SidebarRight = ({ contacts, onContactClick }) => {
   const MAX_EXPANDED_CHATS = 4;
   // THÊM: Ref để tránh re-render
   const cachedMessagesRef = useRef({});
+  const [suggestions, setSuggestions] = useState([]);
+
+  useEffect(() => {
+    getSuggestions().then((data) => setSuggestions(data));
+  }, []);
   //  Load danh sách bạn bè từ backend
   useEffect(() => {
     const loadFriends = async () => {
@@ -48,7 +53,7 @@ const SidebarRight = ({ contacts, onContactClick }) => {
     const handleFriendsUpdated = (event) => {
       console.log(
         "🔄 SidebarRight: Received friendsUpdated event",
-        event.detail
+        event.detail,
       );
 
       if (event.detail?.friends) {
@@ -90,8 +95,8 @@ const SidebarRight = ({ contacts, onContactClick }) => {
         openChats.map((chat) =>
           chat.contact.id === oldestExpandedChat.contact.id
             ? { ...chat, isMinimized: true }
-            : chat
-        )
+            : chat,
+        ),
       );
     }
   }, [openChats]);
@@ -114,7 +119,7 @@ const SidebarRight = ({ contacts, onContactClick }) => {
   const handleMessagesUpdate = useCallback((contactId, messages) => {
     console.log(
       `💾 [SidebarRight] Caching messages for contact ${contactId}:`,
-      messages.length
+      messages.length,
     );
 
     //  Lưu vào ref trước
@@ -162,7 +167,7 @@ const SidebarRight = ({ contacts, onContactClick }) => {
     // Logic: Nếu chưa mở -> Thêm vào list. Nếu đang đóng -> Mở lại.
     setOpenChats((prevChats) => {
       const existingChatIndex = prevChats.findIndex(
-        (chat) => chat.contact.id === contact.id
+        (chat) => chat.contact.id === contact.id,
       );
 
       // TH1: Chat chưa tồn tại trong list -> Thêm mới
@@ -185,13 +190,13 @@ const SidebarRight = ({ contacts, onContactClick }) => {
     // Nếu chưa có thông tin conversation trong state thì mới gọi
     if (!conversations[contact.id]) {
       console.log(
-        `🔄 [SidebarRight] Fetching conversation info in background...`
+        `🔄 [SidebarRight] Fetching conversation info in background...`,
       );
 
       getOrCreateConversation(contact.id)
         .then((conversation) => {
           console.log(
-            `✅ [SidebarRight] Got conversation data for ${contact.name}`
+            `✅ [SidebarRight] Got conversation data for ${contact.name}`,
           );
           setConversations((prev) => ({
             ...prev,
@@ -201,7 +206,7 @@ const SidebarRight = ({ contacts, onContactClick }) => {
         .catch((error) => {
           console.error(
             "❌ [SidebarRight] Error fetching conversation:",
-            error
+            error,
           );
           // Tùy chọn: Có thể đóng chat nếu lỗi, hoặc hiện thông báo
         });
@@ -215,7 +220,7 @@ const SidebarRight = ({ contacts, onContactClick }) => {
   //  Minimize/Maximize chat
   const handleMinimizeChat = (contactId) => {
     const chatIndex = openChats.findIndex(
-      (chat) => chat.contact.id === contactId
+      (chat) => chat.contact.id === contactId,
     );
 
     if (chatIndex === -1) return;
@@ -232,8 +237,8 @@ const SidebarRight = ({ contacts, onContactClick }) => {
       //  Đang maximize -> Minimize
       setOpenChats(
         openChats.map((c) =>
-          c.contact.id === contactId ? { ...c, isMinimized: true } : c
-        )
+          c.contact.id === contactId ? { ...c, isMinimized: true } : c,
+        ),
       );
     }
   };
@@ -285,7 +290,7 @@ const SidebarRight = ({ contacts, onContactClick }) => {
     if (chat.isMinimized) {
       //  Vị trí cho minimized - XẾP DỌC bên phải
       const minimizedIndex = minimizedChats.findIndex(
-        (c) => c.contact.id === chat.contact.id
+        (c) => c.contact.id === chat.contact.id,
       );
       return {
         right: `${rightMargin}px`,
@@ -294,7 +299,7 @@ const SidebarRight = ({ contacts, onContactClick }) => {
     } else {
       //  Vị trí cho expanded - XẾP NGANG, TRÁNH minisize
       const expandedIndex = expandedChats.findIndex(
-        (c) => c.contact.id === chat.contact.id
+        (c) => c.contact.id === chat.contact.id,
       );
 
       // Nếu có minisize thì dịch sang trái
@@ -340,6 +345,17 @@ const SidebarRight = ({ contacts, onContactClick }) => {
             <li className="no-contacts">{t("chat.no_friends")}</li>
           )}
         </ul>
+
+        <div className="suggestions-box">
+          <h4>Gợi ý kết bạn</h4>
+          {suggestions.map((u) => (
+            <div key={u.id} className="suggestion-item">
+              <img src={u.avatar} />
+              <span>{u.name}</span>
+              <button onClick={() => sendRequest(u.id)}>Kết bạn</button>
+            </div>
+          ))}
+        </div>
       </aside>
 
       {/* Chat popups */}
