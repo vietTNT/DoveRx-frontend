@@ -25,16 +25,7 @@ import CommentModal from "../components/dashboard/CommentModal";
 import websocketService from "../services/websocket";
 import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next";
-// --- HELPER CONSTANTS & FUNCTIONS ---
-// const emojiList = [
-//   { type: "like", icon: "👍", label: "Thích", color: "#1b74e4" },
-//   { type: "love", icon: "❤️", label: "Yêu thích", color: "#f33e58" },
-//   { type: "care", icon: "🥰", label: "Thương thương", color: "#f7b125" },
-//   { type: "haha", icon: "😂", label: "Haha", color: "#f7b125" },
-//   { type: "wow", icon: "😮", label: "Wow", color: "#f7b125" },
-//   { type: "sad", icon: "😢", label: "Buồn", color: "#f7b125" },
-//   { type: "angry", icon: "😡", label: "Phẫn nộ", color: "#e9710f" },
-// ];
+
 
 const updateNode = (l, id, up) =>
   l.map((n) =>

@@ -28,9 +28,9 @@ const SidebarRight = ({ contacts, onContactClick }) => {
   const cachedMessagesRef = useRef({});
   const [suggestions, setSuggestions] = useState([]);
 
-  useEffect(() => {
-    getSuggestions().then((data) => setSuggestions(data));
-  }, []);
+  // useEffect(() => {
+  //   getSuggestions().then((data) => setSuggestions(data));
+  // }, []);
   //  Load danh sách bạn bè từ backend
   useEffect(() => {
     const loadFriends = async () => {
@@ -346,7 +346,7 @@ const SidebarRight = ({ contacts, onContactClick }) => {
           )}
         </ul>
 
-        <div className="suggestions-box">
+        {/* <div className="suggestions-box">
           <h4>Gợi ý kết bạn</h4>
           {suggestions.map((u) => (
             <div key={u.id} className="suggestion-item">
@@ -355,7 +355,7 @@ const SidebarRight = ({ contacts, onContactClick }) => {
               <button onClick={() => sendRequest(u.id)}>Kết bạn</button>
             </div>
           ))}
-        </div>
+        </div> */}
       </aside>
 
       {/* Chat popups */}

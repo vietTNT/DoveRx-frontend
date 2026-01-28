@@ -1,9 +1,24 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import "../../styles/SidebarLeft.css";
-import { useTranslation } from "react-i18next"; // 1. Import
+import { useTranslation } from "react-i18next";
+import FriendSuggestions from "../FriendSuggestions";
 
 const SidebarLeft = () => {
-  const { t } = useTranslation(); // 2. Hook
+  const { t } = useTranslation();
+  const [currentUser, setCurrentUser] = useState(null);
+
+  // ✅ Lấy thông tin user từ localStorage
+  useEffect(() => {
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        setCurrentUser(user);
+      } catch (e) {
+        console.error("❌ Parse user error:", e);
+      }
+    }
+  }, []);
 
   return (
     <aside className="sidebar-left">
@@ -17,7 +32,6 @@ const SidebarLeft = () => {
         <li>
           <i className="fas fa-users"></i> {t("navbar.community")}
         </li>
-        {/* Những mục chưa có trong JSON có thể thêm sau hoặc dùng tạm text cứng */}
         <li>
           <i className="fas fa-video"></i> {t("dashboard.video")}
         </li>
@@ -25,6 +39,13 @@ const SidebarLeft = () => {
           <i className="fas fa-calendar-alt"></i> {t("dashboard.event")}
         </li>
       </ul>
+
+      {/* ✅ CHỈ HIỂN THỊ NẾU KHÔNG PHẢI ADMIN */}
+      {currentUser?.role !== "admin" && (
+        <div className="sidebar-section">
+          <FriendSuggestions />
+        </div>
+      )}
     </aside>
   );
 };

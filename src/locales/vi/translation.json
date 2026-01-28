@@ -225,5 +225,22 @@
   },
   "language": {
     "select_language": "Chọn ngôn ngữ"
+  },
+  "share": {
+    "title": "Chia sẻ",
+    "placeholder": "Hãy nói gì đó về nội dung này...",
+    "share_now": "Chia sẻ ngay",
+    "send_messenger": "Gửi bằng Messenger",
+    "audience": {
+      "public": "Công khai",
+      "friends": "Bạn bè",
+      "only_me": "Chỉ mình tôi"
+    },
+    "options": {
+      "your_story": "Tin của bạn",
+      "copy_link": "Sao chép liên kết",
+      "group": "Nhóm",
+      "profile": "Trang cá nhân"
+    }
   }
 }

@@ -661,3 +661,124 @@
     font-size: 16px;
   }
 }
+
+/* ✅ SỬA POST OPTIONS - NÚT 3 CHẤM */
+.post-options {
+  position: relative;
+  margin-left: auto; /* Đẩy sang phải */
+}
+
+.options-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  color: #65676b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px !important; /* Cố định width */
+  height: 36px !important; /* Cố định height */
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+.options-btn:hover {
+  background: #f0f2f5;
+}
+
+.options-btn i {
+  font-size: 18px;
+}
+
+/* ✅ DROPDOWN MENU */
+.options-dropdown {
+  position: absolute !important;
+  right: 0;
+  top: calc(100% + 4px); /* 4px khoảng cách */
+  background: white;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  z-index: 1000;
+  min-width: 180px;
+  overflow: hidden;
+  animation: fadeIn 0.15s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.options-dropdown button {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 12px 16px;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+  color: #050505;
+}
+
+.options-dropdown button:hover {
+  background: #f0f2f5;
+}
+
+.options-dropdown button[style*="color: red"],
+.options-dropdown button[style*="color:#dc2626"] {
+  color: #dc2626;
+}
+
+.options-dropdown button[style*="color: red"]:hover,
+.options-dropdown button[style*="color:#dc2626"]:hover {
+  background: #fee;
+}
+
+.options-dropdown button i {
+  margin-right: 10px;
+  width: 16px;
+  text-align: center;
+}
+
+/* ✅ POST HEADER - ĐẢM BẢO LAYOUT ĐÚNG */
+.post-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.post-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0; /* Không cho avatar bị co lại */
+}
+
+.post-info {
+  flex: 1;
+  min-width: 0; /* Cho phép text truncate */
+}
+
+.post-info strong {
+  display: block;
+  font-size: 15px;
+  color: #050505;
+}
+
+.post-info span {
+  display: block;
+  font-size: 13px;
+  color: #65676b;
+}

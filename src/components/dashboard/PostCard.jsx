@@ -354,10 +354,22 @@ const PostCard = ({
     (String(currentUser.id) === String(p.author?.id) ||
       p.isOptimistic === true);
 
+  // ✅ THÊM BIẾN KIỂM TRA ADMIN
+  const isAdmin = currentUser?.role === "admin";
+  const canModify = isAuthor || isAdmin; // Admin hoặc tác giả mới được sửa/xóa
+
   const myReactionType = reactions[p.id];
   const myReactionEmoji = myReactionType
     ? emojiList.find((e) => e.type === myReactionType)
     : null;
+
+  // ✅ HÀM CHECK QUYỀN XÓA COMMENT
+  const canDeleteComment = (comment) => {
+    return (
+      String(currentUser?.id) === String(comment.author?.id) ||
+      currentUser?.role === "admin"
+    );
+  };
 
   // Effects
   useEffect(() => {
@@ -613,7 +625,8 @@ const PostCard = ({
           <span>{getTimeAgo(p.time)}</span>
         </div>
 
-        {isAuthor && (
+        {/* ✅ SỬA ĐIỀU KIỆN HIỂN THỊ MENU */}
+        {canModify && (
           <div
             className="post-options"
             ref={menuRef}
@@ -634,53 +647,23 @@ const PostCard = ({
               <i className="fas fa-ellipsis-h"></i>
             </button>
             {showMenu && (
-              <div
-                className="options-dropdown"
-                style={{
-                  position: "absolute",
-                  right: 0,
-                  top: "100%",
-                  background: "white",
-                  boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
-                  borderRadius: "8px",
-                  zIndex: 10,
-                  minWidth: "150px",
-                  overflow: "hidden",
-                }}
-              >
-                <button
-                  onClick={handleEditClick}
-                  style={{
-                    display: "block",
-                    width: "100%",
-                    padding: "10px",
-                    textAlign: "left",
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                  }}
-                >
-                  <i className="fas fa-edit" style={{ marginRight: "8px" }}></i>{" "}
-                  {t("common.edit")}
-                </button>
+              <div className="options-dropdown">
+                {/* ✅ CHỈ TÁC GIẢ MỚI ĐƯỢC SỬA */}
+                {isAuthor && (
+                  <button onClick={handleEditClick}>
+                    <i className="fas fa-edit" style={{ marginRight: "8px" }}></i>
+                    {t("common.edit")}
+                  </button>
+                )}
+                
+                {/* ✅ TÁC GIẢ HOẶC ADMIN ĐỀU ĐƯỢC XÓA */}
                 <button
                   onClick={handleDeleteClick}
-                  style={{
-                    display: "block",
-                    width: "100%",
-                    padding: "10px",
-                    textAlign: "left",
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    color: "red",
-                  }}
+                  style={{ color: "red" }}
                 >
-                  <i
-                    className="fas fa-trash-alt"
-                    style={{ marginRight: "8px" }}
-                  ></i>{" "}
+                  <i className="fas fa-trash-alt" style={{ marginRight: "8px" }}></i>
                   {t("common.delete")}
+                  {isAdmin && !isAuthor && " (Admin)"}
                 </button>
               </div>
             )}
@@ -995,15 +978,14 @@ const PostCard = ({
               <ShareModal
                 onClose={() => setShareOpen(false)}
                 user={currentUser}
-                friends={[]}
+                post={p}
                 onShare={async (msg) => {
                   try {
                     await sharePost(p.id, msg || "");
-                    toast.success("Đã chia sẻ");
+                    toast.success("✅ Đã chia sẻ bài viết");
                   } catch {
-                    toast.error("Chia sẻ thất bại");
+                    toast.error("❌ Chia sẻ thất bại");
                   }
-                  setShareOpen(false);
                 }}
               />
             )}

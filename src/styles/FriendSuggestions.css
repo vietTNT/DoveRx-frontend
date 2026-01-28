@@ -1,0 +1,87 @@
+.friend-suggestions {
+  background: transparent; /* ✅ Bỏ background trắng */
+  border-radius: 0; /* ✅ Bỏ border-radius */
+  padding: 0; /* ✅ Bỏ padding */
+  margin-bottom: 0; /* ✅ Bỏ margin */
+  box-shadow: none; /* ✅ Bỏ shadow */
+}
+
+.friend-suggestions h3 {
+  font-size: 16px; /* ✅ Giảm size cho phù hợp Sidebar */
+  margin-bottom: 12px;
+  color: #65676b;
+  font-weight: 600;
+}
+
+.suggestions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px; /* ✅ Giảm gap */
+}
+
+.suggestion-card {
+  display: flex;
+  align-items: center;
+  gap: 10px; /* ✅ Giảm gap */
+  padding: 8px; /* ✅ Giảm padding */
+  border: none; /* ✅ Bỏ border */
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.suggestion-card:hover {
+  background: #f0f2f5; /* ✅ Hover nhẹ hơn */
+}
+
+.suggestion-avatar {
+  width: 40px; /* ✅ Giảm size avatar */
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.suggestion-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px; /* ✅ Giảm gap */
+}
+
+.suggestion-info strong {
+  font-size: 14px; /* ✅ Giảm font-size */
+  color: #050505;
+}
+
+.mutual-friends {
+  font-size: 11px; /* ✅ Giảm font-size */
+  color: #65676b;
+}
+
+.specialty {
+  font-size: 11px; /* ✅ Giảm font-size */
+  color: #1877f2;
+}
+
+.btn-add-friend {
+  background: #1877f2;
+  color: white;
+  border: none;
+  padding: 6px 12px; /* ✅ Giảm padding */
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px; /* ✅ Giảm font-size */
+  font-weight: 600;
+  transition: background 0.2s;
+  white-space: nowrap; /* ✅ Không xuống dòng */
+}
+
+.btn-add-friend:hover {
+  background: #166fe5;
+}
+
+.suggestions-loading {
+  text-align: center;
+  padding: 20px;
+  color: #65676b;
+  font-size: 13px; /* ✅ Giảm font-size */
+}
