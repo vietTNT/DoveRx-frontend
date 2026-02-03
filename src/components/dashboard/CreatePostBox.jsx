@@ -1,7 +1,9 @@
 import React from "react";
 import "../../styles/CreatePostBox.css";
 import { useTranslation } from "react-i18next";
-// ✅ Helper: build full avatar URL (same logic as Navbar)
+import { useNavigate } from "react-router-dom"; // Thêm hook này
+
+// ✅ Helper: build full avatar URL
 const getAvatarUrl = (a) => {
   const defaultAvatar =
     "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
@@ -12,18 +14,32 @@ const getAvatarUrl = (a) => {
   const path = avatar.startsWith("/") ? avatar : `/${avatar}`;
   return base ? `${base}${path}` : path;
 };
+
 const CreatePostBox = ({ user, setIsModalOpen, setPostType }) => {
-  const { t } = useTranslation(); // Hook
+  const { t } = useTranslation();
+  const navigate = useNavigate(); // Khởi tạo hook
+
+  // Hàm xử lý khi click vào avatar
+  const handleAvatarClick = (e) => {
+    e.stopPropagation(); // Ngăn sự kiện nổi bọt để không mở modal
+    if (user?.id) {
+      navigate(`/profile/${user.id}`);
+    }
+  };
 
   return (
     <div className="create-post-box">
-      <div className="create-post-top" onClick={() => setIsModalOpen(true)}>
+      <div className="create-post-top">
+        {/* Click vào avatar sẽ về trang cá nhân */}
         <img
           src={getAvatarUrl(user?.avatar)}
           alt="avatar"
           className="create-avatar"
+          onClick={handleAvatarClick}
+          style={{ cursor: "pointer" }}
         />
 
+        {/* Click vào input thì mở modal tạo bài */}
         <input
           type="text"
           placeholder={t("dashboard.what_thinking", {
@@ -31,6 +47,7 @@ const CreatePostBox = ({ user, setIsModalOpen, setPostType }) => {
           })}
           readOnly
           className="create-input"
+          onClick={() => setIsModalOpen(true)}
         />
       </div>
       <hr />

@@ -26,7 +26,7 @@ const SidebarLeft = () => {
         <li>
           <i className="fas fa-home"></i> {t("navbar.home")}
         </li>
-        <li>
+        {/* <li>
           <i className="fas fa-user-friends"></i> {t("navbar.friend_request")}
         </li>
         <li>
@@ -37,10 +37,9 @@ const SidebarLeft = () => {
         </li>
         <li>
           <i className="fas fa-calendar-alt"></i> {t("dashboard.event")}
-        </li>
+        </li> */}
       </ul>
 
-      {/* ✅ CHỈ HIỂN THỊ NẾU KHÔNG PHẢI ADMIN */}
       {currentUser?.role !== "admin" && (
         <div className="sidebar-section">
           <FriendSuggestions />

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import ShareModal from "./ShareModal";
 import CommentModal from "./CommentModal";
 import "../../styles/PostCard.css";
@@ -6,7 +7,6 @@ import { toast } from "react-toastify";
 import { resolveImageUrl } from "../../utils/imageHelper";
 import {
   reactPost,
-  sharePost,
   listComments,
   addComment,
   editComment as apiEditComment,
@@ -20,6 +20,7 @@ import ReactionListModal from "./ReactionListModal";
 import { useTranslation } from "react-i18next";
 import commentIcon from "../../assets/icons/comment.png";
 import shareIcon from "../../assets/icons/share.png";
+
 // HELPER FUNCTION
 const getCurrentUserId = () => {
   try {
@@ -42,6 +43,7 @@ export const CommentInput = ({
   autoFocus = false,
 }) => {
   const { t } = useTranslation();
+
   return (
     <div className="comment-input">
       <input
@@ -88,6 +90,7 @@ export const CommentItem = ({
   getTimeAgo,
 }) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const hidePopupTimer = useRef(null);
 
   const armCommentPopup = (id) => {
@@ -102,12 +105,21 @@ export const CommentItem = ({
     hidePopupTimer.current = setTimeout(() => setActiveCommentPopup(null), 300);
   };
   const timeData = c.time || c.created_at || c.createdAt;
-  // Check quyền owner: so sánh userId của comment với currentUser.id
+
   const isOwner =
     currentUser?.id &&
     (String(currentUser.id) === String(c.userId) ||
       String(currentUser.id) === String(c.user_id) ||
       String(currentUser.id) === String(c.author_id));
+
+  const handleUserClick = (e) => {
+    e.stopPropagation();
+    const targetId = c.author_id || c.user_id || c.userId;
+    if (targetId) {
+      navigate(`/profile/${targetId}`);
+    }
+  };
+
   return (
     <div className="comment-item" style={{ marginLeft: level > 0 ? 36 : 0 }}>
       <img
@@ -116,10 +128,18 @@ export const CommentItem = ({
         }
         alt="avatar"
         className="comment-avatar"
+        onClick={handleUserClick}
+        style={{ cursor: "pointer" }}
       />
       <div className="comment-content">
         <div className="comment-bubble">
-          <strong className="comment-author">{c.user}</strong>
+          <strong
+            className="comment-author"
+            onClick={handleUserClick}
+            style={{ cursor: "pointer" }}
+          >
+            {c.user}
+          </strong>
 
           {c.editing ? (
             <CommentInput
@@ -139,9 +159,6 @@ export const CommentItem = ({
             className="comment-react-wrapper"
             onMouseEnter={() => armCommentPopup(`c-${c.id}`)}
             onMouseLeave={disarmCommentPopup}
-            // hỗ trợ mobile
-            // onTouchStart={() => armCommentPopup(`c-${c.id}`)}
-            // onTouchEnd={disarmCommentPopup}
             onClick={(e) => {
               if (
                 window.innerWidth <= 481 &&
@@ -262,7 +279,7 @@ export const CommentItem = ({
             {(c.replies || [])
               .slice(
                 0,
-                c.showAllReplies ? c.replies.length : MAX_REPLIES_VISIBLE
+                c.showAllReplies ? c.replies.length : MAX_REPLIES_VISIBLE,
               )
               .map((r) => (
                 <CommentItem
@@ -300,7 +317,7 @@ export const CommentItem = ({
                     updateNode(list, c.id, (node) => ({
                       ...node,
                       showAllReplies: true,
-                    }))
+                    })),
                   )
                 }
               >
@@ -318,11 +335,11 @@ export const CommentItem = ({
 const PostCard = ({
   p,
   currentUser,
-  reactions,
-  setReactions,
-  comments,
-  setComments,
-  emojiList,
+  reactions = {},
+  setReactions = () => {},
+  comments = {},
+  setComments = () => {},
+  emojiList = [],
   activePopup,
   setActivePopup,
   openLightbox,
@@ -330,9 +347,11 @@ const PostCard = ({
   getTimeAgo,
   onDeletePost,
   onUpdatePost,
+  onNewPost,
   lightbox,
 }) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   // State & Refs
   const MAX_REPLIES_VISIBLE = 2;
   const MAX_NEST_LEVEL = 2;
@@ -354,37 +373,38 @@ const PostCard = ({
     (String(currentUser.id) === String(p.author?.id) ||
       p.isOptimistic === true);
 
-  // ✅ THÊM BIẾN KIỂM TRA ADMIN
   const isAdmin = currentUser?.role === "admin";
-  const canModify = isAuthor || isAdmin; // Admin hoặc tác giả mới được sửa/xóa
+  const canModify = isAuthor || isAdmin;
 
   const myReactionType = reactions[p.id];
   const myReactionEmoji = myReactionType
     ? emojiList.find((e) => e.type === myReactionType)
     : null;
 
-  // ✅ HÀM CHECK QUYỀN XÓA COMMENT
-  const canDeleteComment = (comment) => {
-    return (
-      String(currentUser?.id) === String(comment.author?.id) ||
-      currentUser?.role === "admin"
-    );
-  };
-
   // Effects
+
+  // FIX: Thêm dependencies cho useEffect cập nhật reaction
   useEffect(() => {
-    // Chỉ set reaction nếu trong state chưa có, nhưng API lại trả về có
-    // VÀ chỉ set 1 lần khi post load lần đầu (mount)
+    // ✅ Kiểm tra p và p.id trước khi xử lý
+    if (!p || !p.id) {
+      console.warn("[PostCard] Invalid post data:", p);
+      return;
+    }
+
     const apiReaction = p.user_reaction || p.my_reaction || p.current_reaction;
 
-    // Kiểm tra nếu state global chưa có reaction cho bài này
-    if (apiReaction && reactions[p.id] === undefined) {
+    // ✅ Đảm bảo reactions đã được khởi tạo
+    if (apiReaction && (!reactions || reactions[p.id] === undefined)) {
       setReactions((prev) => ({ ...prev, [p.id]: apiReaction }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [p.id]);
+  }, [p?.id, p?.user_reaction, p?.my_reaction, p?.current_reaction]);
 
+  // FIX: Thêm dependencies cho useEffect load comment
   useEffect(() => {
+    // ✅ Kiểm tra p và p.id
+    if (!p || !p.id) return;
+
     if (!comments[p.id]?.list) {
       listComments(p.id)
         .then((data) => {
@@ -393,10 +413,12 @@ const PostCard = ({
             [p.id]: { list: data, draft: "", open: true, limit: 3 },
           }));
         })
-        .catch(() => {});
+        .catch((err) => {
+          console.error("[PostCard] Failed to load comments:", err);
+        });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [p.id]);
+  }, [p?.id]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -407,7 +429,7 @@ const PostCard = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Handlers Post
+  // Handlers Post ... (Giữ nguyên phần logic handler)
   const handleDeleteClick = async () => {
     if (window.confirm(t("dashboard.delete_post_confirm"))) {
       try {
@@ -437,7 +459,7 @@ const PostCard = ({
     }
   };
 
-  // Handlers Comments & Reactions
+  // Handlers Comments & Reactions ... (Giữ nguyên)
   const getReplyDraft = (id) => drafts.reply[id] || "";
   const setReplyDraft = (id, value) =>
     setDrafts((prev) => ({ ...prev, reply: { ...prev.reply, [id]: value } }));
@@ -456,7 +478,7 @@ const PostCard = ({
         : {
             ...n,
             replies: n.replies ? updateNode(n.replies, id, up) : n.replies,
-          }
+          },
     );
   const removeNode = (l, id) =>
     l
@@ -499,7 +521,7 @@ const PostCard = ({
   };
   const toggleReplyBox = (cid) =>
     mutateComments((l) =>
-      updateNode(l, cid, (c) => ({ ...c, replyOpen: !c.replyOpen }))
+      updateNode(l, cid, (c) => ({ ...c, replyOpen: !c.replyOpen })),
     );
   const submitReply = (cid, mention) => {
     const t = (getReplyDraft(cid) || "").trim();
@@ -608,6 +630,12 @@ const PostCard = ({
   const countAllComments = (l) =>
     l.reduce((a, c) => a + 1 + countAllComments(c.replies), 0);
   const list = comments[p.id]?.list || [];
+  const handleProfileNavigation = (userId, e) => {
+    if (e) e.stopPropagation();
+    if (userId) {
+      navigate(`/profile/${userId}`);
+    }
+  };
 
   return (
     <div
@@ -619,13 +647,20 @@ const PostCard = ({
           src={resolveImageUrl(p.author?.avatar)}
           alt="avatar"
           className="post-avatar"
+          onClick={(e) => handleProfileNavigation(p.author?.id, e)}
+          style={{ cursor: "pointer" }}
         />
         <div className="post-info">
-          <strong>{p.author?.name || "Người dùng"}</strong>
+          <strong
+            onClick={(e) => handleProfileNavigation(p.author?.id, e)}
+            style={{ cursor: "pointer" }}
+            className="hover:underline"
+          >
+            {p.author?.name || "Người dùng"}
+          </strong>
           <span>{getTimeAgo(p.time)}</span>
         </div>
 
-        {/* ✅ SỬA ĐIỀU KIỆN HIỂN THỊ MENU */}
         {canModify && (
           <div
             className="post-options"
@@ -648,20 +683,20 @@ const PostCard = ({
             </button>
             {showMenu && (
               <div className="options-dropdown">
-                {/* ✅ CHỈ TÁC GIẢ MỚI ĐƯỢC SỬA */}
                 {isAuthor && (
                   <button onClick={handleEditClick}>
-                    <i className="fas fa-edit" style={{ marginRight: "8px" }}></i>
+                    <i
+                      className="fas fa-edit"
+                      style={{ marginRight: "8px" }}
+                    ></i>
                     {t("common.edit")}
                   </button>
                 )}
-                
-                {/* ✅ TÁC GIẢ HOẶC ADMIN ĐỀU ĐƯỢC XÓA */}
-                <button
-                  onClick={handleDeleteClick}
-                  style={{ color: "red" }}
-                >
-                  <i className="fas fa-trash-alt" style={{ marginRight: "8px" }}></i>
+                <button onClick={handleDeleteClick} style={{ color: "red" }}>
+                  <i
+                    className="fas fa-trash-alt"
+                    style={{ marginRight: "8px" }}
+                  ></i>
                   {t("common.delete")}
                   {isAdmin && !isAuthor && " (Admin)"}
                 </button>
@@ -732,7 +767,6 @@ const PostCard = ({
           if (typeof content === "object") {
             return (
               <div className="post-content medical-post">
-                {/* 1. Triệu chứng & Tình trạng */}
                 <p>
                   <strong>{t("dashboard.medical_form.title_symptom")}:</strong>{" "}
                   {content.symptom || "—"}
@@ -745,16 +779,12 @@ const PostCard = ({
                   <strong>{t("dashboard.medical_form.severity")}:</strong>{" "}
                   {content.severity || "—"}
                 </p>
-
-                {/* 2. Các yếu tố liên quan (nếu có) */}
                 {content.factors && (
                   <p>
                     <strong> {t("dashboard.medical_form.factors")}:</strong>{" "}
                     {content.factors}
                   </p>
                 )}
-
-                {/* 3. Tiền sử bệnh */}
                 {(content.historyPersonal || content.historyFamily) && (
                   <div className="medical-divider">
                     {content.historyPersonal && (
@@ -775,8 +805,6 @@ const PostCard = ({
                     )}
                   </div>
                 )}
-
-                {/* 4. Thuốc & Lối sống (ngăn cách bằng nét đứt) */}
                 {(content.medication || content.lifestyle) && (
                   <div className="medical-divider">
                     {content.medication && (
@@ -826,6 +854,187 @@ const PostCard = ({
                     {" "}
                     {t("dashboard.less_see")}
                   </span>
+                )}
+
+                {/* HIỂN THỊ KHUNG BÀI VIẾT GỐC (NẾU LÀ SHARE)  */}
+                {p.kind === "share" && p.shared_post && (
+                  <div
+                    className="shared-post-box"
+                    style={{
+                      marginTop: "12px",
+                      border: "1px solid #ddd",
+                      borderRadius: "8px",
+                      overflow: "hidden",
+                      backgroundColor: "#fff",
+                      cursor: "pointer",
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Chỉ mở popup nếu bài viết còn tồn tại
+                      if (p.shared_post.status !== "unavailable") {
+                        window.dispatchEvent(
+                          new CustomEvent("open_post_notification", {
+                            detail: { postId: p.shared_post.id },
+                          }),
+                        );
+                      }
+                    }}
+                  >
+                    {/* TRƯỜNG HỢP 1: Bài gốc bị xóa / Unavailable */}
+                    {p.shared_post.status === "unavailable" ? (
+                      <div
+                        style={{
+                          padding: "20px",
+                          background: "#f0f2f5",
+                          textAlign: "center",
+                          color: "#65676b",
+                          fontStyle: "italic",
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          gap: "8px",
+                        }}
+                      >
+                        <i
+                          className="fas fa-ban"
+                          style={{ fontSize: "20px" }}
+                        ></i>
+                        <span>
+                          {p.shared_post.message ||
+                            "Nội dung này hiện không khả dụng."}
+                        </span>
+                      </div>
+                    ) : (
+                      /* TRƯỜNG HỢP 2: Bài gốc bình thường */
+                      <>
+                        <div
+                          style={{
+                            padding: "10px",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "10px",
+                            backgroundColor: "#f7f8fa",
+                            borderBottom: "1px solid #eee",
+                          }}
+                        >
+                          <img
+                            src={resolveImageUrl(p.shared_post.author?.avatar)}
+                            alt="shared-avatar"
+                            style={{
+                              width: "32px",
+                              height: "32px",
+                              borderRadius: "50%",
+                              objectFit: "cover",
+                            }}
+                            onClick={(e) =>
+                              handleProfileNavigation(
+                                p.shared_post.author?.id,
+                                e,
+                              )
+                            }
+                          />
+                          <div
+                            style={{ display: "flex", flexDirection: "column" }}
+                          >
+                            <strong
+                              style={{
+                                fontSize: "14px",
+                                color: "#050505",
+                                cursor: "pointer",
+                              }}
+                              onClick={(e) =>
+                                handleProfileNavigation(
+                                  p.shared_post.author?.id,
+                                  e,
+                                )
+                              }
+                            >
+                              {p.shared_post.author?.name || "Người dùng"}
+                            </strong>
+                            <span
+                              style={{ fontSize: "12px", color: "#65676b" }}
+                            >
+                              {getTimeAgo(p.shared_post.time)}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div style={{ padding: "10px" }}>
+                          <p
+                            style={{
+                              fontSize: "14px",
+                              color: "#050505",
+                              margin: 0,
+                              whiteSpace: "pre-wrap",
+                            }}
+                          >
+                            {p.shared_post.content}
+                          </p>
+                        </div>
+
+                        {p.shared_post.images &&
+                          p.shared_post.images.length > 0 && (
+                            <div
+                              style={{
+                                width: "100%",
+                                borderTop: "1px solid #eee",
+                                backgroundColor: "#000",
+                                display: "flex",
+                                justifyContent: "center",
+                              }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openLightbox(p.shared_post.images, 0);
+                              }}
+                            >
+                              {p.shared_post.images[0].type === "video" ? (
+                                <video
+                                  src={resolveImageUrl(
+                                    p.shared_post.images[0].url,
+                                  )}
+                                  controls
+                                  style={{
+                                    width: "100%",
+                                    maxHeight: "500px",
+                                    objectFit: "contain",
+                                  }}
+                                />
+                              ) : (
+                                <img
+                                  src={resolveImageUrl(
+                                    p.shared_post.images[0].url,
+                                  )}
+                                  alt="shared-media"
+                                  style={{
+                                    width: "100%",
+                                    height: "auto",
+                                    maxHeight: "600px",
+                                    objectFit: "contain",
+                                    display: "block",
+                                  }}
+                                />
+                              )}
+                            </div>
+                          )}
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {p.kind === "share" && !p.shared_post && (
+                  <div
+                    style={{
+                      padding: "15px",
+                      background: "#f0f2f5",
+                      borderRadius: "8px",
+                      marginTop: "10px",
+                      textAlign: "center",
+                      color: "#65676b",
+                      fontStyle: "italic",
+                    }}
+                  >
+                    🚫 Bài viết gốc không còn tồn tại hoặc đã bị xóa.
+                  </div>
                 )}
               </div>
             );
@@ -883,7 +1092,6 @@ const PostCard = ({
         </div>
       )}
 
-      {/* Actions & Modal (Giữ nguyên) */}
       <div className="post-actions">
         <div className="post-stats">
           {Object.keys(p.reaction_counts || {}).length > 0 && (
@@ -899,29 +1107,33 @@ const PostCard = ({
               ))}
             </span>
           )}
-          {countAllComments(list) > 0 && (
-            <span className="comment-share-count">
-              {countAllComments(list)} {t("dashboard.comment_count")}
-            </span>
-          )}
+          <div style={{ display: "flex", gap: "10px" }}>
+            {countAllComments(list) > 0 && (
+              <span className="comment-share-count">
+                {countAllComments(list)} {t("dashboard.comment_count")}
+              </span>
+            )}
+            {p.shares_count > 0 && (
+              <span className="comment-share-count">
+                {p.shares_count} {t("dashboard.share_count") || "Lượt chia sẻ"}
+              </span>
+            )}
+          </div>
         </div>
         <div className="post-buttons">
           <div
             className="post-action-group"
             onMouseEnter={() => armPostPopup(`p-${p.id}`)}
             onMouseLeave={disarmPostPopup}
-            // hỗ trợ mobile
             onClick={(e) => {}}
             onTouchStart={() => {
               postPopupTimer.current = setTimeout(() => {
                 setActivePostPopup(`p-${p.id}`);
-              }, 500); // Giữ 0.5s để hiện popup
+              }, 500);
             }}
             onTouchEnd={() => {
               if (postPopupTimer.current) clearTimeout(postPopupTimer.current);
             }}
-            // onTouchStart={() => armPostPopup(`p-${p.id}`)}
-            // onTouchEnd={disarmPostPopup}
           >
             <button
               className={`post-like-btn ${myReactionType ? "active" : ""}`}
@@ -940,15 +1152,13 @@ const PostCard = ({
                   <span
                     key={e.type}
                     className="reaction-icon"
-                    // onClick={() => setPostReaction(e.type)}
                     onMouseDown={(ev) => {
                       ev.preventDefault();
                       ev.stopPropagation();
                       setPostReaction(e.type);
                     }}
-                    // 2. Xử lý cho Mobile (Chạm cảm ứng)
                     onTouchStart={(ev) => {
-                      ev.preventDefault(); // Ngăn click ảo
+                      ev.preventDefault();
                       ev.stopPropagation();
                       setPostReaction(e.type);
                     }}
@@ -979,12 +1189,12 @@ const PostCard = ({
                 onClose={() => setShareOpen(false)}
                 user={currentUser}
                 post={p}
-                onShare={async (msg) => {
-                  try {
-                    await sharePost(p.id, msg || "");
-                    toast.success("✅ Đã chia sẻ bài viết");
-                  } catch {
-                    toast.error("❌ Chia sẻ thất bại");
+                onShare={(apiResult) => {
+                  if (apiResult.new_post && onNewPost) {
+                    onNewPost(apiResult.new_post);
+                  }
+
+                  if (apiResult.shares !== undefined) {
                   }
                 }}
               />
@@ -1037,8 +1247,8 @@ const PostCard = ({
         MAX_NEST_LEVEL={MAX_NEST_LEVEL}
         reactions={reactions}
         setReactions={setReactions}
-        activePopup={activePopup}
-        setActivePopup={setActivePopup}
+        activePopup={activePostPopup}
+        setActivePopup={setActivePostPopup}
         onShareClick={() => {
           setShareOpen(true);
         }}

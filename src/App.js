@@ -15,7 +15,7 @@ import DoctorVerifyPage from "./pages/DoctorVerifyPage";
 import UserProfilePage from "./pages/UserProfilepage";
 import { refreshTokenIfNeeded } from "./services/auth";
 import AdminDashboard from "./components/dashboard/admin/AdminDashboard";
-
+import HealthMap from "./pages/HealthMap";
 function App() {
   const [user, setUser] = useState(null);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -74,7 +74,7 @@ function App() {
 
     console.log(
       "🔌 [App] Connecting WebSockets for user:",
-      user.email || user.id
+      user.email || user.id,
     );
     console.log("🔌 [App] Token preview:", token.substring(0, 20) + "...");
 
@@ -145,7 +145,7 @@ function App() {
 
       const { data } = await api.post(
         `${process.env.REACT_APP_API_BASE}/api/accounts/google-login/`,
-        { id_token }
+        { id_token },
       );
 
       const packedUser = {
@@ -166,7 +166,7 @@ function App() {
       alert(
         `Đăng nhập thất bại: HTTP ${status || ""} ${
           data?.detail || JSON.stringify(data) || ""
-        }`
+        }`,
       );
     }
   };
@@ -248,7 +248,16 @@ function App() {
               </ProtectedRoute>
             }
           />
-
+          <Route
+            path="/health-map"
+            element={
+              user ? (
+                <HealthMap user={user} onLogout={handleLogout} />
+              ) : (
+                <Navigate to="/" />
+              )
+            }
+          />
           <Route
             path="/profile"
             element={

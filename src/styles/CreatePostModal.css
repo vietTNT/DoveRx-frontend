@@ -1,7 +1,7 @@
 body:has(.modal-overlay) {
   overflow: hidden !important;
 }
-/*  Popup đăng bài */
+/* Popup đăng bài */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -20,90 +20,139 @@ body:has(.modal-overlay) {
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
   animation: fadeIn 0.3s ease;
-  padding: 15px;
+  padding: 20px; /* Tăng padding một chút */
+  display: flex;
+  flex-direction: column;
 }
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #ddd;
-  padding-bottom: 10px;
+  border-bottom: 1px solid #eee; /* Màu viền nhạt hơn */
+  padding-bottom: 15px;
+  margin-bottom: 15px;
 }
 .modal-header h3 {
-  font-size: 18px;
-  color: #111;
+  font-size: 20px; /* Font to hơn một chút */
+  font-weight: bold;
+  color: #1c1e21;
 }
 .close-btn {
-  background: none;
+  background: #e4e6eb; /* Thêm nền cho nút đóng */
   border: none;
-  font-size: 22px;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
   cursor: pointer;
-  color: #666;
+  color: #606770;
+  transition: background 0.2s;
 }
+.close-btn:hover {
+  background: #d8dadf;
+}
+
 .modal-body {
-  margin-top: 15px;
+  /* Không cần margin-top vì đã có padding của modal-content */
 }
 .modal-user {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
+  gap: 12px;
+  margin-bottom: 20px;
 }
 .modal-user img {
-  width: 45px;
-  height: 45px;
-  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  border-radius: 40%;
+  object-fit: cover;
 }
 .modal-user strong {
-  font-size: 15px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1c1e21;
 }
-.modal-body textarea {
+
+/* Khu vực nhập liệu chính */
+.modal-input-area {
+  margin-bottom: 20px;
+}
+
+/* Textarea chính (cho post thường) */
+.main-textarea {
   width: 100%;
-  height: 120px;
+  min-height: 120px; /* Chiều cao tối thiểu */
   border: none;
   outline: none;
   resize: none;
-  font-size: 15px;
-  color: #333;
+  font-size: 16px; /* Font to hơn */
+  color: #1c1e21;
+  background: transparent; /* Nền trong suốt để ăn theo nền modal */
+  font-family: inherit;
 }
+.main-textarea::placeholder {
+  color: #65676b;
+}
+
+/* Các nút hành động nằm ngang */
 .modal-actions {
   display: flex;
+  flex-direction: row; /* Bắt buộc xếp ngang */
+  align-items: center;
   justify-content: space-between;
+  gap: 12px; /* Khoảng cách giữa các nút */
+  width: 100%;
   margin-top: 15px;
+  margin-bottom: 20px;
 }
 .modal-action {
-  flex: 1;
+  flex: 1; /* Chia đều độ rộng cho 3 nút */
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  border: 1px solid #ddd;
-  border-radius: 10px;
-  background: #f9fafb;
-  padding: 8px;
+  gap: 8px; /* Khoảng cách giữa icon và chữ */
+
+  /* Màu sắc giống hình mẫu */
+  background-color: #2a3849;
+  color: white;
+
+  /* Tạo hình viên thuốc */
+  border: none;
+  border-radius: 25px;
+  padding: 10px 0; /* Chiều cao nút */
+
   font-size: 14px;
-  color: #333;
+  font-weight: 600;
   cursor: pointer;
-  transition: 0.2s;
-  margin: 0 5px;
+  transition: background-color 0.2s;
+  white-space: nowrap; /* Ngăn chữ bị xuống dòng */
 }
 .modal-action:hover {
-  background: #eff6ff;
+  background: #3695ee; /* Màu tối hơn khi hover */
 }
+.modal-action i {
+  color: white; /* Icon màu trắng */
+  font-size: 16px;
+}
+
+/* Nút Đăng */
 .modal-post-btn {
   width: 100%;
-  background: #2563eb;
+  background: #1877f2; /* Màu xanh dương đậm của Facebook */
   color: white;
   border: none;
   border-radius: 8px;
-  padding: 10px;
-  margin-top: 15px;
+  padding: 12px;
   cursor: pointer;
-  font-size: 15px;
-  transition: all 0.2s ease;
+  font-size: 16px;
+  font-weight: 600;
+  transition: background 0.2s ease;
 }
 .modal-post-btn:hover:not(.disabled) {
-  background: #1d4ed8;
+  background: #166fe5;
 }
 .modal-post-btn.disabled {
   background: #94a3b8;
@@ -114,7 +163,7 @@ body:has(.modal-overlay) {
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: scale(0.9);
+    transform: scale(0.95);
   }
   to {
     opacity: 1;
@@ -122,88 +171,92 @@ body:has(.modal-overlay) {
   }
 }
 
-/* === Preview ảnh/video khi tạo bài === */
+/* === Preview ảnh/video === */
 .image-preview {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 10px;
+  gap: 8px;
+  margin-bottom: 20px; /* Khoảng cách với nút hành động */
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
 }
 .preview-item {
   position: relative;
 }
 .preview-media {
-  width: 160px;
-  height: 120px;
+  width: 100px; /* Nhỏ lại một chút */
+  height: 100px;
   object-fit: cover;
-  background: #000;
+  border-radius: 8px;
 }
 .remove-btn {
   position: absolute;
   top: 4px;
-  right: 6px;
+  right: 4px;
   background: rgba(0, 0, 0, 0.6);
   color: white;
   border: none;
   border-radius: 50%;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   cursor: pointer;
-  font-size: 16px;
-  line-height: 18px;
-  text-align: center;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: background 0.2s;
 }
 .remove-btn:hover {
   background: rgba(0, 0, 0, 0.8);
 }
 
-/* === 🩺 Form "Hỏi bác sĩ" cuộn gọn trong modal === */
+/* === 🩺 Form "Hỏi bác sĩ" === */
 .scrollable-form {
-  max-height: 320px;
+  max-height: 300px; /* Giới hạn chiều cao để xuất hiện thanh cuộn */
   overflow-y: auto;
-  padding-right: 8px;
-  margin-top: 10px;
-  margin-bottom: 15px;
+  padding-right: 5px;
+  /* Custom thanh cuộn cho đẹp hơn */
   scrollbar-width: thin;
-  scrollbar-color: #93c5fd #f3f4f6;
+  scrollbar-color: #bcc0c4 #f0f2f5;
 }
 .scrollable-form::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
 }
 .scrollable-form::-webkit-scrollbar-thumb {
-  background: #93c5fd;
+  background: #bcc0c4;
   border-radius: 10px;
 }
 .scrollable-form::-webkit-scrollbar-track {
-  background: #f3f4f6;
+  background: #f0f2f5;
 }
 
-/* Cấu trúc nhóm tiêu đề và ô nhập */
 .medical-form {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 .medical-form h4 {
-  margin-top: 8px;
-  margin-bottom: 4px;
-  color: #2563eb;
-  font-size: 15px;
+  margin-top: 15px;
+  margin-bottom: 8px;
+  color: #1877f2;
+  font-size: 16px;
   font-weight: 600;
 }
 .medical-form textarea {
+  width: 100%;
   border: 1px solid #ddd;
   border-radius: 8px;
-  padding: 8px 10px;
-  font-size: 14px;
-  color: #333;
+  padding: 12px;
+  font-size: 15px;
+  color: #1c1e21;
   resize: none;
-  min-height: 55px;
+  min-height: 60px;
   transition: all 0.2s ease;
+  font-family: inherit;
 }
 .medical-form textarea:focus {
   outline: none;
-  border-color: #2563eb;
-  box-shadow: 0 0 3px rgba(37, 99, 235, 0.3);
+  border-color: #1877f2;
+  box-shadow: 0 0 0 2px rgba(24, 119, 242, 0.2);
 }

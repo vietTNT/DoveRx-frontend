@@ -26,12 +26,14 @@ import websocketService from "../services/websocket";
 import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next";
 
-
 const updateNode = (l, id, up) =>
   l.map((n) =>
     n.id === id
       ? up(n)
-      : { ...n, replies: n.replies ? updateNode(n.replies, id, up) : n.replies }
+      : {
+          ...n,
+          replies: n.replies ? updateNode(n.replies, id, up) : n.replies,
+        },
   );
 
 const removeNode = (l, id) =>
@@ -116,7 +118,7 @@ const Dashboard = ({ user, onLogout }) => {
         color: "#e9710f",
       },
     ],
-    [t]
+    [t],
   );
   // =======================================================
   // 1. LOGIC MỞ BÀI VIẾT TỪ THÔNG BÁO
@@ -155,7 +157,7 @@ const Dashboard = ({ user, onLogout }) => {
     return () =>
       window.removeEventListener(
         "open_post_notification",
-        handleOpenNotification
+        handleOpenNotification,
       );
   }, [posts, t]);
 
@@ -360,7 +362,7 @@ const Dashboard = ({ user, onLogout }) => {
                   return updatedPost;
                 }
                 return p;
-              })
+              }),
             );
             if (String(user_id) === String(user?.id)) {
               if (reaction_type) {
@@ -383,8 +385,22 @@ const Dashboard = ({ user, onLogout }) => {
               prev.map((p) =>
                 String(p.id) === String(updatedPost.id)
                   ? mapPostToUI(updatedPost)
-                  : p
-              )
+                  : p,
+              ),
+            );
+          }
+          break;
+        }
+        case "share_post": {
+          const { post_id, shares_count } = payload;
+          if (post_id) {
+            setPosts((prev) =>
+              prev.map((p) => {
+                if (String(p.id) === String(post_id)) {
+                  return { ...p, shares_count: shares_count };
+                }
+                return p;
+              }),
             );
           }
           break;
@@ -469,7 +485,7 @@ const Dashboard = ({ user, onLogout }) => {
               if (prev.some((p) => String(p.id) === String(incomingPost.id)))
                 return prev;
               toast.success(
-                `📢 ${incomingPost.author?.name || "Ai đó"} vừa đăng bài mới!`
+                `📢 ${incomingPost.author?.name || "Ai đó"} vừa đăng bài mới!`,
               );
               return [mapPostToUI(incomingPost), ...prev];
             });
@@ -491,6 +507,7 @@ const Dashboard = ({ user, onLogout }) => {
       "new_post",
       "post_created",
       "update_post",
+      "share_post",
     ];
     events.forEach((evt) => websocketService.on(evt, handleFeedUpdate));
     return () => {
@@ -613,20 +630,45 @@ const Dashboard = ({ user, onLogout }) => {
           : { kind, content: optimisicPost.content, files };
       const created = await createPost(payload);
       setPosts((prev) =>
-        prev.map((p) => (p.id === tempId ? mapPostToUI(created) : p))
+        prev.map((p) => (p.id === tempId ? mapPostToUI(created) : p)),
       );
     } catch (e) {
       toast.error(`❌ ${e?.response?.data?.detail || "Lỗi đăng bài"}`);
       setPosts((prev) => prev.filter((p) => p.id !== tempId));
       if (kind === "normal") {
         setNewPost(
-          typeof optimisicPost.content === "string" ? optimisicPost.content : ""
+          typeof optimisicPost.content === "string"
+            ? optimisicPost.content
+            : "",
         );
         setIsModalOpen(true);
       }
     } finally {
       setPosting(false);
     }
+  };
+
+  // (SHARE)
+  const handleNewPost = (newPost) => {
+    // Chuẩn hóa data từ API về định dạng UI
+    const mappedPost = {
+      id: newPost.id,
+      author: {
+        id: newPost.author?.id || newPost.author_id,
+        name: newPost.author?.name || newPost.author_name,
+        avatar: newPost.author?.avatar || newPost.author_avatar,
+      },
+      content: newPost.content || "",
+      time: newPost.created_at || newPost.time || new Date().toISOString(),
+      images: newPost.images || [],
+      kind: newPost.kind || "normal",
+      shared_post: newPost.shared_post_data || newPost.shared_post || null,
+      reaction_counts: newPost.reaction_counts || {},
+      shares_count: newPost.shares_count || 0,
+    };
+
+    // Thêm vào đầu danh sách posts
+    setPosts((prev) => [mappedPost, ...prev]);
   };
 
   return (
@@ -640,10 +682,10 @@ const Dashboard = ({ user, onLogout }) => {
             setIsModalOpen={setIsModalOpen}
             setPostType={setPostType}
           />
-          {posts.map((p) => (
+          {posts.map((post) => (
             <PostCard
-              key={p.id}
-              p={p}
+              key={post.id}
+              p={post}
               currentUser={user}
               reactions={reactions}
               setReactions={setReactions}
@@ -658,6 +700,7 @@ const Dashboard = ({ user, onLogout }) => {
               lightbox={lightbox}
               onDeletePost={handlePostDeleted}
               onUpdatePost={handlePostUpdated}
+              onNewPost={handleNewPost} // ✅ THÊM PROP NÀY
             />
           ))}
         </main>
@@ -682,7 +725,7 @@ const Dashboard = ({ user, onLogout }) => {
           setActivePopup={setActivePostPopup}
           onTogglePostReaction={() =>
             handleModalPostReact(
-              reactions[viewPost.id] || viewPost.user_reaction ? null : "like"
+              reactions[viewPost.id] || viewPost.user_reaction ? null : "like",
             )
           }
           onSetPostReaction={(type) => handleModalPostReact(type)}

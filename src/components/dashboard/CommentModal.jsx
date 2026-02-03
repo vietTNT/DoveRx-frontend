@@ -93,12 +93,12 @@ const CommentModal = ({
   const counts = post.reaction_counts || {};
   const totalReactions = Object.values(counts).reduce(
     (sum, c) => sum + (Number(c) || 0),
-    0
+    0,
   );
 
   // Lọc ra những loại reaction có số lượng > 0 để hiển thị icon (VD: Like, Love)
   const activeReactionTypes = Object.keys(counts).filter(
-    (type) => counts[type] > 0
+    (type) => counts[type] > 0,
   );
 
   const armPopup = (id) => {
@@ -428,7 +428,7 @@ const CommentModal = ({
         </div>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 };
 

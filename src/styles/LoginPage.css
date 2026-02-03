@@ -45,7 +45,8 @@
 }
 /* Logo & Header */
 .logo-img {
-  width: 80px; /*  Nhỏ lại chút cho cân đối */
+  width: 80px;
+  margin: 0 auto 15px auto;
   margin-bottom: 15px;
 }
 
@@ -343,5 +344,183 @@ div[role="button"][aria-haspopup="dialog"] {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+/* --- OTP MODAL STYLING (Professional Look) --- */
+
+/* 1. Lớp phủ toàn màn hình (Overlay) */
+.otp-modal-overlay {
+  position: fixed; /* Cố định so với màn hình, đè lên tất cả */
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.6); /* Nền tối mờ */
+  backdrop-filter: blur(5px); /* Hiệu ứng kính mờ thời thượng */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999; /* Đảm bảo luôn nổi lên trên cùng */
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* 2. Thẻ Modal (Card) */
+.otp-modal-card {
+  background: #ffffff;
+  width: 90%;
+  max-width: 420px;
+  padding: 30px 25px;
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  position: relative;
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Icon khóa ở trên cùng */
+.modal-icon {
+  font-size: 40px;
+  margin-bottom: 10px;
+  display: inline-block;
+  background: #f0f7ff;
+  width: 80px;
+  height: 80px;
+  line-height: 80px;
+  border-radius: 50%;
+}
+
+/* Tiêu đề */
+.modal-title {
+  color: #1a1a1a;
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+/* Mô tả */
+.modal-desc {
+  color: #666;
+  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: 25px;
+}
+
+.highlight-email {
+  color: #2563eb;
+  font-weight: 600;
+}
+
+/* 3. Ô nhập OTP (Input) */
+.otp-input-field {
+  width: 100%;
+  padding: 15px;
+  font-size: 32px; /* Số to rõ */
+  font-weight: bold;
+  letter-spacing: 12px; /* Khoảng cách giữa các số */
+  text-align: center;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  background-color: #f9fafb;
+  margin-bottom: 30px;
+  outline: none;
+  transition: all 0.3s ease;
+  color: #333;
+}
+
+.otp-input-field:focus {
+  border-color: #2563eb;
+  background-color: #fff;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+}
+
+.otp-input-field::placeholder {
+  color: #d1d5db;
+  letter-spacing: 12px;
+}
+
+/* 4. Khu vực nút bấm */
+.modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Nút xác nhận */
+.btn-confirm {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+}
+
+.btn-confirm:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(37, 99, 235, 0.3);
+}
+
+.btn-confirm:disabled {
+  background: #cbd5e1;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+.btn-otp-back {
+  width: 100% !important;
+  margin-top: 12px;
+  padding: 12px;
+
+  /* Trạng thái bình thường: Trắng, viền xám */
+  background-color: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+  color: #64748b !important;
+
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); /* Chuyển động mượt */
+}
+
+/* 🔥 TRẠNG THÁI HOVER (Khi di chuột vào) */
+.btn-otp-back:hover {
+  background-color: #eff6ff !important; /* Nền chuyển xanh dương siêu nhạt */
+  color: #2563eb !important; /* Chữ chuyển xanh đậm nổi bật */
+  border-color: #bfdbfe !important; /* Viền cũng chuyển xanh */
+  transform: translateY(-1px); /* Nút nẩy lên nhẹ 1 chút */
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); /* Tạo bóng nhẹ */
+}
+
+/* Trạng thái Active (Khi bấm giữ chuột) */
+.btn-otp-back:active {
+  background-color: #dbeafe !important;
+  transform: translateY(0); /* Trở về vị trí cũ */
+}
+
+/* --- Keyframes Animation --- */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }

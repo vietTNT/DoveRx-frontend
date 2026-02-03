@@ -75,3 +75,14 @@ export const getSuggestions = async () => {
   const { data } = await api.get("/api/accounts/friends/suggestions/");
   return data;
 };
+export const getUserFriends = async (userId) => {
+  try {
+    // Lưu ý: Bạn cần đảm bảo Backend đã có endpoint này.
+    // Nếu chưa, hãy dùng tạm hàm getFriends() nếu xem profile chính mình.
+    const { data } = await api.get(`/api/friends/list/${userId}/`);
+    return data;
+  } catch (error) {
+    console.error("Error fetching friends:", error);
+    throw error;
+  }
+};

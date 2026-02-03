@@ -19,7 +19,7 @@ export const getOrCreateConversation = async (contactId) => {
     // Không cần tự check token hay try-catch refresh thủ công nữa
     // api instance sẽ tự làm hết
     const { data } = await api.get(
-      `/api/chat/conversations/with/${contactId}/`
+      `/api/chat/conversations/with/${contactId}/`,
     );
     return data;
   } catch (error) {
@@ -31,12 +31,11 @@ export const getOrCreateConversation = async (contactId) => {
 export const fetchMessages = async (conversationId) => {
   try {
     console.log(
-      `🔄 [chatApi] Fetching messages for conversation ${conversationId}`
+      `🔄 [chatApi] Fetching messages for conversation ${conversationId}`,
     );
 
-    //  Gọi endpoint
     const { data } = await api.get(
-      `/api/chat/conversations/${conversationId}/messages/`
+      `/api/chat/conversations/${conversationId}/messages/`,
     );
 
     console.log(`✅ [chatApi] Fetched ${data.length} messages`);
@@ -59,5 +58,18 @@ export const markAsRead = async (conversationId) => {
   const { data } = await api.post("/api/chat/messages/read_sync/", {
     conversation_id: conversationId,
   });
+  return data;
+};
+export const sharePostToMessage = async ({ recipientId, postId, text }) => {
+  const { data } = await api.post("/api/chat/messages/share_post/", {
+    recipient_id: recipientId, // Backend nhận snake_case
+    post_id: postId,
+    text: text || "",
+  });
+  return data;
+};
+
+export const recallMessage = async (messageId) => {
+  const { data } = await api.post(`/api/chat/messages/${messageId}/recall/`);
   return data;
 };

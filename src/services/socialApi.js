@@ -26,10 +26,14 @@ export const reactPost = async (postId, type) =>
     ? api.post(`/api/social/posts/${postId}/reactions/`, { type })
     : api.delete(`/api/social/posts/${postId}/reactions/`);
 
-export const sharePost = async (postId, message) => {
-  const { data } = await api.post(`/api/social/posts/${postId}/share/`, {
-    message,
-  });
+export const sharePost = async (postId, payload) => {
+  // ✅ Payload có thể là string hoặc object
+  const body =
+    typeof payload === "string"
+      ? { message: payload } // Backward compatible
+      : payload; // Object { message, visibility }
+
+  const { data } = await api.post(`/api/social/posts/${postId}/share/`, body);
   return data;
 };
 
@@ -94,4 +98,14 @@ export const getPostById = async (postId) => {
   return data;
 };
 
-export const adminDeletePost = (id) => api.delete(`/api/social/posts/${id}/`);
+// export const adminDeletePost = (id) => api.delete(`/api/social/posts/${id}/`);
+export const getPostsByUser = async (userId) => {
+  try {
+    // Gọi endpoint có filter ?user_id=... mà ta đã cài ở backend
+    const { data } = await api.get(`/api/social/posts/?user_id=${userId}`);
+    return data;
+  } catch (error) {
+    console.error("Error fetching user posts:", error);
+    throw error;
+  }
+};

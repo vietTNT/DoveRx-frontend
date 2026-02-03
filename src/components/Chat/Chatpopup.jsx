@@ -11,21 +11,22 @@ import {
   fetchMessages,
   markAsRead,
   uploadAttachment,
+  recallMessage,
 } from "../../services/chatApi";
 import { v4 as uuidv4 } from "uuid";
 import likeIcon from "../../assets/icons/like.png";
 import { saveToCache, loadFromCache } from "../../utils/chatCache";
 import { useTranslation } from "react-i18next";
+import SharedPostCard from "./SharedPostCard";
+
 //  HÀM NÀY ĐỂ XỬ LÝ ẢNH
 const getAttachmentUrl = (url) => {
   if (!url) return "";
-
   if (url.startsWith("blob:")) return url;
-
   if (url.startsWith("http")) return url;
-
   return `${process.env.REACT_APP_API_BASE}${url}`;
 };
+
 // Lấy avatar URL hoặc fallback
 const getAvatarUrl = (contact) => {
   if (contact?.avatar) {
@@ -36,16 +37,6 @@ const getAvatarUrl = (contact) => {
     return `${baseUrl}${contact.avatar}`;
   }
   return "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
-};
-
-// Lấy initials từ name
-const getInitials = (name) => {
-  if (!name) return "?";
-  const parts = name.trim().split(" ");
-  if (parts.length >= 2) {
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-  }
-  return name[0].toUpperCase();
 };
 
 // Lấy current user từ localStorage
@@ -97,6 +88,17 @@ const ChatPopup = ({
   const fileInputRef = useRef(null);
   const lastNotifiedRef = useRef(null);
   const currentUser = useMemo(() => getCurrentUser(), []);
+  const chatName = conversation?.is_group ? conversation.title : contact?.name;
+
+  const chatAvatar = conversation?.is_group
+    ? "https://cdn-icons-png.flaticon.com/512/166/166258.png" // Icon nhóm mặc định
+    : getAvatarUrl(contact);
+
+  const chatStatus = conversation?.is_group
+    ? `${conversation.participants?.length || 0} thành viên`
+    : contact?.online
+      ? t("chat.active")
+      : t("chat.offline");
 
   // Kiểm tra user có đang ở đáy không trước khi có tin nhắn mới đến
   const checkScrollPosition = () => {
@@ -120,12 +122,14 @@ const ChatPopup = ({
       scrollToBottom("smooth");
     }
   }, [messages, loading, currentUser.id]);
+
   // Xử lý khi ảnh load xong
   const handleImageLoad = () => {
     if (isAtBottomRef.current) {
       scrollToBottom("smooth");
     }
   };
+
   //  Notify parent khi messages thay đổi
   useEffect(() => {
     if (!onMessagesUpdate) return;
@@ -186,58 +190,79 @@ const ChatPopup = ({
     if (!conversation?.id) return;
 
     const handleNewMessage = (data) => {
-      // Kiểm tra đúng cuộc trò chuyện
-      if (Number(data.message?.conversation) === Number(conversation?.id)) {
-        if (data.message.sender.id !== currentUser.id) {
-          setIsTyping(false);
-          if (typingTimeoutRef.current) {
-            clearTimeout(typingTimeoutRef.current);
+      const incomingMsg = data.message;
+
+      // Xử lý post_data bị stringify (giữ nguyên logic cũ của bạn)
+      if (incomingMsg.post_data) {
+        if (typeof incomingMsg.post_data === "string") {
+          try {
+            incomingMsg.post_data = JSON.parse(incomingMsg.post_data);
+          } catch (e) {
+            incomingMsg.post_data = null;
           }
+        }
+        if (
+          incomingMsg.post_data &&
+          typeof incomingMsg.post_data === "object" &&
+          incomingMsg.post_data.post_data
+        ) {
+          incomingMsg.post_data = incomingMsg.post_data.post_data;
+        }
+      }
+
+      // Kiểm tra đúng Conversation
+      if (Number(incomingMsg?.conversation) === Number(conversation?.id)) {
+        // Tắt typing
+        if (incomingMsg.sender.id !== currentUser.id) {
+          setIsTyping(false);
+          if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
         }
 
         setMessages((prev) => {
-          const newMsg = normalizeMessage(data.message);
-          // 1. Tin nhắn của chính mình (Cần tìm và thay thế bản giả lập)
+          const newMsg = normalizeMessage(incomingMsg);
+
+          // 🔥 SỬA LOGIC TẠI ĐÂY: Xử lý tin nhắn của chính mình
           if (newMsg.sender.id === currentUser.id) {
-            // Tìm tin nhắn đang gửi (isSending) có nội dung trùng khớp
-            const pendingIndex = prev.findIndex(
-              (m) => m.isSending && m.text === newMsg.text
+            // Tìm tin nhắn tạm đang ở trạng thái sending
+            const existingIndex = prev.findIndex(
+              (m) =>
+                m.isSending && // Chỉ tìm những tin đang gửi
+                // Khớp nội dung text
+                ((m.text && m.text === newMsg.text) ||
+                  // Hoặc khớp nếu là ảnh/file (dựa vào type)
+                  (m.attachment &&
+                    newMsg.attachment &&
+                    m.attachment.type === newMsg.attachment.type) ||
+                  // Hoặc khớp nếu là like icon
+                  (m.text === "👍" && newMsg.text === "👍")),
             );
 
-            if (pendingIndex !== -1) {
-              //  Giữ nguyên vị trí, chỉ update data
+            if (existingIndex !== -1) {
+              // ✅ Cập nhật tin nhắn tạm thành tin nhắn thật
               const updated = [...prev];
-              updated[pendingIndex] = {
+              updated[existingIndex] = {
                 ...newMsg,
-                _local_id: prev[pendingIndex]._local_id, // Giữ _local_id để React không vẽ lại (quan trọng)
+                _local_id: prev[existingIndex]._local_id, // Giữ lại ID local để React không vẽ lại sai
+                isSending: false, // Quan trọng: Đánh dấu đã gửi xong để hiện nút thu hồi
               };
-
-              // Lưu cache để lần sau mở lại có data chuẩn
-              saveToCache(conversation.id, updated);
               return updated;
+            }
+
+            // Kiểm tra trùng lặp theo ID thật (đề phòng)
+            if (prev.some((m) => m.id === newMsg.id)) {
+              return prev;
             }
           }
 
-          // 2. TRƯỜNG HỢP: Tin nhắn BÌNH THƯỜNG (Của người khác hoặc tin mình nhưng không tìm thấy bản giả lập)
+          // Xử lý tin nhắn từ người khác
+          if (prev.some((m) => m.id === newMsg.id)) {
+            return prev;
+          }
 
-          // Kiểm tra trùng lặp ID (Deduplication)
-          const exists = prev.some((msg) => msg.id === newMsg.id);
-          if (exists) return prev;
-
-          // Thêm mới và sắp xếp lại theo thời gian
-          const sorted = [...prev, newMsg].sort(
-            (a, b) => new Date(a.created_at) - new Date(b.created_at)
-          );
-
-          // Cập nhật cache
-          saveToCache(conversation.id, sorted);
-          return sorted;
+          return [...prev, newMsg];
         });
 
-        // Đánh dấu đã đọc nếu chat đang mở
-        if (!isMinimized) {
-          chatWebSocketService.markAsRead(conversation.id);
-        }
+        scrollToBottom();
       }
     };
 
@@ -257,43 +282,72 @@ const ChatPopup = ({
       if (data.conversation_id === conversation?.id) {
         setMessages((prev) => {
           const updated = prev.map((msg) =>
-            msg.is_read ? msg : { ...msg, is_read: true }
+            msg.is_read ? msg : { ...msg, is_read: true },
           );
           return updated;
         });
+      }
+    };
+    const handleMessageRecalled = (data) => {
+      if (Number(data.conversation_id) === Number(conversation.id)) {
+        setMessages((prev) =>
+          prev.map((msg) => {
+            if (msg.id === data.message_id) {
+              return {
+                ...msg,
+                is_recalled: true,
+                text: "Tin nhắn đã được thu hồi",
+                attachment: null,
+                post_data: null,
+              };
+            }
+            return msg;
+          }),
+        );
       }
     };
 
     chatWebSocketService.on("new_message", handleNewMessage);
     chatWebSocketService.on("user_typing", handleTyping);
     chatWebSocketService.on("messages_read", handleMessagesRead);
+    chatWebSocketService.on("message_recalled", handleMessageRecalled);
 
     return () => {
       chatWebSocketService.off("new_message", handleNewMessage);
       chatWebSocketService.off("user_typing", handleTyping);
       chatWebSocketService.off("messages_read", handleMessagesRead);
+      chatWebSocketService.off("message_recalled", handleMessageRecalled);
     };
   }, [conversation?.id, currentUser.id, isMinimized]);
+
+  // ---------------------------------------------------------------
+  const handleRecall = async (msgId) => {
+    if (!window.confirm("Bạn có chắc muốn thu hồi tin nhắn này?")) return;
+    try {
+      await recallMessage(msgId);
+    } catch (error) {
+      console.error("Lỗi thu hồi:", error);
+      alert("Không thể thu hồi tin nhắn.");
+    }
+  };
 
   useLayoutEffect(() => {
     if (loading) return;
 
-    // Nếu vừa load xong data (có messages) và không phải do người khác đang gõ
-    // Dùng 'auto' để nhảy ngay xuống cuối
     if (messages.length > 0 && !isTyping) {
       messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, conversation?.id]);
 
-  // Smooth scroll khi có tin nhắn mới thêm vào
   useEffect(() => {
     if (!loading && messages.length > 0) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages, loading]);
+
   // ---------------------------------------------------------------
-  // XỬ LÝ GỬI FILE ẢNH/VIDEO/TÀI LIỆU
+  //  XỬ LÝ GỬI FILE ẢNH/VIDEO/TÀI LIỆU
   // ---------------------------------------------------------------
   const handleFileSelect = async (e) => {
     const file = e.target.files[0];
@@ -328,12 +382,9 @@ const ChatPopup = ({
     scrollToBottom();
 
     try {
-      //  Upload lên Server
       const uploadResult = await uploadAttachment(file);
-
-      //  Gửi Socket (ĐÃ SỬA LẠI ĐÚNG CÚ PHÁP)
       chatWebSocketService.send({
-        type: "send_message", // Type nằm trong object
+        type: "send_message",
         conversation_id: conversation.id,
         text: "",
         attachment: {
@@ -352,16 +403,13 @@ const ChatPopup = ({
   // ---------------------------------------------------------------
   const handleSendLike = () => {
     if (!conversation?.id) return;
-
     const likeEmoji = "👍";
-
-    // Optimistic UI cho Like
     const optimisticMsg = {
       id: null,
       _local_id: uuidv4(),
       conversation: conversation.id,
       text: likeEmoji,
-      isLike: true, // Flag để style to hơn nếu muốn
+      isLike: true,
       sender: {
         id: currentUser.id,
         name: currentUser.name,
@@ -370,45 +418,40 @@ const ChatPopup = ({
       created_at: new Date().toISOString(),
       isSending: true,
     };
-
     setMessages((prev) => [...prev, optimisticMsg]);
     scrollToBottom();
-
-    // Gửi qua socket
     chatWebSocketService.sendMessage(conversation.id, likeEmoji);
   };
+
   //  Gửi tin nhắn
   const handleSend = (e) => {
     e.preventDefault();
     const textToSend = message.trim();
     if (!textToSend || !conversation?.id) return;
 
-    //  TẠO TIN NHẮN GIẢ LẬP (Optimistic Message)
     const optimisticMsg = {
-      id: null, // Chưa có ID server
+      id: null,
       _local_id: uuidv4(),
       conversation: conversation.id,
       text: textToSend,
       sender: {
         id: currentUser.id,
         name: currentUser.name || currentUser.username || "Tôi",
-        avatar: currentUser.avatar, // Dùng avatar từ localStorage
+        avatar: currentUser.avatar,
       },
       created_at: new Date().toISOString(),
       is_read: false,
-      isSending: true, // 🚩 Đánh dấu đang gửi
+      isSending: true,
     };
 
-    //  CẬP NHẬT GIAO DIỆN NGAY LẬP TỨC
     setMessages((prev) => [...prev, optimisticMsg]);
-    setMessage(""); // Xóa input ngay
+    setMessage("");
 
-    // GỬI SOCKET NGẦM
     chatWebSocketService.sendMessage(conversation.id, textToSend);
     markAsRead(conversation.id).catch((e) => {
       console.error("❌ Failed to mark as read after sending:", e);
     });
-    // TẮT TYPING (Gửi signal ngừng gõ)
+
     chatWebSocketService.sendTyping(conversation.id, false);
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
   };
@@ -428,44 +471,54 @@ const ChatPopup = ({
     }, 2000);
   };
 
+  // === RENDER GIAO DIỆN MỚI ===
+
   if (isMinimized) {
     return (
-      <div className="chat-popup-minimized" style={style} onClick={onMinimize}>
-        <img src={getAvatarUrl(contact)} alt={contact.name} />
-        {contact.online && <span className="mini-online-indicator"></span>}
-        <button
-          className="mini-close-btn"
-          onClick={(e) => {
-            e.stopPropagation();
-            onClose();
-          }}
-        >
-          <i className="fas fa-times"></i>
-        </button>
+      <div className="chat-popup minimized" style={style} onClick={onMinimize}>
+        <div className="minimized-header">
+          <img src={chatAvatar} alt={chatName} className="minimized-avatar" />
+          <span className="minimized-name">{chatName}</span>
+          <button
+            className="close-btn-mini"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
+          >
+            ×
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="chat-popup" style={style}>
+      {/* HEADER */}
       <div className="chat-popup-header">
         <div className="chat-header-left">
-          <img src={getAvatarUrl(contact)} alt={contact.name} />
+          <img src={chatAvatar} alt={chatName} className="chat-avatar" />
           <div className="chat-header-info">
-            <span className="contact-name">{contact.name}</span>
-            <span className="contact-status">
-              {contact.online ? t("chat.active") : t("chat.offline")}
-            </span>
+            <span className="contact-name">{chatName}</span>
+            <span className="contact-status">{chatStatus}</span>
           </div>
         </div>
         <div className="chat-header-actions">
-          <i className="fas fa-phone" title="Gọi điện"></i>
-          <i className="fas fa-video" title="Gọi video"></i>
-          <i className="fas fa-minus" onClick={onMinimize} title="Thu nhỏ"></i>
-          <i className="fas fa-times" onClick={onClose} title="Đóng"></i>
+          <button className="header-btn" title="Thu nhỏ" onClick={onMinimize}>
+            —
+          </button>
+          <button
+            className="header-btn close-btn"
+            title="Đóng"
+            onClick={onClose}
+          >
+            ×
+          </button>
         </div>
       </div>
 
+      {/* BODY */}
       <div
         className="chat-popup-body"
         ref={chatBodyRef}
@@ -473,159 +526,165 @@ const ChatPopup = ({
       >
         {loading ? (
           <div className="chat-loading">
-            <i className="fas fa-spinner fa-spin"></i> {t("chat.loading")}
+            <div className="spinner"></div>
           </div>
         ) : messages.length === 0 ? (
           <div className="chat-empty-state">
             <i className="far fa-comments"></i>
             <p>{t("chat.empty")}</p>
-            <p style={{ fontSize: "12px", opacity: 0.7 }}>
-              {t("chat.start_conversation")}
-            </p>
           </div>
         ) : (
           <>
             {messages.map((msg) => {
               const isMine = msg.sender?.id === currentUser.id;
               const isLikeEmoji = msg.text === "👍";
+              const showSenderName = conversation?.is_group && !isMine;
+
               return (
                 <div
                   key={msg._local_id}
-                  className={`message ${isMine ? "me" : "them"}`}
+                  className={`message-container ${isMine ? "me" : "them"}`}
                 >
                   {!isMine && (
                     <img
                       src={getAvatarUrl(msg.sender)}
                       alt={msg.sender?.name}
-                      className="message-avatar"
-                      data-name={getInitials(msg.sender?.name)}
+                      className="message-sender-avatar"
+                      title={msg.sender?.name}
                     />
                   )}
-                  <div
-                    className={`message-content ${
-                      isLikeEmoji ? "message-like-large" : ""
-                    }`}
-                    style={
-                      isLikeEmoji
-                        ? { background: "transparent", padding: 0 }
-                        : {}
-                    }
-                  >
-                    {/*  RENDER ẢNH/VIDEO VỚI SỰ KIỆN ONLOAD */}
-                    {msg.attachment?.type === "image" && (
-                      <div
-                        className="media-container"
-                        // Bắt sự kiện click để mở Lightbox
-                        onClick={() =>
-                          setPreviewImage(getAttachmentUrl(msg.attachment.url))
-                        }
-                      >
-                        <img
-                          src={getAttachmentUrl(msg.attachment.url)}
-                          alt="attachment"
-                          className="message-image"
-                          onLoad={handleImageLoad}
-                          style={{
-                            display: "block",
-                            maxWidth: "100%",
-                            borderRadius: "10px",
-                            minHeight: "100px",
-                            background: "#f0f0f0",
-                          }}
-                        />
-                        {msg.isSending && (
-                          <div className="media-overlay-sending">
-                            <div className="sending-spinner"></div>
-                          </div>
-                        )}
-                      </div>
-                    )}
 
-                    {msg.attachment?.type === "video" && (
-                      <div className="media-container">
-                        <video
-                          src={getAttachmentUrl(msg.attachment.url)}
-                          controls={!msg.isSending}
-                          style={{
-                            maxWidth: "100%",
-                            borderRadius: "10px",
-                            minHeight: "100px",
-                            background: "#000",
-                          }}
-                        />
-                        {msg.isSending && (
-                          <div className="media-overlay-sending">
-                            <div className="sending-spinner"></div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    {/* TEXT MESSAGE */}
-                    {msg.text && (
-                      <div
-                        className="message-text"
-                        style={
-                          isLikeEmoji
-                            ? { fontSize: "40px", lineHeight: "1" }
-                            : {}
-                        }
-                      >
-                        {msg.text}
-                      </div>
-                    )}
-                    {/* TIME */}
-                    {!isLikeEmoji && (
-                      <span className="message-time">
-                        {new Date(msg.created_at).toLocaleTimeString("vi-VN", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                  <div className="message-content-wrapper">
+                    {showSenderName && (
+                      <span className="message-sender-name">
+                        {msg.sender?.name}
                       </span>
                     )}
+
+                    <div
+                      className={`message-bubble ${
+                        isLikeEmoji ? "emoji-only" : ""
+                      } ${msg.is_recalled ? "recalled" : ""}`}
+                    >
+                      {msg.is_recalled ? (
+                        <div className="message-recalled-content">
+                          <i className="fas fa-ban"></i>{" "}
+                          {t("chat.message_recalled") ||
+                            "Tin nhắn đã được thu hồi"}
+                        </div>
+                      ) : (
+                        <>
+                          {msg.attachment?.type === "image" && (
+                            <div
+                              className="media-container image"
+                              onClick={() =>
+                                setPreviewImage(
+                                  getAttachmentUrl(msg.attachment.url),
+                                )
+                              }
+                            >
+                              <img
+                                src={getAttachmentUrl(msg.attachment.url)}
+                                alt="attachment"
+                                onLoad={handleImageLoad}
+                              />
+                              {msg.isSending && (
+                                <div className="sending-overlay">
+                                  <div className="spinner"></div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {msg.attachment?.type === "video" && (
+                            <div className="media-container video">
+                              <video
+                                src={getAttachmentUrl(msg.attachment.url)}
+                                controls={!msg.isSending}
+                              />
+                              {msg.isSending && (
+                                <div className="sending-overlay">
+                                  <div className="spinner"></div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {msg.post_data && (
+                            <SharedPostCard postData={msg.post_data} />
+                          )}
+
+                          {msg.text && (
+                            <div className="message-text">{msg.text}</div>
+                          )}
+                        </>
+                      )}
+
+                      {!isLikeEmoji && !msg.is_recalled && (
+                        <span className="message-time">
+                          {new Date(msg.created_at).toLocaleTimeString(
+                            "vi-VN",
+                            { hour: "2-digit", minute: "2-digit" },
+                          )}
+                        </span>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Nút thu hồi (Hiện khi hover vào message-container) */}
+                  {isMine &&
+                    !msg.is_recalled &&
+                    !msg.isSending &&
+                    !isLikeEmoji && (
+                      <div className="message-actions">
+                        <i
+                          className="fas fa-undo-alt recall-btn"
+                          title={t("chat.recall")}
+                          onClick={() => handleRecall(msg.id)}
+                        ></i>
+                      </div>
+                    )}
                 </div>
               );
             })}
 
             {isTyping && (
-              <div className="typing-indicator">
+              <div className="message-container them typing-indicator">
                 <img
                   src={getAvatarUrl(contact)}
-                  alt=""
-                  className="message-avatar"
+                  className="message-sender-avatar"
+                  alt="..."
                 />
-                <div className="typing-dots">
-                  <span></span>
-                  <span></span>
-                  <span></span>
+                <div className="message-bubble typing">
+                  <div className="dot"></div>
+                  <div className="dot"></div>
+                  <div className="dot"></div>
                 </div>
               </div>
             )}
-
             <div ref={messagesEndRef} />
           </>
         )}
       </div>
+
+      {/* LIGHTBOX PREVIEW */}
       {previewImage && (
-        <div className="lightbox-overlay" onClick={() => setPreviewImage(null)}>
-          <span
-            className="lightbox-close"
-            onClick={() => setPreviewImage(null)}
-          >
-            &times;
+        <div
+          className="image-preview-modal"
+          onClick={() => setPreviewImage(null)}
+        >
+          <span className="close-preview" onClick={() => setPreviewImage(null)}>
+            ×
           </span>
-          <div
-            className="lightbox-content"
+          <img
+            src={previewImage}
+            alt="Full Preview"
             onClick={(e) => e.stopPropagation()}
-          >
-            <img
-              src={previewImage}
-              alt="Full Preview"
-              className="lightbox-image"
-            />
-          </div>
+          />
         </div>
       )}
+
+      {/* FOOTER */}
       <form className="chat-popup-footer" onSubmit={handleSend}>
         <input
           type="file"
@@ -637,26 +696,33 @@ const ChatPopup = ({
         />
         <button
           type="button"
-          className="attach-btn"
+          className="footer-btn attach-btn"
           onClick={() => fileInputRef.current?.click()}
         >
           <i className="fas fa-plus-circle"></i>
         </button>
+
         <input
           type="text"
           placeholder="Aa"
           value={message}
           onChange={handleTypingInput}
         />
-        <button type="button" className="emoji-btn">
+
+        <button type="button" className="footer-btn emoji-btn">
           <i className="far fa-smile"></i>
         </button>
+
         {message.trim() ? (
-          <button type="submit" className="send-btn">
+          <button type="submit" className="footer-btn send-btn">
             <i className="fas fa-paper-plane"></i>
           </button>
         ) : (
-          <button type="button" className="like-btn" onClick={handleSendLike}>
+          <button
+            type="button"
+            className="footer-btn like-btn"
+            onClick={handleSendLike}
+          >
             <img
               src={likeIcon}
               alt="Like"

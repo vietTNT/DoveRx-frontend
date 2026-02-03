@@ -35,7 +35,20 @@
     "register_doctor_desc": "Vui lòng nhập thông tin để tham gia nền tảng DoveRx",
     "logging_in": "Đang đăng nhập...",
     "placeholder_email_register": "Nhập email đã đăng ký",
-    "placeholder_otp": "Nhập mã OTP (6 chữ số)"
+    "placeholder_otp": "Nhập mã OTP (6 chữ số)",
+    "otp_sent": "Mã OTP đã được gửi vào email!",
+    "register_success": "Đăng ký thành công! Vui lòng đăng nhập.",
+    "invalid_credentials": "Tên đăng nhập hoặc mật khẩu không đúng.",
+    "account_not_verified": "Tài khoản chưa được xác minh. Vui lòng kiểm tra email để xác minh.",
+    "doctor_not_found": "Không tìm thấy tài khoản bác sĩ với email này.",
+    "invalid_otp": "Mã OTP không hợp lệ hoặc đã hết hạn.",
+    "login_success": "Đăng nhập thành công!",
+    "logout_success": "Đăng xuất thành công!",
+    "register_error": "Lỗi khi đăng ký tài khoản bác sĩ.",
+    "login_error": "Lỗi khi đăng nhập. Vui lòng thử lại.",
+    "verify_error": "Lỗi khi xác minh tài khoản. Vui lòng thử lại.",
+    "forgot_password": "Quên mật khẩu?",
+    "reset_password": "Đặt lại mật khẩu"
   },
   "doctor_form": {
     "username": "Tên đăng nhập",
@@ -96,6 +109,7 @@
     "no_comments_yet": "Chưa có bình luận nào. Hãy là người đầu tiên!",
     "video": "Video",
     "event": "Sự kiện",
+    "share_count": "lượt chia sẻ",
     "medical_form": {
       "title_symptom": "Về triệu chứng và tình trạng hiện tại",
       "symptom": "Bạn đang gặp những triệu chứng gì?",
