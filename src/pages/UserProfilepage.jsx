@@ -158,39 +158,61 @@ const UserProfilePage = ({ user: currentUser, onLogout, setAppUser }) => {
     setFormData({ ...formData, [name]: value });
   };
 
+  // Tìm đến hàm handleSaveProfile cũ và thay thế bằng đoạn này:
   const handleSaveProfile = async () => {
     try {
       setSaving(true);
       const token = localStorage.getItem("access");
       const form = new FormData();
+
+      // 1. Map giới tính (Code cũ của bạn)
       const gMap = { Nam: "male", Nữ: "female", Khác: "other" };
-      const genderValue = gMap[formData.gender] || formData.gender;
 
-      Object.keys(formData).forEach((key) => {
-        if (key === "gender") {
-          if (genderValue) form.append("gender", genderValue);
-        } else {
-          form.append(key, formData[key]);
-        }
-      });
+      // 2. Thêm các trường cơ bản (Dùng snake_case cho chắc chắn khớp Backend)
+      form.append("first_name", formData.first_name);
+      form.append("last_name", formData.last_name);
+      form.append("gender", gMap[formData.gender] || formData.gender);
+      form.append("age", formData.age);
+      form.append("phone", formData.phone);
+      form.append("address", formData.address);
+      form.append("bio", formData.bio);
 
-      const res = await axios.put(
+      // 3. XỬ LÝ QUAN TRỌNG CHO BÁC SĨ (Sửa lỗi mất dữ liệu ở đây)
+      // Backend Django của bạn đang đợi: doctor_type (có gạch dưới)
+      // Nhưng form React của bạn đang lưu: doctorType (viết liền)
+      if (user.role === "doctor") {
+        form.append("doctor_type", formData.doctorType); // <--- ĐÃ SỬA TÊN BIẾN
+        form.append("experience_years", formData.experience_years);
+        form.append("workplace", formData.workplace);
+        form.append("specialty", formData.specialty);
+        form.append("license_number", formData.license_number);
+      }
+
+      // 4. Đổi PUT thành PATCH
+      // PATCH an toàn hơn vì nó chỉ update những gì bạn gửi, không xóa những cái thiếu
+      const res = await axios.patch(
         `${process.env.REACT_APP_API_BASE}/api/accounts/update-profile/`,
         form,
         { headers: { Authorization: `Bearer ${token}` } },
       );
+
       const finalUser = res.data;
       setUser(finalUser);
+
+      // Cập nhật lại state form để hiển thị đúng ngay lập tức
       setFormData((prev) => ({
         ...prev,
         gender: apiToLabelGender(finalUser.gender),
       }));
+
       if (setAppUser) setAppUser(finalUser);
       localStorage.setItem("user", JSON.stringify(finalUser));
-      toast.success("Lưu thông tin thành công!");
+
+      toast.success("Lưu thông tin Bác sĩ thành công!");
       setIsEditing(false);
     } catch (error) {
-      toast.error("Cập nhật thất bại!");
+      console.error(error);
+      toast.error("Cập nhật thất bại! Vui lòng kiểm tra kết nối.");
     } finally {
       setSaving(false);
     }

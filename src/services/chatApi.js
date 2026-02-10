@@ -73,3 +73,26 @@ export const recallMessage = async (messageId) => {
   const { data } = await api.post(`/api/chat/messages/${messageId}/recall/`);
   return data;
 };
+// ===== AI Chatbot APIs =====
+export const fetchAiConversations = async () => {
+  const { data } = await api.get("/api/chat/ai/conversations/");
+  return data;
+};
+
+export const createAiConversation = async () => {
+  const { data } = await api.post("/api/chat/ai/create/");
+  return data;
+};
+
+export const deleteAiConversation = async (conversationId) => {
+  const { data } = await api.delete(`/api/chat/ai/${conversationId}/delete/`);
+  return data;
+};
+
+// Nếu cần đổi tên hội thoại sau này
+export const renameAiConversation = async (conversationId, title) => {
+  const { data } = await api.patch(`/api/chat/ai/${conversationId}/rename/`, {
+    title,
+  });
+  return data;
+};

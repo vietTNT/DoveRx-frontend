@@ -1,112 +1,269 @@
-// src/components/Chat/Chatbot.jsx
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import "../../styles/chat/chatbot.css";
+import ChatbotFull from "./ChatbotFull";
+
+// Import API
+import {
+  fetchAiConversations,
+  createAiConversation,
+  deleteAiConversation,
+} from "../../services/chatApi";
 
 const Chatbot = ({ isOpen, onClose, botIcon }) => {
+  const [messages, setMessages] = useState([]);
   const [isMinimized, setIsMinimized] = useState(false);
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      text: "Xin chào! Tôi là trợ lý AI DoveRx. Tôi có thể giúp gì cho sức khỏe của bạn?",
-      sender: "bot",
-    },
-  ]);
+  const [isFullScreen, setIsFullScreen] = useState(false);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const [socket, setSocket] = useState(null);
+
+  const [conversationList, setConversationList] = useState([]);
+  const [currentConversationId, setCurrentConversationId] = useState(null);
+
+  // Refs
+  const socketRef = useRef(null);
+  const reconnectTimeoutRef = useRef(null);
   const messagesEndRef = useRef(null);
+
+  const activeConversationIdRef = useRef(null);
+
+  // Auto scroll
+  useEffect(() => {
+    if (!isFullScreen) scrollToBottom();
+  }, [messages, isFullScreen, isTyping]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, isTyping]);
+  // --- API LẤY DANH SÁCH ---
+  const loadConversations = useCallback(async () => {
+    try {
+      const data = await fetchAiConversations();
+      setConversationList(data);
+      // Chỉ set ID mặc định nếu chưa có ID nào được chọn
+      if (!activeConversationIdRef.current && data.length > 0) {
+        setCurrentConversationId(data[0].id);
+      }
+    } catch (e) {
+      console.error("Lỗi tải danh sách AI chat:", e);
+    }
+  }, []); // Bỏ dependency thừa
 
+  // --- LOGIC WEBSOCKET ---
+  const connectWebSocket = useCallback(
+    (convId) => {
+      let token =
+        localStorage.getItem("access") ||
+        localStorage.getItem("access_token") ||
+        localStorage.getItem("token");
+      if (!token) {
+        console.error("❌ Không tìm thấy Token, vui lòng đăng nhập lại.");
+        return;
+      }
+
+      // 🔥 FIX 2: Nếu đang kết nối tới đúng convId này rồi thì KHÔNG làm gì cả
+      if (
+        socketRef.current &&
+        socketRef.current.readyState === WebSocket.OPEN &&
+        activeConversationIdRef.current === convId
+      ) {
+        return;
+      }
+
+      // Clear timeout cũ
+      if (reconnectTimeoutRef.current)
+        clearTimeout(reconnectTimeoutRef.current);
+
+      // Đóng socket cũ nếu nó đang chạy ở ID khác
+      if (socketRef.current) {
+        socketRef.current.close();
+      }
+
+      // Cập nhật Ref ID hiện tại
+      activeConversationIdRef.current = convId;
+
+      const wsBase = process.env.REACT_APP_WS_BASE || "ws://localhost:8000";
+      let wsUrl = `${wsBase}/ws/chatbot/?token=${token}`;
+      if (convId) wsUrl += `&conversation_id=${convId}`;
+
+      console.log("🔌 [AI Chat] Connecting:", wsUrl);
+      const newSocket = new WebSocket(wsUrl);
+      socketRef.current = newSocket;
+
+      newSocket.onopen = () => {
+        console.log(`✅ [AI Chat] Connected: ID ${convId}`);
+      };
+
+      newSocket.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === "history") {
+            setMessages(data.messages);
+
+            // 🔥 FIX 3: Nếu server trả về ID khác (VD: tạo mới), chỉ update state UI
+            // KHÔNG gọi lại connectWebSocket ở đây
+            if (
+              data.conversation_id &&
+              data.conversation_id !== activeConversationIdRef.current
+            ) {
+              console.log("🔄 Sync ID từ Server:", data.conversation_id);
+              setCurrentConversationId(data.conversation_id);
+              activeConversationIdRef.current = data.conversation_id; // Update ref để chặn reconnect
+              loadConversations();
+            }
+            setTimeout(scrollToBottom, 100);
+          } else if (data.type === "typing") {
+            setIsTyping(data.status);
+          } else if (data.type === "ai_response") {
+            setMessages((prev) => [
+              ...prev,
+              { id: Date.now(), text: data.message, sender: "bot" },
+            ]);
+            setIsTyping(false);
+            loadConversations();
+          }
+        } catch (err) {
+          console.error("Parse error:", err);
+        }
+      };
+
+      newSocket.onclose = (e) => {
+        // Chỉ reconnect nếu không phải do code chủ động đóng (1000) và Chatbot đang mở
+        if (e.code !== 1000) {
+          console.log(
+            `❌ Socket closed (Code: ${e.code}). Reconnecting in 3s...`,
+          );
+          reconnectTimeoutRef.current = setTimeout(() => {
+            connectWebSocket(activeConversationIdRef.current); // Reconnect với ID hiện tại
+          }, 3000);
+        }
+      };
+
+      newSocket.onerror = (err) => {
+        console.error("Socket error:", err);
+        newSocket.close();
+      };
+    },
+    [loadConversations],
+  );
+
+  // Effect khởi chạy
   useEffect(() => {
     if (isOpen) {
       setIsMinimized(false);
-      connectWebSocket();
+      loadConversations();
     }
     return () => {
-      if (socket) {
-        socket.close();
-        setSocket(null);
+      if (socketRef.current) {
+        socketRef.current.close(1000); // Code 1000: Normal Closure
       }
+      if (reconnectTimeoutRef.current)
+        clearTimeout(reconnectTimeoutRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
+  }, [isOpen, loadConversations]);
 
-  const connectWebSocket = () => {
-    let token =
-      localStorage.getItem("access_token") || localStorage.getItem("token");
-    if (!token) {
-      try {
-        const userStr = localStorage.getItem("user");
-        if (userStr) {
-          const userObj = JSON.parse(userStr);
-          token = userObj.access || userObj.token || userObj.accessToken;
-        }
-      } catch (e) {}
+  // Effect theo dõi thay đổi ID hội thoại để kết nối
+  useEffect(() => {
+    if (isOpen && currentConversationId) {
+      // Chỉ kết nối nếu ID thay đổi so với ID đang active
+      if (currentConversationId !== activeConversationIdRef.current) {
+        connectWebSocket(currentConversationId);
+      }
     }
+  }, [isOpen, currentConversationId, connectWebSocket]);
 
-    if (!token) return;
-    if (socket && socket.readyState === WebSocket.OPEN) return;
+  // ... (Giữ nguyên các hàm handleSend, handleCreateNewChat, render UI như cũ)
 
-    const wsUrl = `ws://127.0.0.1:8000/ws/chatbot/?token=${token}`;
-    const newSocket = new WebSocket(wsUrl);
+  // --- COPY LẠI CÁC HÀM CŨ VÀO DƯỚI ĐÂY ---
+  const handleCreateNewChat = async () => {
+    try {
+      const newChat = await createAiConversation();
+      setConversationList((prev) => [newChat, ...prev]);
+      setCurrentConversationId(newChat.id); // Sẽ trigger useEffect -> connectWebSocket
+      setMessages([]);
+    } catch (e) {
+      console.error("Lỗi tạo chat mới:", e);
+    }
+  };
 
-    newSocket.onopen = () => console.log("✅ Chatbot Connected");
-
-    newSocket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.type === "typing") {
-        setIsTyping(data.status);
-      } else if (data.type === "ai_response") {
-        setMessages((prev) => [
-          ...prev,
-          { id: Date.now(), text: data.message, sender: "bot" },
-        ]);
-        setIsTyping(false);
+  const handleDeleteChat = async (chatId) => {
+    try {
+      await deleteAiConversation(chatId);
+      const newList = conversationList.filter((c) => c.id !== chatId);
+      setConversationList(newList);
+      if (currentConversationId === chatId) {
+        setCurrentConversationId(null);
+        activeConversationIdRef.current = null;
+        setMessages([]);
+        // Đóng socket nếu xóa cuộc hội thoại đang mở
+        if (socketRef.current) socketRef.current.close();
       }
-    };
-
-    newSocket.onclose = () => setSocket(null);
-    setSocket(newSocket);
+    } catch (e) {
+      console.error("Lỗi xóa chat:", e);
+    }
   };
 
   const handleSend = () => {
-    if (!input.trim() || !socket) return;
+    if (!input.trim()) return;
+
+    if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
+      console.log("Mất kết nối, đang thử lại...");
+      connectWebSocket(currentConversationId);
+      return;
+    }
+
     setMessages((prev) => [
       ...prev,
       { id: Date.now(), text: input, sender: "user" },
     ]);
-    socket.send(JSON.stringify({ message: input }));
+
+    socketRef.current.send(JSON.stringify({ message: input }));
     setInput("");
     setIsTyping(true);
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === "Enter") handleSend();
+    if (e.nativeEvent.isComposing) return;
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSend();
+    }
   };
 
-  // --- RENDER ---
   if (!isOpen) return null;
 
-  // 1. Giao diện BONG BÓNG (khi thu nhỏ)
+  if (isFullScreen) {
+    return (
+      <ChatbotFull
+        messages={messages}
+        input={input}
+        setInput={setInput}
+        handleSend={handleSend}
+        handleKeyDown={handleKeyDown}
+        isTyping={isTyping}
+        onCloseFull={() => setIsFullScreen(false)}
+        conversationList={conversationList}
+        currentConversationId={currentConversationId}
+        onSelectConversation={setCurrentConversationId}
+        onCreateNewChat={handleCreateNewChat}
+        onDeleteChat={handleDeleteChat}
+        botIcon={botIcon}
+      />
+    );
+  }
+
+  // Widget UI
   if (isMinimized) {
     return (
       <div
         onClick={() => setIsMinimized(false)}
-        className="fixed bottom-6 right-6 z-50 w-16 h-16 bg-gradient-to-r from-blue-600 to-blue-500 rounded-full shadow-2xl flex items-center justify-center cursor-pointer hover:scale-110 transition-transform animate-bounce-in border-2 border-white"
-        title="Mở chat"
+        className="fixed bottom-6 right-6 z-[60] w-16 h-16 bg-white rounded-full shadow-2xl flex items-center justify-center cursor-pointer transition-all duration-200 hover:brightness-110 border-2 border-blue-500 animate-bounce-in"
       >
         <img
           src={botIcon}
-          alt="AI Bubble"
+          alt="AI"
           className="w-10 h-10 object-contain drop-shadow-sm"
         />
         <span className="absolute top-0 right-0 w-4 h-4 bg-green-400 border-2 border-white rounded-full"></span>
@@ -114,16 +271,8 @@ const Chatbot = ({ isOpen, onClose, botIcon }) => {
     );
   }
 
-  // 2. Giao diện CỬA SỔ CHAT (Responsive: Mobile Fullscreen - Desktop Popup)
   return (
-    <div
-      className="fixed z-50 flex flex-col bg-white shadow-2xl overflow-hidden font-sans border border-gray-200 animate-slide-up
-      /* MOBILE: Full màn hình, sát đáy */
-      w-full h-full bottom-0 right-0 rounded-none
-      /* TABLET/PC (sm trở lên): Cửa sổ nhỏ góc phải, bo góc */
-      sm:w-[400px] sm:h-[600px] sm:bottom-6 sm:right-6 sm:rounded-2xl"
-    >
-      {/* HEADER */}
+    <div className="fixed z-[55] flex flex-col bg-white shadow-2xl overflow-hidden font-sans border border-gray-200 animate-slide-up bottom-6 right-6 w-full h-full sm:w-[400px] sm:h-[600px] sm:rounded-2xl">
       <div className="bg-gradient-to-r from-blue-600 to-blue-500 p-4 flex justify-between items-center text-white shadow-md flex-shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm p-1">
@@ -141,12 +290,46 @@ const Chatbot = ({ isOpen, onClose, botIcon }) => {
             </div>
           </div>
         </div>
-
         <div className="flex items-center gap-1">
+          <button
+            onClick={handleCreateNewChat}
+            className="p-2 hover:bg-white/20 rounded-full transition-colors"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
+          </button>
+          <button
+            onClick={() => setIsFullScreen(true)}
+            className="p-2 hover:bg-white/20 rounded-full transition-colors"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
+              />
+            </svg>
+          </button>
           <button
             onClick={() => setIsMinimized(true)}
             className="p-2 hover:bg-white/20 rounded-full transition-colors"
-            title="Thu nhỏ"
           >
             <svg
               className="w-6 h-6"
@@ -165,7 +348,6 @@ const Chatbot = ({ isOpen, onClose, botIcon }) => {
           <button
             onClick={onClose}
             className="p-2 hover:bg-white/20 rounded-full transition-colors"
-            title="Đóng chat"
           >
             <svg
               className="w-6 h-6"
@@ -184,7 +366,6 @@ const Chatbot = ({ isOpen, onClose, botIcon }) => {
         </div>
       </div>
 
-      {/* MESSAGE AREA */}
       <div className="flex-1 overflow-y-auto p-4 bg-gray-50 space-y-4 chat-scroll">
         {messages.map((msg) => (
           <div
@@ -200,16 +381,10 @@ const Chatbot = ({ isOpen, onClose, botIcon }) => {
                 />
               </div>
             )}
-
             <div
-              className={`max-w-[85%] p-3.5 rounded-2xl shadow-sm text-sm leading-relaxed ${
-                msg.sender === "user"
-                  ? "bg-blue-600 text-white rounded-tr-none"
-                  : "bg-white text-gray-800 border border-gray-100 rounded-tl-none"
-              }`}
+              className={`max-w-[85%] p-3.5 rounded-2xl shadow-sm text-sm leading-relaxed ${msg.sender === "user" ? "bg-blue-600 text-white rounded-tr-none" : "bg-white text-gray-800 border border-gray-100 rounded-tl-none"}`}
             >
               {msg.sender === "bot" ? (
-                // Dùng class markdown-content từ CSS để style đẹp hơn
                 <div className="markdown-content">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>
                     {msg.text}
@@ -221,20 +396,18 @@ const Chatbot = ({ isOpen, onClose, botIcon }) => {
             </div>
           </div>
         ))}
-
         {isTyping && (
           <div className="flex justify-start">
             <div className="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 shadow-sm flex items-center gap-1 ml-10">
-              <div className="w-2 h-2 bg-gray-400 rounded-full typing-dot"></div>
-              <div className="w-2 h-2 bg-gray-400 rounded-full typing-dot ml-1"></div>
-              <div className="w-2 h-2 bg-gray-400 rounded-full typing-dot ml-1"></div>
+              <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span>
+              <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-75"></span>
+              <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-150"></span>
             </div>
           </div>
         )}
         <div ref={messagesEndRef} />
       </div>
 
-      {/* FOOTER */}
       <div className="p-3 bg-white border-t border-gray-100 flex-shrink-0 pb-6 sm:pb-3">
         <div className="relative flex items-center bg-gray-100 rounded-full px-4 py-2 focus-within:ring-2 focus-within:ring-blue-100 focus-within:bg-white transition-all">
           <input
@@ -248,7 +421,7 @@ const Chatbot = ({ isOpen, onClose, botIcon }) => {
           <button
             onClick={handleSend}
             disabled={!input.trim()}
-            className="ml-2 p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md flex items-center justify-center flex-shrink-0"
+            className="ml-2 p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-all shadow-md flex items-center justify-center flex-shrink-0"
           >
             <svg
               className="w-5 h-5 transform rotate-90"
@@ -264,11 +437,6 @@ const Chatbot = ({ isOpen, onClose, botIcon }) => {
               />
             </svg>
           </button>
-        </div>
-        <div className="text-center mt-2">
-          <p className="text-[10px] text-gray-400">
-            AI có thể mắc lỗi. Vui lòng kiểm tra lại thông tin y tế quan trọng.
-          </p>
         </div>
       </div>
     </div>
