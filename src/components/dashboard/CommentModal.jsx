@@ -78,6 +78,7 @@ const CommentModal = ({
   const commentListRef = useRef(null);
   const hidePopupTimer = useRef(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isSharedExpanded, setIsSharedExpanded] = useState(false);
   const CHAR_LIMIT = 350;
 
   const list = comments[post.id]?.list || [];
@@ -85,20 +86,26 @@ const CommentModal = ({
   const myReactionEmoji = myReaction
     ? emojiList.find((e) => e.type === myReaction)
     : null;
+
+  // KIỂM TRA QUYỀN TRẢ LỜI BÌNH LUẬN: Nếu bài viết là "medical" thì chỉ bác sĩ hoặc tác giả mới được bình luận
+  const canComment =
+    post?.kind !== "medical" ||
+    currentUser?.role === "doctor" ||
+    String(currentUser?.id) === String(post?.author?.id || post?.author);
   // Thông tin tác giả
-  const authorName = post.author?.name || post.author || "Người dùng";
+  const authorName = post.author?.name || post.author || t("navbar.role_user");
   const authorAvatar = post.author?.avatar || post.avatar;
 
   // TÍNH TOÁN ICON REACTION ĐỂ HIỂN THỊ ĐÚNG
   const counts = post.reaction_counts || {};
   const totalReactions = Object.values(counts).reduce(
     (sum, c) => sum + (Number(c) || 0),
-    0
+    0,
   );
 
   // Lọc ra những loại reaction có số lượng > 0 để hiển thị icon (VD: Like, Love)
   const activeReactionTypes = Object.keys(counts).filter(
-    (type) => counts[type] > 0
+    (type) => counts[type] > 0,
   );
 
   const armPopup = (id) => {
@@ -192,22 +199,69 @@ const CommentModal = ({
                   <div className="post-content medical-post">
                     <p>
                       <strong>
-                        🩺 {t("dashboard.medical_form.title_symptom")}
+                        {t("dashboard.medical_form.title_symptom")}
                       </strong>{" "}
                       {content.symptom || "—"}
                     </p>
                     <p>
-                      <strong>⏱️ {t("dashboard.medical_form.duration")}</strong>{" "}
+                      <strong> {t("dashboard.medical_form.duration")}</strong>{" "}
                       {content.duration || "—"}
                     </p>
                     <p>
-                      <strong>⚖️ {t("dashboard.medical_form.severity")}</strong>{" "}
+                      <strong> {t("dashboard.medical_form.severity")}</strong>{" "}
                       {content.severity || "—"}
                     </p>
                     <p>
-                      <strong>📈 {t("dashboard.medical_form.factors")}</strong>{" "}
+                      <strong> {t("dashboard.medical_form.factors")}</strong>{" "}
                       {content.factors || "—"}
                     </p>
+                    {(content.historyPersonal ||
+                      content.historyFamily ||
+                      content.medication) && (
+                      <>
+                        <hr
+                          style={{ margin: "8px 0", borderColor: "#e0e0e0" }}
+                        />
+                        {content.historyPersonal && (
+                          <p>
+                            <strong>
+                              {t("dashboard.medical_form.history_personal")}
+                            </strong>{" "}
+                            {content.historyPersonal}
+                          </p>
+                        )}
+                        {content.historyFamily && (
+                          <p>
+                            <strong>
+                              {t("dashboard.medical_form.history_family")}
+                            </strong>{" "}
+                            {content.historyFamily}
+                          </p>
+                        )}
+                        {content.medication && (
+                          <p>
+                            <strong>
+                              {t("dashboard.medical_form.medication")}
+                            </strong>{" "}
+                            {content.medication}
+                          </p>
+                        )}
+                      </>
+                    )}
+
+                    {content.lifestyle && (
+                      <>
+                        <hr
+                          style={{ margin: "8px 0", borderColor: "#e0e0e0" }}
+                        />
+                        <p>
+                          <strong>
+                            {t("dashboard.medical_form.lifestyle")}
+                          </strong>{" "}
+                          {content.lifestyle}
+                        </p>
+                      </>
+                    )}
                   </div>
                 );
               } else {
@@ -236,6 +290,364 @@ const CommentModal = ({
                         {t("dashboard.less_see")}
                       </span>
                     )}
+
+                    {/* ================= BẮT ĐẦU: HIỂN THỊ KHUNG BÀI ĐƯỢC SHARE ================= */}
+                    {post.kind === "share" && post.shared_post && (
+                      <div
+                        className="shared-post-box"
+                        style={{
+                          marginTop: "12px",
+                          border: "1px solid #ddd",
+                          borderRadius: "8px",
+                          overflow: "hidden",
+                          backgroundColor: "#fff",
+                          cursor: "pointer",
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (post.shared_post.status !== "unavailable") {
+                            window.dispatchEvent(
+                              new CustomEvent("open_post_notification", {
+                                detail: { postId: post.shared_post.id },
+                              }),
+                            );
+                            onClose(); // Đóng modal hiện tại để nhảy tới bài gốc
+                          }
+                        }}
+                      >
+                        {post.shared_post.status === "unavailable" ? (
+                          <div
+                            style={{
+                              padding: "20px",
+                              background: "#f0f2f5",
+                              textAlign: "center",
+                              color: "#65676b",
+                              fontStyle: "italic",
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              gap: "8px",
+                            }}
+                          >
+                            <i
+                              className="fas fa-ban"
+                              style={{ fontSize: "20px" }}
+                            ></i>
+                            <span>
+                              {post.shared_post.message ||
+                                t("post.content_unavailable")}
+                            </span>
+                          </div>
+                        ) : (
+                          <>
+                            <div
+                              style={{
+                                padding: "10px",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "10px",
+                                backgroundColor: "#f7f8fa",
+                                borderBottom: "1px solid #eee",
+                              }}
+                            >
+                              <img
+                                src={resolveAvatar(
+                                  post.shared_post.author?.avatar,
+                                )}
+                                alt="shared-avatar"
+                                style={{
+                                  width: "32px",
+                                  height: "32px",
+                                  borderRadius: "50%",
+                                  objectFit: "cover",
+                                }}
+                              />
+                              <div
+                                style={{
+                                  display: "flex",
+                                  flexDirection: "column",
+                                }}
+                              >
+                                <strong
+                                  style={{ fontSize: "14px", color: "#050505" }}
+                                >
+                                  {post.shared_post.author?.name ||
+                                    t("navbar.role_user")}
+                                </strong>
+                                <span
+                                  style={{ fontSize: "12px", color: "#65676b" }}
+                                >
+                                  {getTimeAgo(post.shared_post.time)}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div style={{ padding: "10px" }}>
+                              {(() => {
+                                let spContent = post.shared_post.content;
+                                let isMedical =
+                                  post.shared_post.kind === "medical";
+
+                                if (
+                                  typeof spContent === "string" &&
+                                  spContent.trim().startsWith("{")
+                                ) {
+                                  try {
+                                    spContent = JSON.parse(spContent);
+                                    isMedical = true;
+                                  } catch (e) {}
+                                }
+
+                                if (
+                                  isMedical &&
+                                  typeof spContent === "object" &&
+                                  spContent !== null
+                                ) {
+                                  return (
+                                    <div
+                                      className="post-content medical-post"
+                                      style={{ padding: "10px" }}
+                                    >
+                                      <p style={{ marginBottom: "4px" }}>
+                                        <strong>
+                                          {t(
+                                            "dashboard.medical_form.title_symptom",
+                                          )}
+                                          :
+                                        </strong>{" "}
+                                        {spContent.symptom || "—"}
+                                      </p>
+                                      <p style={{ marginBottom: "4px" }}>
+                                        <strong>
+                                          {t("dashboard.medical_form.severity")}
+                                          :
+                                        </strong>{" "}
+                                        {spContent.severity || "—"}
+                                      </p>
+
+                                      {/* NÚT BẤM ĐỂ MỞ RỘNG INLINE */}
+                                      {!isSharedExpanded ? (
+                                        <span
+                                          onClick={(e) => {
+                                            e.stopPropagation(); // Ngăn chặn sự kiện click lan ra ngoài
+                                            setIsSharedExpanded(true);
+                                          }}
+                                          style={{
+                                            color: "#2d88ff",
+                                            fontSize: "13px",
+                                            fontWeight: "600",
+                                            cursor: "pointer",
+                                            display: "inline-block",
+                                            marginTop: "4px",
+                                          }}
+                                          className="hover:underline"
+                                        >
+                                          {t("post.expand_medical_form")}
+                                        </span>
+                                      ) : (
+                                        <div
+                                          className="animate-fadeIn"
+                                          style={{
+                                            marginTop: "8px",
+                                            paddingTop: "8px",
+                                            borderTop: "1px dashed #e0e0e0",
+                                          }}
+                                        >
+                                          <p style={{ marginBottom: "4px" }}>
+                                            <strong>
+                                              {t(
+                                                "dashboard.medical_form.duration",
+                                              )}
+                                              :
+                                            </strong>{" "}
+                                            {spContent.duration || "—"}
+                                          </p>
+                                          {spContent.factors && (
+                                            <p style={{ marginBottom: "4px" }}>
+                                              <strong>
+                                                {" "}
+                                                {t(
+                                                  "dashboard.medical_form.factors",
+                                                )}
+                                                :
+                                              </strong>{" "}
+                                              {spContent.factors}
+                                            </p>
+                                          )}
+                                          {(spContent.historyPersonal ||
+                                            spContent.historyFamily) && (
+                                            <div
+                                              className="medical-divider"
+                                              style={{ margin: "8px 0" }}
+                                            >
+                                              {spContent.historyPersonal && (
+                                                <p
+                                                  style={{
+                                                    marginBottom: "4px",
+                                                  }}
+                                                >
+                                                  <strong>
+                                                    {t(
+                                                      "dashboard.medical_form.history_personal",
+                                                    )}
+                                                    :
+                                                  </strong>{" "}
+                                                  {spContent.historyPersonal}
+                                                </p>
+                                              )}
+                                              {spContent.historyFamily && (
+                                                <p
+                                                  style={{
+                                                    marginBottom: "4px",
+                                                  }}
+                                                >
+                                                  <strong>
+                                                    {t(
+                                                      "dashboard.medical_form.history_family",
+                                                    )}
+                                                    :
+                                                  </strong>{" "}
+                                                  {spContent.historyFamily}
+                                                </p>
+                                              )}
+                                            </div>
+                                          )}
+                                          {(spContent.medication ||
+                                            spContent.lifestyle) && (
+                                            <div
+                                              className="medical-divider"
+                                              style={{ margin: "8px 0" }}
+                                            >
+                                              {spContent.medication && (
+                                                <p
+                                                  style={{
+                                                    marginBottom: "4px",
+                                                  }}
+                                                >
+                                                  <strong>
+                                                    {t(
+                                                      "dashboard.medical_form.medication",
+                                                    )}
+                                                    :
+                                                  </strong>{" "}
+                                                  {spContent.medication}
+                                                </p>
+                                              )}
+                                              {spContent.lifestyle && (
+                                                <p
+                                                  style={{
+                                                    marginBottom: "4px",
+                                                  }}
+                                                >
+                                                  <strong>
+                                                    {t(
+                                                      "dashboard.medical_form.lifestyle",
+                                                    )}
+                                                    :
+                                                  </strong>{" "}
+                                                  {spContent.lifestyle}
+                                                </p>
+                                              )}
+                                            </div>
+                                          )}
+                                          <span
+                                            onClick={(e) => {
+                                              e.stopPropagation(); // Ngăn chặn sự kiện click lan ra ngoài
+                                              setIsSharedExpanded(false);
+                                            }}
+                                            style={{
+                                              color: "#65676b",
+                                              fontSize: "13px",
+                                              fontWeight: "600",
+                                              cursor: "pointer",
+                                              display: "inline-block",
+                                              marginTop: "8px",
+                                            }}
+                                            className="hover:underline"
+                                          >
+                                            {t("post.collapse")}
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                }
+
+                                return (
+                                  <p
+                                    style={{
+                                      fontSize: "14px",
+                                      color: "#050505",
+                                      margin: 0,
+                                      whiteSpace: "pre-wrap",
+                                    }}
+                                  >
+                                    {typeof spContent === "string"
+                                      ? spContent
+                                      : ""}
+                                  </p>
+                                );
+                              })()}
+                            </div>
+
+                            {post.shared_post.images &&
+                              post.shared_post.images.length > 0 && (
+                                <div
+                                  style={{
+                                    width: "100%",
+                                    borderTop: "1px solid #eee",
+                                    backgroundColor: "#000",
+                                    display: "flex",
+                                    justifyContent: "center",
+                                  }}
+                                >
+                                  {post.shared_post.images[0].type ===
+                                  "video" ? (
+                                    <video
+                                      src={post.shared_post.images[0].url}
+                                      controls
+                                      style={{
+                                        width: "100%",
+                                        maxHeight: "300px",
+                                        objectFit: "contain",
+                                      }}
+                                    />
+                                  ) : (
+                                    <img
+                                      src={post.shared_post.images[0].url}
+                                      alt="shared-media"
+                                      style={{
+                                        width: "100%",
+                                        height: "auto",
+                                        maxHeight: "300px",
+                                        objectFit: "contain",
+                                        display: "block",
+                                      }}
+                                    />
+                                  )}
+                                </div>
+                              )}
+                          </>
+                        )}
+                      </div>
+                    )}
+
+                    {post.kind === "share" && !post.shared_post && (
+                      <div
+                        style={{
+                          padding: "15px",
+                          background: "#f0f2f5",
+                          borderRadius: "8px",
+                          marginTop: "10px",
+                          textAlign: "center",
+                          color: "#65676b",
+                          fontStyle: "italic",
+                        }}
+                      >
+                        {t("post.post_unavailable")}
+                      </div>
+                    )}
+                    {/* ================= KẾT THÚC: HIỂN THỊ KHUNG BÀI ĐƯỢC SHARE ================= */}
                   </div>
                 );
               }
@@ -379,6 +791,7 @@ const CommentModal = ({
                   key={`modal-comment-${c.id}-${index}`}
                   c={c}
                   level={0}
+                  canComment={canComment}
                   MAX_REPLIES_VISIBLE={MAX_REPLIES_VISIBLE}
                   MAX_NEST_LEVEL={MAX_NEST_LEVEL}
                   emojiList={emojiList}
@@ -418,17 +831,33 @@ const CommentModal = ({
               e.currentTarget.src = DEFAULT_AVATAR;
             }}
           />
-          <CommentInput
-            placeholder={t("dashboard.write_comment")}
-            value={commentDraft}
-            onChange={setCommentDraft}
-            onSubmit={onSubmitComment}
-            autoFocus
-          />
+          {canComment ? (
+            <CommentInput
+              placeholder={t("dashboard.write_comment")}
+              value={commentDraft}
+              onChange={setCommentDraft}
+              onSubmit={onSubmitComment}
+              autoFocus
+            />
+          ) : (
+            <div
+              style={{
+                flex: 1,
+                padding: "10px 15px",
+                backgroundColor: "#f0f2f5",
+                borderRadius: "20px",
+                color: "#65676b",
+                fontSize: "13px",
+                margin: "0",
+              }}
+            >
+              {t("post.only_doctor_comment")}
+            </div>
+          )}
         </div>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 };
 

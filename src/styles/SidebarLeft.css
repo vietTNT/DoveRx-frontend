@@ -64,24 +64,14 @@
   border-radius: 3px;
 }
 
-/* ✅ Responsive */
-@media (min-width: 1600px) {
-  .sidebar-left {
-    width: 280px;
-  }
+/* ✅ THÊM STYLE CHO SECTION GỢI Ý */
+.sidebar-section {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e4e6eb;
 }
 
-@media (max-width: 1200px) {
-  .sidebar-left {
-    width: 240px;
-  }
-
-  .sidebar-left li {
-    font-size: 14px;
-    padding: 8px;
-  }
-}
-
+/* Responsive cho SidebarLeft */
 @media (max-width: 992px) {
   .sidebar-left {
     width: 220px;
@@ -89,6 +79,11 @@
 
   .sidebar-left li {
     font-size: 13px;
+  }
+  
+  /* ✅ Ẩn gợi ý kết bạn trên tablet */
+  .sidebar-section {
+    display: none;
   }
 }
 

@@ -10,6 +10,7 @@ import friend from "../assets/icons/friend.png";
 import websocketService from "../services/websocket";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "./language/LanguageSwitcher";
+import Chatbot from "../components/Chat/Chatbot";
 import { fetchConversations, markAsRead } from "../services/chatApi";
 import {
   searchUsers,
@@ -25,6 +26,8 @@ import {
 } from "../services/socialApi";
 import thongbaosound from "../assets/MP3/thongbao.mp3";
 import searchIconImg from "../assets/icons/search.png";
+import mapIcon from "../assets/icons/map.png";
+import aiIcon from "../assets/icons/dove-ai.png";
 const NOTIF_SOUND_URL = thongbaosound;
 
 const Navbar = ({ user, onLogout }) => {
@@ -34,6 +37,9 @@ const Navbar = ({ user, onLogout }) => {
   const [notifOpen, setNotifOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
 
+  // ---  AVATAR: Thêm state riêng để quản lý ảnh đại diện ---
+  const [currentAvatar, setCurrentAvatar] = useState(user?.avatar);
+
   // State Tìm kiếm
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
@@ -41,6 +47,7 @@ const Navbar = ({ user, onLogout }) => {
   const [searchLoading, setSearchLoading] = useState(false);
   const searchTimeoutRef = useRef(null);
 
+  // const [activeTab, setActiveTab] = useState("home");
   const [activeTab, setActiveTab] = useState("home");
   const [friendRequestsOpen, setFriendRequestsOpen] = useState(false);
   const [friendRequests, setFriendRequests] = useState([]);
@@ -71,9 +78,45 @@ const Navbar = ({ user, onLogout }) => {
     return `${base}${url.startsWith("/") ? url : `/${url}`}`;
   };
 
-  // const displayName = user?.name || user?.username || "Người dùng";
-  const avatarUrl = resolveAvatar(user?.avatar);
+  const avatarUrl = resolveAvatar(currentAvatar);
 
+  // ===========================
+  // AI CHATBOT
+  const [isAiChatOpen, setIsAiChatOpen] = useState(false);
+  useEffect(() => {
+    if (location.pathname === "/dashboard") setActiveTab("home");
+    else if (location.pathname === "/health-map") setActiveTab("map");
+    else if (location.pathname === "/friends") setActiveTab("friend"); // Ví dụ thêm
+  }, [location.pathname]);
+  // 1. Cập nhật khi props user thay đổi (lúc mới login hoặc F5)
+  useEffect(() => {
+    setCurrentAvatar(user?.avatar);
+  }, [user]);
+
+  // 2. Lắng nghe sự kiện "user:updated" từ trang Profile bắn sang (lúc vừa đổi ảnh xong)
+  useEffect(() => {
+    const handleUserUpdate = (e) => {
+      if (e.detail && e.detail.user) {
+        // Cập nhật ngay lập tức với URL mới (bao gồm cả blob URL tạm thời)
+        setCurrentAvatar(e.detail.user.avatar);
+      }
+    };
+    window.addEventListener("user:updated", handleUserUpdate);
+    return () => window.removeEventListener("user:updated", handleUserUpdate);
+  }, []);
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const tab = searchParams.get("tab");
+
+    // Nếu URL có ?tab=medical thì báo cho Navbar biết là đang ở tab Dove
+    if (tab === "medical") {
+      setActiveTab("dove");
+    } else if (location.pathname === "/dashboard") {
+      setActiveTab("home");
+    } else if (location.pathname === "/health-map") {
+      setActiveTab("map");
+    }
+  }, [location.search, location.pathname]);
   // HÀM PHÁT ÂM THANH
   const playSound = () => {
     try {
@@ -145,13 +188,23 @@ const Navbar = ({ user, onLogout }) => {
         conversations.forEach((conv) => {
           if (conv.last_message) {
             const msg = conv.last_message;
-            const partner =
-              conv.participants.find((p) => String(p.id) !== String(user.id)) ||
-              {};
-            const partnerId = String(partner.id);
+            const isAi =
+              conv.is_ai_chat ||
+              (!conv.is_group && conv.participants?.length === 1);
+
+            const partner = isAi
+              ? { id: "ai_bot", name: "DoveRx AI", avatar: aiIcon }
+              : conv.participants.find(
+                  (p) => String(p.id) !== String(user.id),
+                ) || {};
+
+            const partnerId = isAi ? "ai_bot" : String(partner.id);
 
             // Xử lý nội dung hiển thị
             let previewText = msg.text;
+            if (!previewText && (msg.post || msg.post_data)) {
+              previewText = "Đã chia sẻ một bài viết";
+            }
             if (!previewText && msg.attachment) {
               if (msg.attachment.type === "image")
                 previewText = t("chat.sent_image");
@@ -174,7 +227,7 @@ const Navbar = ({ user, onLogout }) => {
               if (new Date(msg.created_at) > new Date(existing.originalTime)) {
                 existing.text = previewText;
                 existing.time = new Date(msg.created_at).toLocaleString(
-                  "vi-VN"
+                  "vi-VN",
                 );
                 existing.originalTime = msg.created_at;
                 existing.isRead = existing.unreadCount === 0;
@@ -185,13 +238,16 @@ const Navbar = ({ user, onLogout }) => {
                 id: `msg_${msg.id}`,
                 conversationId: conv.id,
                 senderId: partnerId,
-                sender_name: partner.name || t("user_profile.not_updated"),
-                avatar: resolveAvatar(partner.avatar),
+                sender_name: isAi
+                  ? "DoveRx AI"
+                  : partner.name || t("user_profile.not_updated"),
+                avatar: isAi ? aiIcon : resolveAvatar(partner.avatar),
                 text: previewText || t("chat.sent_message"),
                 time: new Date(msg.created_at).toLocaleString("vi-VN"),
                 originalTime: msg.created_at, // Dùng để so sánh
-                unreadCount: unread,
+                unreadCount: conv.unread_count || 0,
                 isRead: unread === 0,
+                isAi: isAi,
               });
 
               // Cộng vào tổng số badge đỏ trên thanh Navbar (chỉ đếm số người chưa đọc)
@@ -216,7 +272,7 @@ const Navbar = ({ user, onLogout }) => {
   const handleNotificationClick = async (notif) => {
     if (!notif.isRead) {
       setNotifications((prev) =>
-        prev.map((n) => (n.id === notif.id ? { ...n, isRead: true } : n))
+        prev.map((n) => (n.id === notif.id ? { ...n, isRead: true } : n)),
       );
       markNotificationRead(notif.id).catch((err) => console.error(err));
     }
@@ -228,7 +284,7 @@ const Navbar = ({ user, onLogout }) => {
         window.dispatchEvent(
           new CustomEvent("open_post_notification", {
             detail: { postId: notif.postId, commentId: notif.commentId },
-          })
+          }),
         );
       } else {
         navigate("/dashboard");
@@ -236,7 +292,7 @@ const Navbar = ({ user, onLogout }) => {
           window.dispatchEvent(
             new CustomEvent("open_post_notification", {
               detail: { postId: notif.postId, commentId: notif.commentId },
-            })
+            }),
           );
         }, 500);
       }
@@ -261,7 +317,7 @@ const Navbar = ({ user, onLogout }) => {
         if (!newRequest || !newRequest.id) {
           console.warn(
             "❌ [DEBUG] Dữ liệu request không hợp lệ (Thiếu ID):",
-            newRequest
+            newRequest,
           );
           return;
         }
@@ -270,7 +326,7 @@ const Navbar = ({ user, onLogout }) => {
 
           // 3. Chống trùng lặp (Ép kiểu String để so sánh chính xác)
           const isExist = prev.some(
-            (req) => String(req.id) === String(newRequest.id)
+            (req) => String(req.id) === String(newRequest.id),
           );
 
           if (isExist) {
@@ -285,6 +341,22 @@ const Navbar = ({ user, onLogout }) => {
           return [newRequest, ...prev];
         });
 
+        return;
+      }
+      // =========================================================
+      //  HỦY LỜI MỜI KẾT BẠN
+      // =========================================================
+      if (eventType === "friend_request_canceled") {
+        const fromUserId = payload.from_user_id;
+
+        if (fromUserId) {
+          // Lọc bỏ người vừa hủy khỏi danh sách friendRequests hiện tại
+          setFriendRequests((prev) =>
+            prev.filter(
+              (req) => String(req.from_user.id) !== String(fromUserId),
+            ),
+          );
+        }
         return;
       }
       //  NHẬN THÔNG BÁO CHÍNH THỨC TỪ DB (Notification)
@@ -319,7 +391,7 @@ const Navbar = ({ user, onLogout }) => {
         const isFriend = (id) =>
           friendsRef.current.some(
             (f) =>
-              String(f.id) === String(id) || String(f.user?.id) === String(id)
+              String(f.id) === String(id) || String(f.user?.id) === String(id),
           );
 
         if (
@@ -348,12 +420,11 @@ const Navbar = ({ user, onLogout }) => {
     };
     websocketService.on("friend_request_received", handleSocketEvent);
     websocketService.on("notification", handleSocketEvent);
-    // websocketService.on("feed_update", handleSocketEvent);
-
+    websocketService.on("friend_request_canceled", handleSocketEvent);
     return () => {
       websocketService.off("friend_request_received", handleSocketEvent);
       websocketService.off("notification", handleSocketEvent);
-      // websocketService.off("feed_update", handleSocketEvent);
+      websocketService.off("friend_request_canceled", handleSocketEvent);
     };
   }, [user, t]);
 
@@ -375,7 +446,7 @@ const Navbar = ({ user, onLogout }) => {
         setChatNotifications((prev) => {
           // 1. Tìm tin nhắn cũ của người này
           const existingIndex = prev.findIndex(
-            (n) => String(n.senderId) === senderId
+            (n) => String(n.senderId) === senderId,
           );
           const existingChat = prev[existingIndex];
 
@@ -385,6 +456,9 @@ const Navbar = ({ user, onLogout }) => {
             setUnreadChatCount((c) => c + 1);
           }
           let previewText = msg.text;
+          if (!previewText && (msg.post || msg.post_data)) {
+            previewText = "Đã chia sẻ một bài viết";
+          }
           if (!previewText && msg.attachment) {
             if (msg.attachment.type === "image")
               previewText = t("chat.sent_image");
@@ -409,7 +483,7 @@ const Navbar = ({ user, onLogout }) => {
 
           // 5. Lọc bỏ cái cũ, thêm cái mới vào đầu
           const otherChats = prev.filter(
-            (n) => String(n.senderId) !== senderId
+            (n) => String(n.senderId) !== senderId,
           );
           return [newChatNotif, ...otherChats];
         });
@@ -423,7 +497,7 @@ const Navbar = ({ user, onLogout }) => {
   // TỰ ĐỘNG CẬP NHẬT SỐ LƯỢNG TIN NHẮN CHƯA ĐỌC
   useEffect(() => {
     setUnreadChatCount(
-      chatNotifications.filter((n) => n.unreadCount > 0).length
+      chatNotifications.filter((n) => n.unreadCount > 0).length,
     );
   }, [chatNotifications]);
   // ===========================
@@ -488,7 +562,7 @@ const Navbar = ({ user, onLogout }) => {
     const f = await getFriends();
     setFriends(f);
     window.dispatchEvent(
-      new CustomEvent("friendsUpdated", { detail: { friends: f } })
+      new CustomEvent("friendsUpdated", { detail: { friends: f } }),
     );
     alert("✅ " + t("user_profile.accepted_success"));
   };
@@ -502,7 +576,14 @@ const Navbar = ({ user, onLogout }) => {
     setShowSearchDropdown(false);
     setSearchQuery("");
   };
-  const handleProfileClick = () => navigate("/profile");
+  const handleProfileClick = () => {
+    if (user && user.id) {
+      navigate(`/profile/${user.id}`); // Điều hướng kèm ID
+    } else {
+      navigate("/profile"); // Fallback
+    }
+    setMenuOpen(false);
+  };
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -517,48 +598,97 @@ const Navbar = ({ user, onLogout }) => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+  // const handleChatClick = async (chatItem) => {
+  //   setChatOpen(false);
+  //   if (chatItem.unreadCount > 0) {
+  //     // Trừ badge tổng đi 1 (vì tính theo số người nhắn)
+  //     setUnreadChatCount((prev) => Math.max(0, prev - 1));
+
+  //     // Reset số lượng của người này về 0 trong danh sách hiển thị
+  //     setChatNotifications((prev) =>
+  //       prev.map((item) =>
+  //         String(item.senderId) === String(chatItem.senderId)
+  //           ? { ...item, isRead: true, unreadCount: 0 }
+  //           : item,
+  //       ),
+  //     );
+  //   }
+
+  //   // --- XỬ LÝ LOGIC MỞ CHAT ---
+  //   const friendInfo = friendsRef.current.find(
+  //     (f) =>
+  //       String(f.id) === String(chatItem.senderId) ||
+  //       String(f.user?.id) === String(chatItem.senderId),
+  //   );
+
+  //   const contactToOpen = friendInfo || {
+  //     id: chatItem.senderId,
+  //     name: chatItem.sender_name,
+  //     avatar: chatItem.avatar,
+  //   };
+
+  //   window.dispatchEvent(
+  //     new CustomEvent("open_chat_with_contact", {
+  //       detail: contactToOpen,
+  //     }),
+  //   );
+
+  //   // Gọi API báo cho Backend biết là "Tôi đã đọc tin nhắn của người này rồi"
+  //   if (chatItem.unreadCount > 0 && chatItem.conversationId) {
+  //     try {
+  //       await markAsRead(chatItem.conversationId);
+  //       console.log(
+  //         "✅ Đã đánh dấu đã đọc conversation:",
+  //         chatItem.conversationId,
+  //       );
+  //     } catch (error) {
+  //       console.error("❌ Lỗi khi đánh dấu đã đọc:", error);
+  //     }
+  //   }
+  // };
   const handleChatClick = async (chatItem) => {
-    setChatOpen(false);
-    if (chatItem.unreadCount > 0) {
-      // Trừ badge tổng đi 1 (vì tính theo số người nhắn)
-      setUnreadChatCount((prev) => Math.max(0, prev - 1));
+    setChatOpen(false); // Đóng dropdown
 
-      // Reset số lượng của người này về 0 trong danh sách hiển thị
-      setChatNotifications((prev) =>
-        prev.map((item) =>
-          String(item.senderId) === String(chatItem.senderId)
-            ? { ...item, isRead: true, unreadCount: 0 }
-            : item
-        )
-      );
+    // 1. TRƯỜNG HỢP CHAT AI: Mở modal Chatbot riêng của bạn
+    if (chatItem.isAi) {
+      setIsAiChatOpen(true);
+      return;
     }
-
-    // --- XỬ LÝ LOGIC MỞ CHAT ---
     const friendInfo = friendsRef.current.find(
       (f) =>
         String(f.id) === String(chatItem.senderId) ||
-        String(f.user?.id) === String(chatItem.senderId)
+        String(f.user?.id) === String(chatItem.senderId),
     );
-
-    const contactToOpen = friendInfo || {
-      id: chatItem.senderId,
-      name: chatItem.sender_name,
-      avatar: chatItem.avatar,
-    };
-
+    const isOnline = friendInfo
+      ? friendInfo.online || friendInfo.user?.online
+      : false;
+    // 2. TRƯỜNG HỢP CHAT NGƯỜI: Phát sự kiện OPEN_CHAT_POPUP
+    // ChatLayer.jsx sẽ nhận tín hiệu này và hiển thị ChatPopup
     window.dispatchEvent(
-      new CustomEvent("open_chat_with_contact", {
-        detail: contactToOpen,
-      })
+      new CustomEvent("OPEN_CHAT_POPUP", {
+        detail: {
+          conversationId: chatItem.conversationId,
+          targetUser: {
+            id: chatItem.senderId,
+            name: chatItem.sender_name,
+            avatar: chatItem.avatar,
+            online: isOnline,
+          },
+        },
+      }),
     );
 
-    // Gọi API báo cho Backend biết là "Tôi đã đọc tin nhắn của người này rồi"
-    if (chatItem.unreadCount > 0 && chatItem.conversationId) {
+    // 3. XỬ LÝ ĐÁNH DẤU ĐÃ ĐỌC (Giữ nguyên logic của bạn)
+    if (chatItem.unreadCount > 0) {
       try {
         await markAsRead(chatItem.conversationId);
-        console.log(
-          "✅ Đã đánh dấu đã đọc conversation:",
-          chatItem.conversationId
+        setUnreadChatCount((prev) => Math.max(0, prev - 1));
+        setChatNotifications((prev) =>
+          prev.map((item) =>
+            item.conversationId === chatItem.conversationId
+              ? { ...item, unreadCount: 0, isRead: true }
+              : item,
+          ),
         );
       } catch (error) {
         console.error("❌ Lỗi khi đánh dấu đã đọc:", error);
@@ -578,7 +708,8 @@ const Navbar = ({ user, onLogout }) => {
     if (n.type === "comment_react")
       return t("notification_msg.like", { name: senderName });
     if (n.type === "friend_request") return t("navbar.friend_request");
-
+    if (n.type === "share_post")
+      return `${senderName} đã chia sẻ bài viết của bạn.`;
     return n.text;
   };
 
@@ -642,7 +773,7 @@ const Navbar = ({ user, onLogout }) => {
                     const isFriend = friendsRef.current.some(
                       (f) =>
                         String(f.id) === String(u.id) ||
-                        String(f.user?.id) === String(u.id)
+                        String(f.user?.id) === String(u.id),
                     );
                     return (
                       <div
@@ -675,7 +806,7 @@ const Navbar = ({ user, onLogout }) => {
                           <span>
                             {u.role === "doctor"
                               ? `👨‍⚕️ ${t("navbar.role_doctor")}`
-                              : `👤 ${t("navbar.role_user")}`}
+                              : ""}
                           </span>
                         </div>
                       </div>
@@ -706,22 +837,89 @@ const Navbar = ({ user, onLogout }) => {
           >
             <img src={home} className="home-icon" alt="home" />
           </button>
+
           <button
             className={`nav-icon-btn hide-on-mobile ${
               activeTab === "dove" ? "active" : ""
             }`}
             onClick={() => {
               setActiveTab("dove");
-              // navigate("/dove-community");
+              navigate("/dashboard?tab=medical");
             }}
           >
             <img src={dove} className="dove-icon" alt="dove" />
+          </button>
+          <button
+            className={`nav-icon-btn hide-on-mobile ${
+              activeTab === "map" ? "active" : ""
+            }`}
+            onClick={() => {
+              setActiveTab("map");
+              navigate("/health-map");
+            }}
+            title="Bản đồ Y tế"
+          >
+            <img
+              src={mapIcon}
+              className="dove-icon"
+              alt="map"
+              style={{ width: "24px", height: "24px", objectFit: "contain" }}
+            />
           </button>
         </div>
       )}
       {/* RIGHT */}
       {!isSearchActive && (
         <div className="navbar-right" ref={dropdownRef}>
+          {/* ✅ THÊM NÚT ADMIN */}
+          {user?.role === "admin" && (
+            <button
+              className="nav-icon"
+              onClick={() => navigate("/admin")}
+              style={{
+                background: "#dc2626",
+                color: "white",
+                padding: "8px 12px",
+                borderRadius: "8px",
+                fontWeight: "bold",
+                border: "none",
+                cursor: "pointer",
+              }}
+              title="Admin Dashboard"
+            >
+              <i className="fas fa-user-shield"></i> Admin
+            </button>
+          )}
+          {user && (
+            <>
+              <div
+                className="icon-wrapper"
+                style={{ marginRight: "15px" }}
+                title="Trợ lý ảo DoveRx"
+              >
+                <img
+                  src={aiIcon}
+                  alt="AI Support"
+                  className="nav-icon-btn transition-all duration-200 hover:brightness-125"
+                  onClick={() => setIsAiChatOpen(!isAiChatOpen)}
+                  style={{
+                    width: "32px",
+                    height: "32px",
+                    cursor: "pointer",
+                    objectFit: "contain",
+
+                    transform: "none",
+                  }}
+                />
+              </div>
+
+              <Chatbot
+                isOpen={isAiChatOpen}
+                onClose={() => setIsAiChatOpen(false)}
+                botIcon={aiIcon} // <--- TRUYỀN ICON XUỐNG ĐÂY
+              />
+            </>
+          )}
           <div style={{ marginRight: "10px" }}>
             <LanguageSwitcher />
           </div>
@@ -871,12 +1069,19 @@ const Navbar = ({ user, onLogout }) => {
                       style={{ cursor: "pointer" }}
                       onClick={() => handleChatClick(n)}
                     >
-                      <img src={n.avatar} alt="avatar" />
+                      <img src={n.isAi ? aiIcon : n.avatar} alt="avatar" />
                       <div className="popup-text">
-                        <strong>{n.sender_name}</strong>
+                        <strong
+                          style={{ color: n.isAi ? "#1877f2" : "inherit" }}
+                        >
+                          {n.isAi ? "DoveRx AI" : n.sender_name}
+                        </strong>
                         <p
                           className="truncate-text"
-                          style={{ maxWidth: "180px" }}
+                          style={{
+                            maxWidth: "180px",
+                            fontWeight: n.unreadCount > 0 ? "bold" : "normal",
+                          }}
                         >
                           {n.text}
                         </p>
@@ -909,9 +1114,11 @@ const Navbar = ({ user, onLogout }) => {
                   setChatOpen(false);
                 }}
                 alt="User Avatar"
+                style={{ cursor: "pointer" }}
               />
               {menuOpen && (
                 <div className="dropdown-menu">
+                  {/* Update nút này */}
                   <button onClick={handleProfileClick} className="profile-btn">
                     {t("navbar.profile")}
                   </button>

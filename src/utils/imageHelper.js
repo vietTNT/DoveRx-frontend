@@ -1,41 +1,54 @@
 // src/utils/imageHelper.js
 
 export const resolveImageUrl = (url, width = 600) => {
-  // 1. Ảnh mặc định
-  if (!url) return "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
+  const FALLBACK_IMAGE =
+    "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
 
-  // 2. Nếu là Blob/File trực tiếp (Input là File object)
+  if (!url) return FALLBACK_IMAGE;
+
+  // 1. Xử lý Blob/File
   if (url instanceof File || url instanceof Blob) {
     return URL.createObjectURL(url);
   }
 
-  // 3. Xử lý URL từ object (lấy string ra)
-  let finalUrl = typeof url === "object" ? url.url || "" : url;
+  // 2. Xử lý object
+  let finalUrl = url;
+  if (typeof url === "object") {
+    finalUrl = url.url || url.file || url.image || "";
+  }
 
-  // 🔥 SỬA LỖI TẠI ĐÂY: Nếu chuỗi là blob url (preview ảnh), trả về ngay
-  if (typeof finalUrl === "string" && finalUrl.startsWith("blob:")) {
+  if (typeof finalUrl !== "string" || !finalUrl) return FALLBACK_IMAGE;
+  if (finalUrl.startsWith("blob:")) return finalUrl;
+
+  if (!finalUrl.startsWith("http")) {
+    const baseUrl = (process.env.REACT_APP_API_BASE || "").replace(/\/$/, "");
+    const path = finalUrl.startsWith("/") ? finalUrl : `/${finalUrl}`;
+    finalUrl = `${baseUrl}${path}`;
+  }
+
+  // 4. KIỂM TRA VIDEO
+
+  const isVideo =
+    finalUrl.includes("/video/upload/") ||
+    /\.(mp4|mov|avi|webm|mkv)$/i.test(finalUrl);
+
+  if (isVideo) {
+    // Nếu URL đang là /auto/upload/ mà đuôi là video -> Nên sửa thành /video/upload/ nếu cần
+
     return finalUrl;
   }
 
-  // 4. Kiểm tra nếu là VIDEO thì TRẢ VỀ NGUYÊN GỐC
-  if (finalUrl.includes("/video/upload/")) {
-    return finalUrl;
-  }
-
-  // 5. TỐI ƯU ẢNH CLOUDINARY
+  // 5. Xử lý Cloudinary cho ẢNH
   if (finalUrl.includes("cloudinary.com") && finalUrl.includes("/upload/")) {
+    finalUrl = finalUrl.replace("/auto/upload/", "/image/upload/");
+
+    finalUrl = finalUrl.replace(/([a-zA-Z])\s+(\d+|auto)/g, "$1_$2");
+
     if (!finalUrl.includes("/w_")) {
       const transformation = `w_${width},q_auto,f_auto`;
-      return finalUrl.replace("/upload/", `/upload/${transformation}/`);
+      finalUrl = finalUrl.replace("/upload/", `/upload/${transformation}/`);
     }
   }
 
-  // 6. Xử lý link tương đối / tuyệt đối
-  if (finalUrl.startsWith("http") || finalUrl.startsWith("https")) {
-    return finalUrl;
-  }
-
-  const baseUrl = (process.env.REACT_APP_API_BASE || "").replace(/\/$/, "");
-  const path = finalUrl.startsWith("/") ? finalUrl : `/${finalUrl}`;
-  return `${baseUrl}${path}`;
+  return finalUrl;
 };

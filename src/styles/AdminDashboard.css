@@ -1,0 +1,305 @@
+/* Admin Dashboard Layout */
+.admin-dashboard {
+  min-height: 100vh;
+  background: #f0f2f5;
+}
+
+.admin-content {
+  padding: 20px;
+  max-width: 1400px;
+  margin: 90px auto 0; /* Cách navbar */
+}
+
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.admin-header h1 {
+  font-size: 28px;
+  color: #050505;
+  font-weight: 700;
+}
+
+.admin-badge {
+  background: linear-gradient(135deg, #dc2626, #f97316);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Loading & Empty State */
+.admin-loading,
+.admin-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 12px;
+  gap: 16px;
+}
+
+.admin-loading i {
+  font-size: 32px;
+  color: #1877f2;
+}
+
+.admin-empty p {
+  font-size: 16px;
+  color: #65676b;
+}
+
+/* Table Container */
+.admin-table-container {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-table thead {
+  background: #f7f8fa;
+}
+
+.admin-table th {
+  padding: 16px;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 600;
+  color: #050505;
+  border-bottom: 2px solid #e4e6eb;
+}
+
+.admin-table td {
+  padding: 16px;
+  border-bottom: 1px solid #e4e6eb;
+  font-size: 14px;
+  color: #050505;
+}
+
+.admin-table tbody tr:hover {
+  background: #f7f8fa;
+}
+
+/* Doctor Name Cell */
+.doctor-name {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.doctor-name strong {
+  font-size: 15px;
+  color: #050505;
+}
+
+.doctor-email {
+  font-size: 13px;
+  color: #65676b;
+}
+
+/* License Files */
+.license-files {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.license-files li a {
+  color: #1877f2;
+  text-decoration: none;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 0.2s;
+}
+
+.license-files li a:hover {
+  color: #166fe5;
+  text-decoration: underline;
+}
+
+.no-files {
+  color: #dc2626;
+  font-size: 13px;
+}
+
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-approve,
+.btn-reject {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+
+.btn-approve {
+  background: #42b72a;
+  color: white;
+}
+
+.btn-approve:hover {
+  background: #36a420;
+  transform: translateY(-1px);
+}
+
+.btn-reject {
+  background: #dc2626;
+  color: white;
+}
+
+.btn-reject:hover {
+  background: #b91c1c;
+  transform: translateY(-1px);
+}
+
+/* Tabs */
+.admin-tabs {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  border-bottom: 2px solid #e4e6eb;
+}
+
+.admin-tabs button {
+  padding: 12px 24px;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  color: #65676b;
+  transition: all 0.2s;
+}
+
+.admin-tabs button:hover {
+  color: #050505;
+}
+
+.admin-tabs button.active {
+  color: #1877f2;
+  border-bottom-color: #1877f2;
+}
+
+/* User info cell */
+.user-info {
+  display: flex;
+  align-items: center;
+}
+
+/* Role & Status badges */
+.role-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.role-badge.doctor {
+  background: #e7f3ff;
+  color: #1877f2;
+}
+
+.role-badge.user {
+  background: #f0f2f5;
+  color: #65676b;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-badge.verified {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-badge.pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+/* Delete user button */
+.btn-delete-user {
+  background: #dc2626;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.btn-delete-user:hover {
+  background: #b91c1c;
+  transform: translateY(-1px);
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .admin-table {
+    font-size: 13px;
+  }
+
+  .admin-table th,
+  .admin-table td {
+    padding: 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-content {
+    padding: 16px;
+    margin-top: 70px;
+  }
+
+  .admin-header h1 {
+    font-size: 22px;
+  }
+
+  .admin-table-container {
+    overflow-x: auto;
+  }
+
+  .admin-table {
+    min-width: 800px;
+  }
+
+  .action-buttons {
+    flex-direction: column;
+  }
+}

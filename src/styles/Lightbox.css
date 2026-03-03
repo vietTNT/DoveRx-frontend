@@ -14,7 +14,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 4000;
+  z-index: 99999;
   animation: fadeIn 0.3s ease;
 }
 .lightbox-image {
