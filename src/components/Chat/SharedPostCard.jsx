@@ -1,7 +1,8 @@
 import React from "react";
 import { resolveImageUrl } from "../../utils/imageHelper";
-
+import { useTranslation } from "react-i18next";
 const SharedPostCard = ({ postData }) => {
+  const { t } = useTranslation();
   if (!postData) return null;
 
   // 1. Lấy dữ liệu hiển thị (Ưu tiên shared_post)
@@ -18,9 +19,7 @@ const SharedPostCard = ({ postData }) => {
     try {
       const parsed = JSON.parse(contentDisplay);
       contentDisplay = `Hồ sơ y tế: ${parsed.symptom || "Chi tiết..."}`;
-    } catch {
-      // Giữ nguyên nếu không parse được
-    }
+    } catch {}
   }
 
   // 3. Xử lý Media (Ảnh/Video)
@@ -31,11 +30,9 @@ const SharedPostCard = ({ postData }) => {
   let mediaUrl = "";
 
   if (firstMedia) {
-    // ✅ SỬA: Truy xuất đúng thuộc tính URL
+    // Truy xuất đúng thuộc tính URL
     const rawUrl = firstMedia.url || firstMedia.file || firstMedia.image || "";
     mediaUrl = resolveImageUrl(rawUrl);
-
-    console.log("🖼️ [SharedPostCard] Image URL:", mediaUrl);
 
     const type = firstMedia.type || firstMedia.file_type || "";
     const isVideoExtension = /\.(mp4|mov|avi|webm|mkv)$/i.test(mediaUrl);
@@ -78,7 +75,7 @@ const SharedPostCard = ({ postData }) => {
             position: "relative",
             width: "100%",
             height: "140px",
-            backgroundColor: "#f0f2f5", // Màu nền xám để dễ thấy khung
+            backgroundColor: "#f0f2f5",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -130,7 +127,7 @@ const SharedPostCard = ({ postData }) => {
           <span
             style={{ fontWeight: "bold", fontSize: "12px", color: "#050505" }}
           >
-            {displayData.author?.name || "Người dùng"}
+            {displayData.author?.name || t("navbar.role_user", "Người dùng")}
           </span>
         </div>
 
@@ -146,7 +143,7 @@ const SharedPostCard = ({ postData }) => {
             lineHeight: "1.4",
           }}
         >
-          {contentDisplay || "Chia sẻ bài viết"}
+          {contentDisplay || t("chat.shared_post", "Chia sẻ bài viết")}
         </p>
       </div>
     </div>

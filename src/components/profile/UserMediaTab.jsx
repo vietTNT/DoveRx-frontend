@@ -9,8 +9,13 @@ const UserMediaTab = ({ userId }) => {
   useEffect(() => {
     const fetchMedia = async () => {
       try {
-        const posts = await getPostsByUser(userId);
-        // Lọc lấy tất cả ảnh/video từ các bài post
+        const response = await getPostsByUser(userId);
+
+        // Trích xuất mảng
+        const posts = Array.isArray(response)
+          ? response
+          : response.results || [];
+
         const allMedia = [];
         posts.forEach((post) => {
           if (post.images && post.images.length > 0) {

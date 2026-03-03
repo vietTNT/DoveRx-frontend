@@ -62,7 +62,7 @@ const AvatarEditorModal = ({ image, onSave, onCancel }) => {
             crop={crop}
             zoom={zoom}
             aspect={1}
-            cropShape="round"
+            cropShape="rect"
             showGrid={false}
             onCropChange={setCrop}
             onZoomChange={setZoom}
@@ -72,6 +72,9 @@ const AvatarEditorModal = ({ image, onSave, onCancel }) => {
                 width: "100%",
                 height: "100%",
                 position: "relative",
+              },
+              cropAreaStyle: {
+                borderRadius: "12px",
               },
             }}
           />

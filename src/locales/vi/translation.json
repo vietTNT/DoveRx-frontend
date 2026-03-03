@@ -10,7 +10,12 @@
     "error": "Có lỗi xảy ra",
     "success": "Thành công",
     "close": "Đóng",
-    "verifying": "Đang xác minh..."
+    "verifying": "Đang xác minh...",
+    "error_try_again": "Có lỗi xảy ra, vui lòng thử lại!",
+    "confirm_delete_comment": "Bạn có chắc chắn muốn xóa bình luận này không?",
+    "deleted_comment": "Đã xóa bình luận",
+    "error_delete_comment": "Lỗi khi xóa bình luận",
+    "error_load_posts": "Lỗi khi tải bài viết"
   },
   "auth": {
     "welcome": "Chào mừng đến với DoveRx",
@@ -48,7 +53,24 @@
     "login_error": "Lỗi khi đăng nhập. Vui lòng thử lại.",
     "verify_error": "Lỗi khi xác minh tài khoản. Vui lòng thử lại.",
     "forgot_password": "Quên mật khẩu?",
-    "reset_password": "Đặt lại mật khẩu"
+    "reset_password": "Đặt lại mật khẩu",
+    "forgot_password_title": "Khôi phục mật khẩu",
+    "forgot_password_desc": "Nhập email đã đăng ký để nhận mã OTP.",
+    "sending": "Đang gửi...",
+    "send_otp": "Gửi mã xác nhận",
+    "security_verification": "Xác thực bảo mật",
+    "otp_sent_to": "Mã OTP gồm 6 chữ số đã được gửi đến email:",
+    "back_to_check": "Quay lại kiểm tra thông tin",
+    "enter_new_password": "Nhập mật khẩu mới",
+    "confirm_now": "Xác nhận ngay",
+    "cancel_otp": "Hủy bỏ",
+    "reset_password_success": "Đổi mật khẩu thành công! Vui lòng đăng nhập.",
+    "verify_success": "Xác thực thành công!",
+    "please_enter_email": "Vui lòng nhập email!",
+    "new_otp_sent": "Mã xác nhận mới đã được gửi!",
+    "resend_otp_error": "Không thể gửi lại mã.",
+    "enter_otp_new_password": "Nhập OTP và mật khẩu mới",
+    "back_to_login": "Quay lại đăng nhập"
   },
   "doctor_form": {
     "username": "Tên đăng nhập",
@@ -105,11 +127,12 @@
     "more_see": "Xem thêm",
     "less_see": "Thu gọn",
     "post_of": "bài viết của {{name}}",
-
     "no_comments_yet": "Chưa có bình luận nào. Hãy là người đầu tiên!",
     "video": "Video",
     "event": "Sự kiện",
     "share_count": "lượt chia sẻ",
+    "reply_to": "Trả lời {{name}}...",
+    "view_more_replies": "Xem thêm {{count}} phản hồi",
     "medical_form": {
       "title_symptom": "Về triệu chứng và tình trạng hiện tại",
       "symptom": "Bạn đang gặp những triệu chứng gì?",
@@ -154,9 +177,50 @@
     "save_changes": "Lưu thay đổi",
     "specialty": "Chuyên khoa",
     "workplace": "Nơi làm việc",
-    "doctor_type": "nghề nghiệp",
+    "doctor_type": "Nghề nghiệp",
     "experience_years": "Năm kinh nghiệm",
-    "license_number": "Chứng chỉ hành nghề"
+    "experience_years_count": "{{years}} năm",
+    "license_number": "Chứng chỉ hành nghề",
+    "no_friends": "Chưa có bạn bè nào.",
+    "mutual_friends": "bạn chung",
+    "loading_images": "Đang tải hình ảnh...",
+    "no_images": "Chưa có hình ảnh nào.",
+    "no_posts_title": "Chưa có bài viết",
+    "no_posts_desc": "Người dùng này chưa đăng bài viết nào.",
+    "friend_suggestions": "Gợi ý kết bạn",
+    "add_friend": "Kết bạn",
+    "theme_customization": "Tùy chỉnh giao diện",
+    "primary_color": "Màu chủ đạo:",
+    "general_info": "Thông tin chung",
+    "doctor_specialty_info": "Chuyên môn bác sĩ",
+    "images": "Hình ảnh",
+    "posts": "Bài viết",
+    "error_load_user": "Không thể tải thông tin người dùng",
+    "avatar_update_error": "Lỗi cập nhật ảnh!",
+    "save_doctor_success": "Lưu thông tin Bác sĩ thành công!",
+    "update_failed": "Cập nhật thất bại! Vui lòng kiểm tra kết nối.",
+    "no_bio": "Chưa có giới thiệu",
+    "tabs": {
+      "posts": "Bài đăng",
+      "media": "Hình ảnh",
+      "friends": "Bạn bè",
+      "about": "Giới thiệu"
+    },
+    "edit_personal_info": "Chỉnh sửa thông tin cá nhân",
+    "detail_info": "Thông tin chi tiết",
+    "professional_info": "Thông tin chuyên môn",
+    "job_title": "Chức danh",
+    "placeholders": {
+      "first_name": "Nhập họ...",
+      "last_name": "Nhập tên...",
+      "age": "VD: 25",
+      "phone": "Nhập số điện thoại...",
+      "address": "VD: Hà Nội, Việt Nam",
+      "bio": "Hãy viết một chút về bản thân bạn...",
+      "workplace": "VD: Bệnh viện Bạch Mai",
+      "specialty": "VD: Nội khoa",
+      "license": "CCHN..."
+    }
   },
   "user_profile": {
     "message_btn": "Nhắn tin",
@@ -176,7 +240,11 @@
     "friend_request_rejected": "Đã từ chối lời mời kết bạn",
     "user_not_found": "Không tìm thấy người dùng",
     "message": "Nhắn tin",
-    "request_sent": "Đã gửi lời mời"
+    "request_sent": "Đã gửi lời mời",
+    "confirm_unfriend": "Bạn có chắc chắn muốn hủy kết bạn với người này không?",
+    "unfriended": "Đã hủy kết bạn",
+    "unfriend": "Hủy kết bạn",
+    "cancel_request": "Hủy lời mời"
   },
   "chat": {
     "search": "Tìm kiếm",
@@ -191,22 +259,64 @@
     "active": "Đang hoạt động",
     "offline": "Không hoạt động",
     "no_friends": "Chưa có bạn bè nào",
-    "send": "Gửi"
+    "send": "Gửi",
+    "history": "Lịch sử chat",
+    "new_conversation": "Cuộc trò chuyện mới",
+    "create_new_chat": "Tạo chat mới",
+    "no_history": "Chưa có lịch sử",
+    "delete_confirm": "Bạn có chắc muốn xóa cuộc trò chuyện này?",
+    "ai_greeting": "Chào bạn, tôi có thể giúp gì về sức khỏe hôm nay?",
+    "online": "Trực tuyến",
+    "type_question": "Nhập câu hỏi...",
+    "type_message": "Nhập tin nhắn...",
+    "ai_warning": "DoveRx AI có thể mắc lỗi. Vui lòng kiểm tra lại thông tin quan trọng.",
+    "message_recalled": "Tin nhắn đã được thu hồi",
+    "upload_failed": "Gửi file thất bại",
+    "cannot_open_chat": "Không thể mở cuộc trò chuyện",
+    "expand": "Mở rộng",
+    "collapse": "Thu gọn",
+    "minimize": "Thu nhỏ",
+    "conversation": "Cuộc hội thoại",
+    "members": "thành viên",
+    "confirm_recall": "Bạn có chắc muốn thu hồi tin nhắn này?",
+    "recall_failed": "Không thể thu hồi tin nhắn.",
+    "recall": "Thu hồi",
+    "shared_post": "Chia sẻ bài viết"
   },
   "share": {
     "title": "Chia sẻ",
     "placeholder": "Hãy nói gì đó về nội dung này...",
-    "share_now": "Chia sẻ ngay",
     "send_messenger": "Gửi bằng Messenger",
+    "send_via_messenger": "Gửi bằng Messenger",
     "share_to": "Chia sẻ lên",
-    "options": {
-      "messenger": "Messenger",
-      "whatsapp": "WhatsApp",
-      "your_story": "Tin của bạn",
-      "copy_link": "Sao chép liên kết",
-      "group": "Nhóm",
-      "profile": "Trang cá nhân"
-    }
+    "messenger": "Messenger",
+    "whatsapp": "WhatsApp",
+    "story": "Tin của bạn",
+    "copy_link": "Sao chép liên kết",
+    "group": "Nhóm",
+    "feed": "Bảng feed",
+    "public": "Công khai",
+    "say_something": "Hãy nói gì đó về nội dung này...",
+    "share_now": "Chia sẻ ngay"
+  },
+  "share_modal": {
+    "send_message_success": "Đã gửi tin nhắn thành công!",
+    "send_message_error": "Không thể gửi tin nhắn. Vui lòng thử lại.",
+    "sharing": "Đang chia sẻ...",
+    "audience": "Đối tượng",
+    "who_can_see": "Ai có thể xem bài viết này?",
+    "feed_visibility_desc": "Bài viết sẽ hiển thị trên Bảng feed, trang cá nhân và kết quả tìm kiếm.",
+    "public_desc": "Bất kỳ ai ở trên hoặc ngoài DoveRx",
+    "friends_desc": "Bạn bè của bạn trên DoveRx",
+    "private_desc": "Chỉ mình bạn nhìn thấy bài viết này",
+    "new_message": "Gửi tin nhắn mới",
+    "search_people": "Tìm kiếm người...",
+    "suggestions": "Gợi ý",
+    "sent": "Đã gửi",
+    "send": "Gửi",
+    "loading_list": "Đang tải danh sách...",
+    "no_user_found": "Không tìm thấy người dùng.",
+    "done": "Xong"
   },
   "reaction": {
     "title": "Cảm xúc về bài viết",
@@ -235,26 +345,58 @@
   "notification_msg": {
     "new_post": "{{name}} vừa đăng một bài viết mới.",
     "comment": "{{name}} đã bình luận về bài viết của bạn.",
-    "like": "{{name}} đã thích bài viết của bạn."
+    "like": "{{name}} đã thích bài viết của bạn.",
+    "new_post_alert": "📢 {{name}} vừa đăng bài mới!"
   },
   "language": {
     "select_language": "Chọn ngôn ngữ"
   },
-  "share": {
-    "title": "Chia sẻ",
-    "placeholder": "Hãy nói gì đó về nội dung này...",
-    "share_now": "Chia sẻ ngay",
-    "send_messenger": "Gửi bằng Messenger",
-    "audience": {
-      "public": "Công khai",
-      "friends": "Bạn bè",
-      "only_me": "Chỉ mình tôi"
-    },
-    "options": {
-      "your_story": "Tin của bạn",
-      "copy_link": "Sao chép liên kết",
-      "group": "Nhóm",
-      "profile": "Trang cá nhân"
-    }
+  "post": {
+    "no_content": "Bạn chưa nhập nội dung hoặc chọn ảnh/video.",
+    "posting": "Đang đăng...",
+    "deleted": "Đã xóa bài viết",
+    "updated": "Đã cập nhật bài viết",
+    "error_post": "Lỗi đăng bài",
+    "not_found": "Bài viết không tồn tại hoặc đã bị xóa",
+    "medical_record": "Hồ sơ y tế:",
+    "details": "Chi tiết...",
+    "only_doctor_comment": "🔒 Chỉ bác sĩ và người đăng mới có thể bình luận bài viết y tế này.",
+    "expand_medical_form": "... Nhấn vào để xem toàn bộ Form bệnh lý",
+    "collapse": "Thu gọn",
+    "post_unavailable": "🚫 Bài viết gốc không còn tồn tại hoặc đã bị xóa.",
+    "visibility_public": "Công khai",
+    "visibility_friends": "Bạn bè",
+    "visibility_private": "Chỉ mình tôi",
+    "category_other": "Khác / Đời sống",
+    "category_medical_question": "Câu hỏi y khoa",
+    "category_medical_knowledge": "Kiến thức y khoa",
+    "edit_visibility": "Chỉnh sửa quyền riêng tư",
+    "visibility_updated": "Đã cập nhật quyền riêng tư!",
+    "visibility_update_error": "Lỗi khi cập nhật quyền riêng tư!",
+    "content_unavailable": "Nội dung này hiện không khả dụng."
+  },
+  "error": {
+    "reply_failed": "Lỗi trả lời",
+    "generic": "Đã xảy ra lỗi",
+    "no_delete_permission": "❌ Không có quyền xóa"
+  },
+  "friend": {
+    "someone": "Ai đó"
+  },
+  "doctor_verify": {
+    "copyright": "© 2024 DoveRx. All rights reserved."
+  },
+  "map": {
+    "directions": "CHỈ ĐƯỜNG NGAY",
+    "loading_map": "Đang tải bản đồ...",
+    "pharmacy": "Nhà thuốc tây",
+    "hospital": "Bệnh viện",
+    "clinic": "Cơ sở y tế",
+    "nearby_health": "Y tế quanh bạn",
+    "finding_nearest": "Đang tìm địa điểm gần nhất...",
+    "found_places": "Tìm thấy {{count}} địa điểm (Gần ⮕ Xa)",
+    "distance_from_you": "Cách bạn:",
+    "your_location": "Vị trí của bạn",
+    "back_to_my_location": "Về vị trí của tôi"
   }
 }

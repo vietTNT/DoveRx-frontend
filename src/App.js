@@ -16,6 +16,8 @@ import UserProfilePage from "./pages/UserProfilepage";
 import { refreshTokenIfNeeded } from "./services/auth";
 import AdminDashboard from "./components/dashboard/admin/AdminDashboard";
 import HealthMap from "./pages/HealthMap";
+import ChatPopup from "./components/Chat/Chatpopup";
+import ChatLayer from "./components/Chat/ChatLayer";
 function App() {
   const [user, setUser] = useState(null);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -287,7 +289,7 @@ function App() {
             }
           />
 
-          {/* ✅ Thêm route Admin */}
+          {/*  Thêm route Admin */}
           <Route
             path="/admin"
             element={
@@ -303,6 +305,7 @@ function App() {
 
           <Route path="*" element={<h2>404 - Không tìm thấy trang</h2>} />
         </Routes>
+        <ChatLayer />
       </BrowserRouter>
     </GoogleOAuthProvider>
   );

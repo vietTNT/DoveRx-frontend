@@ -10,7 +10,7 @@ import {
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import Navbar from "../components/Navbar";
-
+import { useTranslation } from "react-i18next";
 // --- CẤU HÌNH ICON LEAFLET ---
 import iconMarker from "leaflet/dist/images/marker-icon.png";
 import iconRetina from "leaflet/dist/images/marker-icon-2x.png";
@@ -80,7 +80,7 @@ const getDistance = (lat1, lon1, lat2, lon2) => {
 
 function MapController({ center, zoom, userPosition }) {
   const map = useMap();
-
+  const { t } = useTranslation();
   useEffect(() => {
     if (center) {
       map.flyTo(center, zoom || 16, { duration: 1.2 });
@@ -106,7 +106,7 @@ function MapController({ center, zoom, userPosition }) {
       <div className="leaflet-control leaflet-bar">
         <button
           onClick={handleRecenter}
-          title="Về vị trí của tôi"
+          title={t("map.back_to_my_location")}
           style={{
             width: "40px",
             height: "40px",
@@ -145,6 +145,7 @@ function MapController({ center, zoom, userPosition }) {
 }
 
 const HealthMap = ({ user, onLogout }) => {
+  const { t } = useTranslation();
   const [position, setPosition] = useState(null);
   const [places, setPlaces] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -207,9 +208,9 @@ const HealthMap = ({ user, onLogout }) => {
 
           let name = tags.name;
           if (!name) {
-            if (typeLabel === "pharmacy") name = "Nhà thuốc tây";
-            else if (typeLabel === "hospital") name = "Bệnh viện";
-            else name = "Cơ sở y tế";
+            if (typeLabel === "pharmacy") name = t("map.pharmacy");
+            else if (typeLabel === "hospital") name = t("map.hospital");
+            else name = t("map.clinic");
           }
 
           const rawDist = getDistance(lat, lon, pLat, pLon);
@@ -223,7 +224,7 @@ const HealthMap = ({ user, onLogout }) => {
             type: typeLabel,
             address: tags["addr:street"]
               ? `${tags["addr:housenumber"] || ""} ${tags["addr:street"]}`
-              : "Đà Nẵng",
+              : t("map.danang", "Đà Nẵng"),
             distance: estimatedDist,
           };
         })
@@ -256,8 +257,6 @@ const HealthMap = ({ user, onLogout }) => {
 
   return (
     <div className="health-map-page">
-      {/* 🔥 STYLE: Import Font "Be Vietnam Pro" và chỉnh sửa CSS Popup
-       */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap');
 
@@ -294,15 +293,15 @@ const HealthMap = ({ user, onLogout }) => {
         <div className="w-[400px] min-w-[350px] bg-white shadow-xl z-20 flex flex-col border-r border-gray-200">
           <div className="p-4 border-b border-gray-100 bg-white shadow-sm z-10">
             <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-              Y tế quanh bạn
+              {t("map.nearby_health")}
             </h3>
             <p className="text-sm text-gray-500 mt-1 font-medium">
               {loading ? (
                 <span className="text-blue-600 animate-pulse">
-                  Đang tìm địa điểm gần nhất...
+                  {t("map.finding_nearest")}
                 </span>
               ) : (
-                `Tìm thấy ${places.length} địa điểm (Gần ⮕ Xa)`
+                t("map.found_places", { count: places.length })
               )}
             </p>
           </div>
@@ -382,7 +381,7 @@ const HealthMap = ({ user, onLogout }) => {
               />
 
               <Marker position={position} icon={userIcon}>
-                <Popup>Vị trí của bạn</Popup>
+                <Popup>{t("map.your_location")}</Popup>
               </Marker>
 
               {/* Chỉ hiển thị 30 địa điểm gần nhất */}
@@ -432,20 +431,17 @@ const HealthMap = ({ user, onLogout }) => {
                           <div className="bg-gray-100 border-2 border-blue-500 rounded-[24px] p-5 text-center shadow-2xl min-w-[280px] relative font-sans">
                             <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-gray-100 border-b-2 border-r-2 border-blue-500 rotate-45 z-10"></div>
 
-                            {/* 🔥 TÊN ĐỊA ĐIỂM: Font to, đậm, màu xám đen chuyên nghiệp */}
                             <h3 className="text-[17px] font-bold text-slate-800 mb-1 leading-6 tracking-tight">
                               {p.name}
                             </h3>
 
-                            {/* 🔥 KHOẢNG CÁCH: Font vừa, màu đậm hơn chút để dễ nhìn */}
                             <div className="text-[14px] font-semibold text-slate-600 mb-2 flex items-center justify-center gap-1">
-                              <span>📍 Cách bạn:</span>
+                              <span>📍 {t("map.distance_from_you")}</span>
                               <span className="text-blue-600 font-bold text-[15px]">
                                 {formatDistance(p.distance)}
                               </span>
                             </div>
 
-                            {/* 🔥 ĐỊA CHỈ: Font nhỏ, màu nhạt */}
                             <div className="text-[13px] text-slate-500 mb-4 px-2 line-clamp-2 leading-5">
                               {p.address}
                             </div>
@@ -465,7 +461,8 @@ const HealthMap = ({ user, onLogout }) => {
                                 active:scale-95 no-underline
                               "
                             >
-                              <span className="text-lg">🚀</span> CHỈ ĐƯỜNG NGAY
+                              <span className="text-lg">🚀</span>{" "}
+                              {t("map.directions")}
                             </a>
                           </div>
                         </Popup>
@@ -478,7 +475,7 @@ const HealthMap = ({ user, onLogout }) => {
           ) : (
             <div className="h-full flex flex-col items-center justify-center bg-gray-50 text-gray-400">
               <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500 mb-4"></div>
-              <p>Đang tải bản đồ...</p>
+              <p>{t("map.loading_map")}</p>
             </div>
           )}
         </div>

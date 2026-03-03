@@ -5,6 +5,7 @@ import { toast } from "react-toastify";
 import { getFriends } from "../../services/friendApi";
 import { sharePost } from "../../services/socialApi";
 import { sharePostToMessage } from "../../services/chatApi";
+
 const ShareModal = ({ onClose, user, post, onShare }) => {
   const { t } = useTranslation();
 
@@ -24,7 +25,7 @@ const ShareModal = ({ onClose, user, post, onShare }) => {
         if (Array.isArray(data)) {
           const formatted = data.map((f) => ({
             id: f.id,
-            name: f.name || f.user?.name || "Người dùng",
+            name: f.name || f.user?.name || t("navbar.role_user", "Người dùng"),
             avatar: f.avatar || f.user?.avatar,
             isSent: false,
           }));
@@ -35,7 +36,7 @@ const ShareModal = ({ onClose, user, post, onShare }) => {
       }
     };
     fetchFriends();
-  }, []);
+  }, [t]);
 
   const handleShare = async () => {
     if (isSharing) return;
@@ -52,19 +53,18 @@ const ShareModal = ({ onClose, user, post, onShare }) => {
       // Gọi API tại đây
       const result = await sharePost(post?.id, payload);
 
-      // ✅ FIX 2: Truyền kết quả (result) ra ngoài thay vì chỉ truyền message
+      // FIX 2: Truyền kết quả (result) ra ngoài thay vì chỉ truyền message
       if (onShare) {
         onShare(result);
       }
 
-      toast.success(t("share.success") || "✅ Đã chia sẻ bài viết!");
+      toast.success(t("dashboard.share_success", "✅ Đã chia sẻ bài viết!"));
       onClose();
     } catch (error) {
       console.error("❌ Lỗi chia sẻ:", error);
       toast.error(
         error.response?.data?.detail ||
-          t("share.error") ||
-          "❌ Chia sẻ thất bại!",
+          t("error.generic", "❌ Chia sẻ thất bại!"),
       );
     } finally {
       setIsSharing(false);
@@ -88,10 +88,17 @@ const ShareModal = ({ onClose, user, post, onShare }) => {
         prev.map((c) => (c.id === contactId ? { ...c, isSent: true } : c)),
       );
 
-      toast.success("Đã gửi tin nhắn thành công!");
+      toast.success(
+        t("share_modal.send_message_success", "Đã gửi tin nhắn thành công!"),
+      );
     } catch (error) {
       console.error("❌ Lỗi gửi tin nhắn:", error);
-      toast.error("Không thể gửi tin nhắn. Vui lòng thử lại.");
+      toast.error(
+        t(
+          "share_modal.send_message_error",
+          "Không thể gửi tin nhắn. Vui lòng thử lại.",
+        ),
+      );
     }
   };
 
@@ -100,22 +107,22 @@ const ShareModal = ({ onClose, user, post, onShare }) => {
       case "public":
         return {
           icon: "fas fa-globe-americas",
-          text: t("share.audience.public") || "Công khai",
+          text: t("post.visibility_public", "Công khai"),
         };
       case "friends":
         return {
           icon: "fas fa-user-friends",
-          text: t("share.audience.friends") || "Bạn bè",
+          text: t("post.visibility_friends", "Bạn bè"),
         };
       case "private":
         return {
           icon: "fas fa-lock",
-          text: t("share.audience.only_me") || "Chỉ mình tôi",
+          text: t("post.visibility_private", "Chỉ mình tôi"),
         };
       default:
         return {
           icon: "fas fa-globe-americas",
-          text: t("share.audience.public") || "Công khai",
+          text: t("post.visibility_public", "Công khai"),
         };
     }
   };
@@ -125,20 +132,20 @@ const ShareModal = ({ onClose, user, post, onShare }) => {
     {
       id: "public",
       icon: "fas fa-globe-americas",
-      title: "Công khai",
-      sub: "Bất kỳ ai ở trên hoặc ngoài DoveRx",
+      title: t("post.visibility_public", "Công khai"),
+      sub: t("share_modal.public_desc", "Bất kỳ ai ở trên hoặc ngoài DoveRx"),
     },
     {
       id: "friends",
       icon: "fas fa-user-friends",
-      title: "Bạn bè",
-      sub: "Bạn bè của bạn trên DoveRx",
+      title: t("post.visibility_friends", "Bạn bè"),
+      sub: t("share_modal.friends_desc", "Bạn bè của bạn trên DoveRx"),
     },
     {
       id: "private",
       icon: "fas fa-lock",
-      title: "Chỉ mình tôi",
-      sub: "Chỉ mình bạn nhìn thấy bài viết này",
+      title: t("post.visibility_private", "Chỉ mình tôi"),
+      sub: t("share_modal.private_desc", "Chỉ mình bạn nhìn thấy bài viết này"),
     },
   ];
 
@@ -146,7 +153,7 @@ const ShareModal = ({ onClose, user, post, onShare }) => {
     c.name?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  // ✅ THÊM: Hàm đóng modal và reset state
+  // Hàm đóng modal và reset state
   const handleClose = () => {
     // Reset state isSent của tất cả contacts
     setContacts((prev) => prev.map((c) => ({ ...c, isSent: false })));
@@ -174,7 +181,7 @@ const ShareModal = ({ onClose, user, post, onShare }) => {
             {/* Header Main */}
             <div className="relative flex items-center justify-center h-[60px] border-b border-[#3e4042] shrink-0 bg-[#242526] z-10">
               <h3 className="text-[20px] font-bold text-[#e4e6eb]">
-                {t("share.title") || "Tạo bài viết"}
+                {t("share.title", "Chia sẻ")}
               </h3>
               <div
                 onClick={handleClose} // ✅ SỬA: Gọi handleClose
@@ -216,7 +223,12 @@ const ShareModal = ({ onClose, user, post, onShare }) => {
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   className="w-full bg-transparent text-[#e4e6eb] text-[20px] outline-none resize-none min-h-[100px] placeholder-[#8e8e8e] py-2 pr-8"
-                  placeholder={`Bạn đang nghĩ gì thế, ${user?.name?.split(" ").pop()}?`}
+                  placeholder={
+                    t("dashboard.what_thinking", {
+                      name: user?.name?.split(" ").pop() || "",
+                    }) ||
+                    `Bạn đang nghĩ gì thế, ${user?.name?.split(" ").pop() || ""}?`
+                  }
                   autoFocus
                 />
                 <div className="absolute right-0 top-2 cursor-pointer p-1 rounded-full hover:bg-[#3a3b3c] transition-colors">
@@ -239,16 +251,41 @@ const ShareModal = ({ onClose, user, post, onShare }) => {
                       />
                     </div>
                   )}
+
                   <div className="p-3 bg-[#323436]/30">
-                    <p className="text-[#b0b3b8] text-[12px] uppercase font-medium">
-                      DoveRx Link
-                    </p>
                     <p className="text-[#e4e6eb] font-bold line-clamp-1 mt-0.5 text-[15px]">
-                      {post.author?.name || "Người dùng"}
+                      {post.author?.name || t("navbar.role_user", "Người dùng")}
                     </p>
-                    <p className="text-[#b0b3b8] text-[13px] line-clamp-2 mt-0.5">
-                      {post.content || "Không có nội dung"}
-                    </p>
+
+                    {/* ĐÃ FIX: Xử lý hiển thị an toàn khi content là Object Y khoa */}
+                    <div className="text-[#b0b3b8] text-[13px] line-clamp-2 mt-0.5">
+                      {post.kind === "medical" &&
+                      typeof post.content === "object" ? (
+                        <div className="flex flex-col">
+                          {post.content.symptom && (
+                            <span>
+                              <strong>
+                                {t(
+                                  "dashboard.medical_form.symptom",
+                                  "Triệu chứng",
+                                )}
+                                :
+                              </strong>{" "}
+                              {post.content.symptom}
+                            </span>
+                          )}
+                          <span className="text-[#2d88ff] italic text-[12px] mt-0.5">
+                            {t(
+                              "post.expand_medical_form",
+                              "... Xem Form bệnh lý đính kèm",
+                            )}
+                          </span>
+                        </div>
+                      ) : (
+                        post.content ||
+                        t("post.no_content", "Không có nội dung")
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
@@ -269,7 +306,7 @@ const ShareModal = ({ onClose, user, post, onShare }) => {
                     <i className="fab fa-facebook-messenger text-[20px] text-[#2d88ff]"></i>
                   </div>
                   <span className="text-[#e4e6eb] text-[15px] font-semibold">
-                    Gửi bằng tin nhắn
+                    {t("share.send_via_messenger", "Gửi bằng tin nhắn")}
                   </span>
                 </div>
                 <i className="fas fa-chevron-right text-[#b0b3b8] text-[14px]"></i>
@@ -285,7 +322,9 @@ const ShareModal = ({ onClose, user, post, onShare }) => {
                       : "bg-[#1877f2] hover:bg-[#166fe5] text-white shadow-md active:scale-[0.98]"
                   }`}
               >
-                {isSharing ? "Đang chia sẻ..." : "Chia sẻ ngay"}
+                {isSharing
+                  ? t("share_modal.sharing", "Đang chia sẻ...")
+                  : t("share.share_now", "Chia sẻ ngay")}
               </button>
             </div>
           </>
@@ -301,17 +340,19 @@ const ShareModal = ({ onClose, user, post, onShare }) => {
                 <i className="fas fa-arrow-left text-[20px] text-[#b0b3b8]"></i>
               </div>
               <h3 className="text-[20px] font-bold text-[#e4e6eb]">
-                Đối tượng
+                {t("share_modal.who_can_see", "Đối tượng")}
               </h3>
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 custom-scroll">
               <p className="text-[#e4e6eb] text-[17px] font-bold mb-2">
-                Ai có thể xem bài viết này?
+                {t("share_modal.who_can_see", "Ai có thể xem bài viết này?")}
               </p>
               <p className="text-[#b0b3b8] text-[14px] mb-4">
-                Bài viết sẽ hiển thị trên Bảng feed, trang cá nhân và kết quả
-                tìm kiếm.
+                {t(
+                  "share_modal.feed_visibility_desc",
+                  "Bài viết sẽ hiển thị trên Bảng feed, trang cá nhân và kết quả tìm kiếm.",
+                )}
               </p>
 
               <div className="flex flex-col gap-1">
@@ -353,7 +394,7 @@ const ShareModal = ({ onClose, user, post, onShare }) => {
           <div className="flex flex-col h-full animate-fadeIn bg-[#242526]">
             <div className="relative flex items-center justify-center h-[60px] border-b border-[#3e4042] shrink-0">
               <h3 className="text-[20px] font-bold text-[#e4e6eb]">
-                Gửi tin nhắn mới
+                {t("share_modal.new_message", "Gửi tin nhắn mới")}
               </h3>
             </div>
 
@@ -364,7 +405,10 @@ const ShareModal = ({ onClose, user, post, onShare }) => {
                 </span>
                 <input
                   type="text"
-                  placeholder="Tìm kiếm người..."
+                  placeholder={t(
+                    "share_modal.search_people",
+                    "Tìm kiếm người...",
+                  )}
                   className="w-full bg-[#3a3b3c] text-[#e4e6eb] rounded-full pl-10 pr-4 py-2 outline-none placeholder-[#b0b3b8] focus:bg-[#4e4f50] transition-colors"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -375,7 +419,7 @@ const ShareModal = ({ onClose, user, post, onShare }) => {
 
             <div className="flex-1 overflow-y-auto p-2 custom-scroll">
               <p className="text-[#b0b3b8] text-[13px] font-semibold px-4 py-2 uppercase">
-                Gợi ý
+                {t("share_modal.suggestions", "Gợi ý")}
               </p>
               <div className="flex flex-col px-2">
                 {filteredContacts.length > 0 ? (
@@ -403,7 +447,7 @@ const ShareModal = ({ onClose, user, post, onShare }) => {
                             {contact.name}
                           </span>
                           <span className="text-[#b0b3b8] text-[12px]">
-                            Bạn bè
+                            {t("user_profile.friend_status", "Bạn bè")}
                           </span>
                         </div>
                       </div>
@@ -422,15 +466,20 @@ const ShareModal = ({ onClose, user, post, onShare }) => {
                                 : "bg-[#2d88ff]/10 text-[#2d88ff] hover:bg-[#2d88ff]/20 border-transparent"
                             }`}
                       >
-                        {contact.isSent ? "Đã gửi" : "Gửi"}
+                        {contact.isSent
+                          ? t("share_modal.sent", "Đã gửi")
+                          : t("share_modal.send", "Gửi")}
                       </button>
                     </div>
                   ))
                 ) : (
                   <div className="text-center py-6 text-[#b0b3b8]">
                     {contacts.length === 0
-                      ? "Đang tải danh sách..."
-                      : "Không tìm thấy người dùng."}
+                      ? t("share_modal.loading_list", "Đang tải danh sách...")
+                      : t(
+                          "share_modal.no_user_found",
+                          "Không tìm thấy người dùng.",
+                        )}
                   </div>
                 )}
               </div>
@@ -441,7 +490,7 @@ const ShareModal = ({ onClose, user, post, onShare }) => {
                 className="px-8 py-2 rounded-lg font-semibold text-white bg-[#1877f2] hover:bg-[#166fe5] shadow-md transition-colors"
                 onClick={() => setViewMode("MAIN")}
               >
-                Xong
+                {t("share_modal.done", "Xong")}
               </button>
             </div>
           </div>

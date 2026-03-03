@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import PostCard from "../dashboard/PostCard"; //
-import { getPostsByUser } from "../../services/socialApi"; //
-
+import PostCard from "../dashboard/PostCard";
+import { getPostsByUser } from "../../services/socialApi";
+import { mapPostToUI } from "../../utils/mapPost";
 const emojiList = [
   { type: "like", icon: "👍", label: "Thích" },
   { type: "love", icon: "❤️", label: "Yêu thích" },
@@ -11,7 +11,7 @@ const emojiList = [
   { type: "angry", icon: "😡", label: "Phẫn nộ" },
 ];
 
-// ✅ 1. Hàm tính thời gian (Thêm vào đây)
+//1. Hàm tính thời gian (Thêm vào đây)
 const getTimeAgo = (dateInput) => {
   if (!dateInput) return "";
   const date = new Date(dateInput);
@@ -33,7 +33,7 @@ const UserPostsTab = ({ userId, currentUser }) => {
   const [reactions, setReactions] = useState({});
   const [comments, setComments] = useState({});
 
-  // ✅ 2. Thêm state quản lý Popup reaction (Tránh lỗi khi hover nút like)
+  //  2. Thêm state quản lý Popup reaction (Tránh lỗi khi hover nút like)
   const [activePopup, setActivePopup] = useState(null);
 
   useEffect(() => {
@@ -42,7 +42,14 @@ const UserPostsTab = ({ userId, currentUser }) => {
       try {
         setLoading(true);
         const data = await getPostsByUser(userId);
-        setPosts(data);
+
+        // 1. Trích xuất mảng từ Object phân trang (tránh lỗi .map is not a function)
+        const rawPosts = Array.isArray(data) ? data : data.results || [];
+
+        // 2. SỬ DỤNG HÀM mapPostToUI ĐỂ CHUẨN HÓA DỮ LIỆU CHO POSTCARD
+        const uiPosts = rawPosts.map(mapPostToUI);
+
+        setPosts(uiPosts); // Set dữ liệu đã chuẩn hóa vào State
       } catch (error) {
         console.error(error);
       } finally {

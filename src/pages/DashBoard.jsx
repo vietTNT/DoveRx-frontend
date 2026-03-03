@@ -8,12 +8,10 @@ import {
   addComment,
   reactComment,
   deleteComment as apiDeleteComment,
-  // updatePost,
-  // deletePost,
 } from "../services/socialApi";
 import { savePostsToCache, loadPostsFromCache } from "../utils/postCache";
 import { mapPostToUI } from "../utils/mapPost";
-
+import { useLocation } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import SidebarLeft from "../components/dashboard/SidebarLeft";
 import SidebarRight from "../components/dashboard/SidebarRight";
@@ -46,23 +44,29 @@ const removeNode = (l, id) =>
 
 const Dashboard = ({ user, onLogout }) => {
   const { t, i18n } = useTranslation();
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const currentTab = searchParams.get("tab");
   // --- STATE: FEED ---
   const [posts, setPosts] = useState([]);
   const [comments, setComments] = useState({});
   const [reactions, setReactions] = useState({});
-  const [activePopup, setActivePopup] = useState(null); // Popup reactions ở Feed
+  const [activePopup, setActivePopup] = useState(null);
 
   // --- STATE: MODAL VIEW (Xem bài từ thông báo) ---
   const [viewPost, setViewPost] = useState(null);
   const [highlightCommentId, setHighlightCommentId] = useState(null);
-  const [activeCommentPopup, setActiveCommentPopup] = useState(null); // Popup reactions trong Modal
-  const [activePostPopup, setActivePostPopup] = useState(null); // Popup post reaction trong Modal
+  const [activeCommentPopup, setActiveCommentPopup] = useState(null);
+  const [activePostPopup, setActivePostPopup] = useState(null);
   const [modalCommentDraft, setModalCommentDraft] = useState("");
   const [modalReplyDrafts, setModalReplyDrafts] = useState({});
 
   // --- STATE: CREATE POST & OTHERS ---
   const [postType, setPostType] = useState("normal");
   const [newPost, setNewPost] = useState("");
+  const [visibility, setVisibility] = useState("public");
+
+  const [category, setCategory] = useState("other");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedImages, setSelectedImages] = useState([]);
   const [lightbox, setLightbox] = useState({
@@ -142,7 +146,7 @@ const Dashboard = ({ user, onLogout }) => {
           target = mapPostToUI(raw);
         } catch (e) {
           console.error("Lỗi tải bài viết:", e);
-          toast.error("Bài viết không tồn tại hoặc đã bị xóa");
+          toast.error(t("post.post_unavailable"));
           return;
         }
       }
@@ -285,24 +289,70 @@ const Dashboard = ({ user, onLogout }) => {
   // =======================================================
 
   // Load Feed & Cache
+  // useEffect(() => {
+  //   const loadData = async () => {
+  //     const cachedPosts = loadPostsFromCache();
+  //     if (cachedPosts && cachedPosts.length > 0) {
+  //       setPosts(cachedPosts);
+  //     }
+  //     try {
+  //       const data = await fetchPosts();
+  //       const uiPosts = data.map(mapPostToUI);
+  //       setPosts(uiPosts);
+  //       savePostsToCache(uiPosts);
+  //     } catch (err) {
+  //       console.error(t("common.error_load_posts"), err);
+  //     }
+  //   };
+  //   loadData();
+  // }, [t]);
+  // Load Feed & Cache
   useEffect(() => {
     const loadData = async () => {
-      const cachedPosts = loadPostsFromCache();
-      if (cachedPosts && cachedPosts.length > 0) {
-        setPosts(cachedPosts);
+      // const cachedPosts = loadPostsFromCache();
+      // if (cachedPosts && cachedPosts.length > 0) {
+      //   setPosts(cachedPosts);
+      // }
+      if (!currentTab) {
+        const cachedPosts = loadPostsFromCache();
+        if (cachedPosts && cachedPosts.length > 0) {
+          setPosts(cachedPosts);
+        }
+      } else {
+        setPosts([]); // Xóa rỗng list khi chuyển tab để có hiệu ứng load
       }
       try {
-        const data = await fetchPosts();
+        // const response = await fetchPosts();
+
+        // // Trích xuất mảng an toàn
+        // const data = Array.isArray(response)
+        //   ? response
+        //   : response.results || [];
+
+        // // BỎ LUÔN LỆNH IF (Cho phép set array rỗng nếu không có bài viết)
+        // const uiPosts = data.map(mapPostToUI);
+        // setPosts(uiPosts);
+        // savePostsToCache(uiPosts);
+        const response = await fetchPosts(
+          currentTab === "medical" ? "medical" : null,
+        );
+
+        // Trích xuất mảng an toàn
+        const data = Array.isArray(response)
+          ? response
+          : response.results || [];
+
         const uiPosts = data.map(mapPostToUI);
         setPosts(uiPosts);
-        savePostsToCache(uiPosts);
+
+        // Chỉ lưu cache cho Newsfeed tổng
+        if (!currentTab) savePostsToCache(uiPosts);
       } catch (err) {
         console.error(t("common.error_load_posts"), err);
       }
     };
     loadData();
-  }, [t]);
-
+  }, [t, currentTab]);
   useEffect(() => {
     if (posts.length > 0) savePostsToCache(posts);
   }, [posts]);
@@ -477,6 +527,25 @@ const Dashboard = ({ user, onLogout }) => {
         case "new_post":
         case "post_created": {
           const incomingPost = payload.post;
+          //   if (
+          //     incomingPost &&
+          //     String(incomingPost.author?.id) !== String(user?.id)
+          //   ) {
+          //     setPosts((prev) => {
+          //       if (prev.some((p) => String(p.id) === String(incomingPost.id)))
+          //         return prev;
+          //       toast.success(
+          //         `📢 ${incomingPost.author?.name || "Ai đó"} vừa đăng bài mới!`,
+          //       );
+          //       return [mapPostToUI(incomingPost), ...prev];
+          //     });
+          //   }
+          //   break;
+          // }
+          if (currentTab === "medical" && incomingPost.kind !== "medical") {
+            break; // Đang ở tab Y tế thì bỏ qua các bài đăng thường
+          }
+
           if (
             incomingPost &&
             String(incomingPost.author?.id) !== String(user?.id)
@@ -484,8 +553,11 @@ const Dashboard = ({ user, onLogout }) => {
             setPosts((prev) => {
               if (prev.some((p) => String(p.id) === String(incomingPost.id)))
                 return prev;
+
               toast.success(
-                `📢 ${incomingPost.author?.name || "Ai đó"} vừa đăng bài mới!`,
+                t("notification_msg.new_post_alert", {
+                  name: incomingPost.author?.name || t("friend.someone"),
+                }),
               );
               return [mapPostToUI(incomingPost), ...prev];
             });
@@ -517,7 +589,7 @@ const Dashboard = ({ user, onLogout }) => {
   }, [user?.id, emojiList]);
 
   // =======================================================
-  // 4. CÁC HÀM UTILS & HANDLERS CŨ
+  // 4. CÁC HÀM UTILS & HANDLERS
   // =======================================================
   const getTimeAgo = (timestamp) => {
     if (!timestamp) return t("time.just_now");
@@ -575,11 +647,21 @@ const Dashboard = ({ user, onLogout }) => {
     setLightbox({ open: false, images: [], index: 0 });
   const handlePostDeleted = (pid) => {
     setPosts((prev) => prev.filter((p) => p.id !== pid));
-    toast.success("Đã xóa bài viết");
+    toast.success(t("post.deleted"));
   };
   const handlePostUpdated = (up) => {
-    setPosts((prev) => prev.map((p) => (p.id === up.id ? mapPostToUI(up) : p)));
-    toast.success("Đã cập nhật bài viết");
+    if (!up || !up.id) {
+      console.warn("⚠️ handlePostUpdated: dữ liệu không hợp lệ", up);
+      return;
+    }
+    // Uncomment và thêm mapPostToUI để parse medical content đúng
+    const mapped = mapPostToUI(up);
+    setPosts((prev) =>
+      prev.map((p) => (String(p.id) === String(mapped.id) ? mapped : p)),
+    );
+
+    // setPosts((prev) => prev.map((p) => (p.id === up.id ? mapPostToUI(up) : p)));
+    toast.success(t("post.updated"));
   };
 
   const handlePost = async () => {
@@ -591,9 +673,10 @@ const Dashboard = ({ user, onLogout }) => {
         ? Object.values(medicalForm).some((v) => v.trim())
         : newPost.trim().length > 0) || files.length > 0;
     if (!hasContent) {
-      alert("Bạn chưa nhập nội dung hoặc chọn ảnh/video.");
+      alert(t("post.no_content"));
       return;
     }
+    const categoryToSave = category;
     const tempId = Date.now();
     const optimisicPost = {
       id: tempId,
@@ -604,6 +687,8 @@ const Dashboard = ({ user, onLogout }) => {
         url: img.url,
         type: img.type.startsWith("video") ? "video" : "image",
       })),
+      visibility,
+      category: categoryToSave,
       reaction_counts: {},
       comment_count: 0,
       isOptimistic: true,
@@ -611,6 +696,7 @@ const Dashboard = ({ user, onLogout }) => {
     setPosts((prev) => [optimisicPost, ...prev]);
     setNewPost("");
     setSelectedImages([]);
+    setCategory("other");
     setMedicalForm({
       symptom: "",
       duration: "",
@@ -626,8 +712,15 @@ const Dashboard = ({ user, onLogout }) => {
     try {
       const payload =
         kind === "medical"
-          ? { kind, content_medical: optimisicPost.content, files }
-          : { kind, content: optimisicPost.content, files };
+          ? { kind, content_medical: optimisicPost.content, files, visibility }
+          : {
+              kind,
+              content: optimisicPost.content,
+              files,
+              visibility,
+              category: categoryToSave,
+            };
+
       const created = await createPost(payload);
       setPosts((prev) =>
         prev.map((p) => (p.id === tempId ? mapPostToUI(created) : p)),
@@ -650,23 +743,7 @@ const Dashboard = ({ user, onLogout }) => {
 
   // (SHARE)
   const handleNewPost = (newPost) => {
-    // Chuẩn hóa data từ API về định dạng UI
-    const mappedPost = {
-      id: newPost.id,
-      author: {
-        id: newPost.author?.id || newPost.author_id,
-        name: newPost.author?.name || newPost.author_name,
-        avatar: newPost.author?.avatar || newPost.author_avatar,
-      },
-      content: newPost.content || "",
-      time: newPost.created_at || newPost.time || new Date().toISOString(),
-      images: newPost.images || [],
-      kind: newPost.kind || "normal",
-      shared_post: newPost.shared_post_data || newPost.shared_post || null,
-      reaction_counts: newPost.reaction_counts || {},
-      shares_count: newPost.shares_count || 0,
-    };
-
+    const mappedPost = mapPostToUI(newPost);
     // Thêm vào đầu danh sách posts
     setPosts((prev) => [mappedPost, ...prev]);
   };
@@ -700,7 +777,7 @@ const Dashboard = ({ user, onLogout }) => {
               lightbox={lightbox}
               onDeletePost={handlePostDeleted}
               onUpdatePost={handlePostUpdated}
-              onNewPost={handleNewPost} // ✅ THÊM PROP NÀY
+              onNewPost={handleNewPost}
             />
           ))}
         </main>
@@ -731,7 +808,7 @@ const Dashboard = ({ user, onLogout }) => {
           onSetPostReaction={(type) => handleModalPostReact(type)}
           reactions={reactions}
           setReactions={setReactions}
-          onShareClick={() => {}} // TODO: Add share logic if needed
+          onShareClick={() => {}}
           // --- Comment ---
           commentDraft={modalCommentDraft}
           setCommentDraft={setModalCommentDraft}
@@ -775,6 +852,10 @@ const Dashboard = ({ user, onLogout }) => {
         fileInputRef={fileInputRef}
         handleImageChange={handleImageChange}
         handlePost={handlePost}
+        visibility={visibility}
+        setVisibility={setVisibility}
+        category={category}
+        setCategory={setCategory}
       />
 
       <Lightbox

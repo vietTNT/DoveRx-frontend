@@ -18,7 +18,8 @@ import likeIcon from "../../assets/icons/like.png";
 import { saveToCache, loadFromCache } from "../../utils/chatCache";
 import { useTranslation } from "react-i18next";
 import SharedPostCard from "./SharedPostCard";
-
+import aiIcon from "../../assets/icons/dove-ai.png";
+import { useNavigate } from "react-router-dom";
 //  HÀM NÀY ĐỂ XỬ LÝ ẢNH
 const getAttachmentUrl = (url) => {
   if (!url) return "";
@@ -64,6 +65,7 @@ const normalizeMessage = (msg) => {
 const ChatPopup = ({
   contact,
   conversation,
+  conversationId,
   cachedMessages = [],
   onMessagesUpdate,
   onClose,
@@ -88,14 +90,23 @@ const ChatPopup = ({
   const fileInputRef = useRef(null);
   const lastNotifiedRef = useRef(null);
   const currentUser = useMemo(() => getCurrentUser(), []);
-  const chatName = conversation?.is_group ? conversation.title : contact?.name;
-
+  const navigate = useNavigate();
+  const isAiFromConv =
+    conversation?.is_ai_chat ||
+    (!conversation?.is_group && conversation?.participants?.length === 1);
+  const chatName = conversation?.is_group
+    ? conversation.title
+    : contact?.name ||
+      (isAiFromConv ? "DoveRx AI" : t("user_profile.not_updated"));
+  const effectiveId = conversation?.id || conversationId;
   const chatAvatar = conversation?.is_group
-    ? "https://cdn-icons-png.flaticon.com/512/166/166258.png" // Icon nhóm mặc định
-    : getAvatarUrl(contact);
+    ? "https://cdn-icons-png.flaticon.com/512/166/166258.png"
+    : isAiFromConv
+      ? aiIcon
+      : getAvatarUrl(contact);
 
   const chatStatus = conversation?.is_group
-    ? `${conversation.participants?.length || 0} thành viên`
+    ? `${conversation.participants?.length || 0}${t("chat.members")}`
     : contact?.online
       ? t("chat.active")
       : t("chat.offline");
@@ -112,7 +123,14 @@ const ChatPopup = ({
   const scrollToBottom = (behavior = "smooth") => {
     messagesEndRef.current?.scrollIntoView({ behavior });
   };
-
+  const handleProfileNavigation = (e) => {
+    e.stopPropagation(); // Tránh click nhầm làm thu nhỏ/đóng popup
+    // Bỏ qua nếu là Chat Nhóm hoặc Chat với Bot AI
+    if (conversation?.is_group || isAiFromConv || !contact?.id) {
+      return;
+    }
+    navigate(`/profile/${contact.id}`); // Chuyển hướng sang trang cá nhân
+  };
   // Tự động cuộn khi messages thay đổi
   useLayoutEffect(() => {
     if (loading) return;
@@ -129,7 +147,31 @@ const ChatPopup = ({
       scrollToBottom("smooth");
     }
   };
+  useEffect(() => {
+    if (!effectiveId) return; // Sử dụng effectiveId
 
+    const syncMessages = async () => {
+      try {
+        setLoading(true);
+        // Gọi API với effectiveId
+        const serverMessages = await fetchMessages(effectiveId);
+        const normalized = serverMessages.map(normalizeMessage);
+
+        setMessages(normalized);
+        saveToCache(effectiveId, normalized);
+
+        if (!isMinimized) {
+          await markAsRead(effectiveId);
+        }
+      } catch (err) {
+        console.error("Sync error:", err);
+      } finally {
+        setLoading(false); //  Đảm bảo loading được tắt ở đây
+      }
+    };
+
+    syncMessages();
+  }, [effectiveId, isMinimized]);
   //  Notify parent khi messages thay đổi
   useEffect(() => {
     if (!onMessagesUpdate) return;
@@ -221,7 +263,7 @@ const ChatPopup = ({
         setMessages((prev) => {
           const newMsg = normalizeMessage(incomingMsg);
 
-          // 🔥 SỬA LOGIC TẠI ĐÂY: Xử lý tin nhắn của chính mình
+          //  Xử lý tin nhắn của chính mình
           if (newMsg.sender.id === currentUser.id) {
             // Tìm tin nhắn tạm đang ở trạng thái sending
             const existingIndex = prev.findIndex(
@@ -238,7 +280,7 @@ const ChatPopup = ({
             );
 
             if (existingIndex !== -1) {
-              // ✅ Cập nhật tin nhắn tạm thành tin nhắn thật
+              //  Cập nhật tin nhắn tạm thành tin nhắn thật
               const updated = [...prev];
               updated[existingIndex] = {
                 ...newMsg,
@@ -296,7 +338,7 @@ const ChatPopup = ({
               return {
                 ...msg,
                 is_recalled: true,
-                text: "Tin nhắn đã được thu hồi",
+                text: t("chat.message_recalled"),
                 attachment: null,
                 post_data: null,
               };
@@ -322,12 +364,11 @@ const ChatPopup = ({
 
   // ---------------------------------------------------------------
   const handleRecall = async (msgId) => {
-    if (!window.confirm("Bạn có chắc muốn thu hồi tin nhắn này?")) return;
+    if (!window.confirm(t("chat.confirm_recall"))) return;
     try {
       await recallMessage(msgId);
     } catch (error) {
-      console.error("Lỗi thu hồi:", error);
-      alert("Không thể thu hồi tin nhắn.");
+      alert(t("chat.recall_failed"));
     }
   };
 
@@ -337,7 +378,6 @@ const ChatPopup = ({
     if (messages.length > 0 && !isTyping) {
       messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, conversation?.id]);
 
   useEffect(() => {
@@ -393,8 +433,7 @@ const ChatPopup = ({
         },
       });
     } catch (error) {
-      console.error("Upload failed:", error);
-      alert("Gửi file thất bại");
+      alert(t("chat.upload_failed"));
     }
   };
 
@@ -448,9 +487,7 @@ const ChatPopup = ({
     setMessage("");
 
     chatWebSocketService.sendMessage(conversation.id, textToSend);
-    markAsRead(conversation.id).catch((e) => {
-      console.error("❌ Failed to mark as read after sending:", e);
-    });
+    markAsRead(conversation.id).catch((e) => {});
 
     chatWebSocketService.sendTyping(conversation.id, false);
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
@@ -477,7 +514,25 @@ const ChatPopup = ({
     return (
       <div className="chat-popup minimized" style={style} onClick={onMinimize}>
         <div className="minimized-header">
-          <img src={chatAvatar} alt={chatName} className="minimized-avatar" />
+          <div style={{ position: "relative", display: "flex" }}>
+            <img src={chatAvatar} alt={chatName} className="minimized-avatar" />
+            {contact?.online && (
+              <span
+                style={{
+                  position: "absolute",
+                  bottom: "0px",
+                  right: "0px",
+                  width: "10px",
+                  height: "10px",
+                  backgroundColor: "#31a24c",
+                  borderRadius: "50%",
+                  border: "2px solid #fff",
+                  zIndex: 2,
+                }}
+              ></span>
+            )}
+          </div>
+
           <span className="minimized-name">{chatName}</span>
           <button
             className="close-btn-mini"
@@ -497,20 +552,90 @@ const ChatPopup = ({
     <div className="chat-popup" style={style}>
       {/* HEADER */}
       <div className="chat-popup-header">
-        <div className="chat-header-left">
-          <img src={chatAvatar} alt={chatName} className="chat-avatar" />
-          <div className="chat-header-info">
-            <span className="contact-name">{chatName}</span>
-            <span className="contact-status">{chatStatus}</span>
+        <div
+          className="chat-header-left"
+          style={{ display: "flex", alignItems: "center", gap: "10px" }}
+        >
+          {/* AVATAR VÀ DẤU CHẤM XANH */}
+          <div style={{ position: "relative", display: "flex" }}>
+            <img
+              src={chatAvatar}
+              alt={chatName}
+              className="chat-avatar"
+              onClick={handleProfileNavigation}
+              style={{
+                width: "38px",
+                height: "38px",
+                borderRadius: "50%",
+                objectFit: "cover",
+                cursor:
+                  !conversation?.is_group && !isAiFromConv
+                    ? "pointer"
+                    : "default",
+              }}
+            />
+            {contact?.online && (
+              <span
+                style={{
+                  position: "absolute",
+                  bottom: "0px",
+                  right: "0px",
+                  width: "12px",
+                  height: "12px",
+                  backgroundColor: "#31a24c",
+                  borderRadius: "50%",
+                  border: "2px solid #fff",
+                  zIndex: 2,
+                }}
+              ></span>
+            )}
+          </div>
+
+          {/* KHU VỰC TÊN VÀ TRẠNG THÁI (ĐÃ REDESIGN) */}
+          <div
+            className="chat-header-info"
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+            }}
+          >
+            <span
+              className="contact-name"
+              style={{
+                fontWeight: "700",
+                fontSize: "15px",
+                color: "#050505",
+                lineHeight: "1.2",
+              }}
+            >
+              {chatName}
+            </span>
+            <span
+              className="contact-status"
+              style={{
+                fontSize: "12px",
+                color: "#65676b",
+                marginTop: "2px",
+                fontWeight: "400",
+              }}
+            >
+              {/* Nếu trong file dịch của bạn có sẵn ký tự "●", hàm replace này sẽ dọn dẹp nó đi */}
+              {chatStatus.replace("●", "").trim()}
+            </span>
           </div>
         </div>
         <div className="chat-header-actions">
-          <button className="header-btn" title="Thu nhỏ" onClick={onMinimize}>
+          <button
+            className="header-btn"
+            title={t("chat.minimize")}
+            onClick={onMinimize}
+          >
             —
           </button>
           <button
             className="header-btn close-btn"
-            title="Đóng"
+            title={t("common.close")}
             onClick={onClose}
           >
             ×

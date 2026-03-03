@@ -20,7 +20,6 @@ import ReactionListModal from "./ReactionListModal";
 import { useTranslation } from "react-i18next";
 import commentIcon from "../../assets/icons/comment.png";
 import shareIcon from "../../assets/icons/share.png";
-
 // HELPER FUNCTION
 const getCurrentUserId = () => {
   try {
@@ -29,7 +28,6 @@ const getCurrentUserId = () => {
     const user = JSON.parse(userStr);
     return user?.id || null;
   } catch (error) {
-    console.error("❌ [getCurrentUserId] Error:", error);
     return null;
   }
 };
@@ -88,6 +86,7 @@ export const CommentItem = ({
   updateNode,
   currentUser,
   getTimeAgo,
+  canComment = true,
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -217,7 +216,7 @@ export const CommentItem = ({
             )}
           </div>
 
-          {level < MAX_NEST_LEVEL && (
+          {level < MAX_NEST_LEVEL && canComment && (
             <>
               <span> · </span>
               <span
@@ -264,7 +263,7 @@ export const CommentItem = ({
         {/* Input trả lời với tag tên người dùng */}
         {c.replyOpen && (
           <CommentInput
-            placeholder={`Trả lời ${c.user}...`}
+            placeholder={t("dashboard.reply_to", { name: c.user })}
             value={getReplyDraft(c.id)}
             onChange={(val) => setReplyDraft(c.id, val)}
             onSubmit={() => submitReply(c.id, c.user)}
@@ -321,7 +320,9 @@ export const CommentItem = ({
                   )
                 }
               >
-                Xem thêm {c.replies.length - MAX_REPLIES_VISIBLE} phản hồi
+                {t("dashboard.view_more_replies", {
+                  count: c.replies.length - MAX_REPLIES_VISIBLE,
+                })}
               </p>
             )}
           </>
@@ -366,8 +367,19 @@ const PostCard = ({
   const [showMenu, setShowMenu] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState("");
-  const menuRef = useRef(null);
+  const menuRef = useRef(null); // menu chỉnh sửa bài viết
+  const visMenuRef = useRef(null); // menu chỉnh sửa quyền riêng tư
   const [showReactionList, setShowReactionList] = useState(false);
+  // state chỉnh sửa quyền riêng tư bài viết
+  const [showVisDropdown, setShowVisDropdown] = useState(false);
+  const [currentVisibility, setCurrentVisibility] = useState(
+    p.visibility || "public",
+  );
+
+  useEffect(() => {
+    if (p.visibility) setCurrentVisibility(p.visibility);
+  }, [p.visibility]);
+
   const isAuthor =
     currentUser?.id &&
     (String(currentUser.id) === String(p.author?.id) ||
@@ -380,12 +392,11 @@ const PostCard = ({
   const myReactionEmoji = myReactionType
     ? emojiList.find((e) => e.type === myReactionType)
     : null;
+  const canEditVisibility = isAuthor && p.kind !== "medical";
 
-  // Effects
-
-  // FIX: Thêm dependencies cho useEffect cập nhật reaction
+  //Thêm dependencies cho useEffect cập nhật reaction
   useEffect(() => {
-    // ✅ Kiểm tra p và p.id trước khi xử lý
+    // Kiểm tra p và p.id trước khi xử lý
     if (!p || !p.id) {
       console.warn("[PostCard] Invalid post data:", p);
       return;
@@ -402,7 +413,7 @@ const PostCard = ({
 
   // FIX: Thêm dependencies cho useEffect load comment
   useEffect(() => {
-    // ✅ Kiểm tra p và p.id
+    //  Kiểm tra p và p.id
     if (!p || !p.id) return;
 
     if (!comments[p.id]?.list) {
@@ -422,8 +433,14 @@ const PostCard = ({
 
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target))
+      // Đóng menu ba chấm nếu click ra ngoài nó
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
         setShowMenu(false);
+      }
+      // Đóng menu quyền riêng tư nếu click ra ngoài nó
+      if (visMenuRef.current && !visMenuRef.current.contains(e.target)) {
+        setShowVisDropdown(false);
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -442,24 +459,73 @@ const PostCard = ({
     }
   };
   const handleEditClick = () => {
-    const currentText = typeof p.content === "string" ? p.content : "";
-    setEditContent(currentText);
+    let currentData = p.content;
+
+    // Nếu backend trả về JSON dạng chuỗi, ta parse nó ra
+    if (typeof currentData === "string" && currentData.startsWith("{")) {
+      try {
+        currentData = JSON.parse(currentData);
+      } catch (err) {
+        console.warn("Lỗi parse JSON khi edit:", err);
+      }
+    }
+    setEditContent(currentData);
     setIsEditing(true);
     setShowMenu(false);
   };
   const handleSaveEdit = async () => {
-    if (!editContent.trim()) return;
+    if (typeof editContent === "string" && !editContent.trim()) return;
     try {
-      const updatedData = await updatePost(p.id, editContent);
+      let payload = {};
+
+      if (typeof editContent === "object") {
+        payload = {
+          content_medical: editContent,
+          content: JSON.stringify(editContent),
+        };
+      } else {
+        payload = { content: editContent };
+      }
+
+      const updatedData = await updatePost(p.id, payload);
       setIsEditing(false);
-      if (onUpdatePost) onUpdatePost(updatedData);
+      // if (onUpdatePost) {
+      //   onUpdatePost(updatedData);
+      // }
+      if (onUpdatePost) {
+        onUpdatePost({
+          ...p, // 1. Giữ lại toàn bộ thông tin cũ (avatar, author, like...)
+          ...updatedData, // 2. Ghi đè những gì backend trả về (nếu có)
+          content: payload.content, // 3. Ép hiển thị nội dung vừa gõ xong
+          id: p.id, // 4. Tuyệt đối không để mất ID bài viết
+        });
+      }
       toast.success(t("dashboard.update_success"));
     } catch (error) {
       toast.error(t("dashboard.update_error"));
     }
   };
+  const handleChangeVisibility = async (newVis) => {
+    // 1. Lưu lại quyền riêng tư cũ phòng trường hợp backend lỗi thì hoàn tác
+    const oldVis = currentVisibility;
 
-  // Handlers Comments & Reactions ... (Giữ nguyên)
+    // 2. THAY ĐỔI GIAO DIỆN NGAY LẬP TỨC (Đóng menu và cập nhật icon)
+    setCurrentVisibility(newVis);
+    setShowVisDropdown(false);
+
+    try {
+      // Gọi API cập nhật bài viết (Gửi object chứa visibility)
+      await updatePost(p.id, { visibility: newVis });
+      toast.success(
+        t("dashboard.update_success") || "Đã cập nhật quyền riêng tư!",
+      );
+    } catch (error) {
+      // 3. Nếu backend báo lỗi, hoàn tác lại giao diện cũ và báo lỗi
+      setCurrentVisibility(oldVis);
+      toast.error(t("dashboard.update_error") || "Lỗi khi cập nhật!");
+    }
+  };
+
   const getReplyDraft = (id) => drafts.reply[id] || "";
   const setReplyDraft = (id, value) =>
     setDrafts((prev) => ({ ...prev, reply: { ...prev.reply, [id]: value } }));
@@ -498,7 +564,11 @@ const PostCard = ({
           ? { ...c, reaction: null, likes: (c.likes || 1) - 1 }
           : {
               ...c,
-              reaction: { type: "like", icon: "👍", label: "Thích" },
+              reaction: {
+                type: "like",
+                icon: "👍",
+                label: t("reactions.like"),
+              },
               likes: (c.likes || 0) + 1,
             };
       });
@@ -544,7 +614,11 @@ const PostCard = ({
           return { ...prev, [p.id]: { ...ps, list } };
         });
       })
-      .catch(() => {});
+      .catch((err) => {
+        const errorMessage =
+          err.response?.data?.error || t("error.reply_failed");
+        toast.error(errorMessage);
+      });
   };
   const startEdit = (cid, t) => {
     setEditDraft(cid, t || "");
@@ -582,7 +656,7 @@ const PostCard = ({
     if (!c) return;
     const ownerId = c.author_id || c.user_id || c.userId;
     if (String(ownerId) !== String(curId)) {
-      toast.error("❌ Không có quyền xóa");
+      toast.error(t("error.no_delete_permission"));
       return;
     }
     if (!window.confirm(t("dashboard.delete_comment_confirm"))) return;
@@ -650,17 +724,152 @@ const PostCard = ({
           onClick={(e) => handleProfileNavigation(p.author?.id, e)}
           style={{ cursor: "pointer" }}
         />
-        <div className="post-info">
+
+        <div
+          className="post-info"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+          }}
+        >
           <strong
             onClick={(e) => handleProfileNavigation(p.author?.id, e)}
-            style={{ cursor: "pointer" }}
+            style={{
+              cursor: "pointer",
+              color: "#050505",
+              fontSize: "15px",
+              lineHeight: "1.2",
+            }}
             className="hover:underline"
           >
-            {p.author?.name || "Người dùng"}
+            {p.author?.name || t("navbar.role_user")}
           </strong>
-          <span>{getTimeAgo(p.time)}</span>
-        </div>
 
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              color: "#65676b",
+              fontSize: "13px",
+              marginTop: "2px",
+            }}
+          >
+            <span>{getTimeAgo(p.time || p.created_at)}</span>
+            <span style={{ fontSize: "10px" }}>•</span>
+
+            {/* KHU VỰC NÚT QUYỀN RIÊNG TƯ MỚI  */}
+            <div style={{ position: "relative" }} ref={visMenuRef}>
+              <span
+                onClick={() =>
+                  canEditVisibility && setShowVisDropdown(!showVisDropdown)
+                }
+                title={
+                  !canEditVisibility
+                    ? currentVisibility === "private"
+                      ? t("post.visibility_private")
+                      : currentVisibility === "friends"
+                        ? t("post.visibility_friends")
+                        : t("post.visibility_public")
+                    : t("post.edit_visibility")
+                }
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  cursor: canEditVisibility ? "pointer" : "default",
+                  padding: "4px 6px",
+                  borderRadius: "4px",
+                  backgroundColor: showVisDropdown ? "#e4e6eb" : "transparent",
+                  transition: "background 0.2s",
+                }}
+                className={canEditVisibility ? "hover:bg-gray-200" : ""}
+              >
+                {/* Dùng currentVisibility thay vì p.visibility */}
+                {currentVisibility === "private" ? (
+                  <i className="fas fa-lock" style={{ fontSize: "12px" }}></i>
+                ) : currentVisibility === "friends" ? (
+                  <i
+                    className="fas fa-user-friends"
+                    style={{ fontSize: "12px" }}
+                  ></i>
+                ) : (
+                  <i
+                    className="fas fa-globe-americas"
+                    style={{ fontSize: "12px" }}
+                  ></i>
+                )}
+
+                {/* Mũi tên nhỏ báo hiệu có thể click */}
+                {canEditVisibility && (
+                  <i
+                    className="fas fa-caret-down"
+                    style={{ fontSize: "12px", marginLeft: "4px" }}
+                  ></i>
+                )}
+              </span>
+
+              {/* Menu thả xuống */}
+              {showVisDropdown && canEditVisibility && (
+                <div
+                  className="absolute bg-white border border-gray-100 shadow-lg rounded-lg z-50 overflow-hidden"
+                  style={{
+                    width: "140px",
+                    top: "100%",
+                    left: "0",
+                    marginTop: "4px",
+                  }}
+                >
+                  <ul className="flex flex-col py-1 m-0 list-none p-0">
+                    <li
+                      className={`px-3 py-2 text-[13px] cursor-pointer transition-colors ${
+                        currentVisibility === "public"
+                          ? "text-sky-600 bg-sky-50 font-semibold"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleChangeVisibility("public");
+                      }}
+                    >
+                      {t("post.visibility_public")}
+                    </li>
+                    <li
+                      className={`px-3 py-2 text-[13px] cursor-pointer transition-colors ${
+                        currentVisibility === "friends"
+                          ? "text-sky-600 bg-sky-50 font-semibold"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleChangeVisibility("friends");
+                      }}
+                    >
+                      {t("post.visibility_friends")}
+                    </li>
+                    <li
+                      className={`px-3 py-2 text-[13px] cursor-pointer transition-colors ${
+                        currentVisibility === "private"
+                          ? "text-sky-600 bg-sky-50 font-semibold"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleChangeVisibility("private");
+                      }}
+                    >
+                      {t("post.visibility_private")}
+                    </li>
+                  </ul>
+                </div>
+              )}
+            </div>
+            {/*  KẾT THÚC KHU VỰC NÚT QUYỀN RIÊNG TƯ  */}
+          </div>
+        </div>
         {canModify && (
           <div
             className="post-options"
@@ -707,22 +916,382 @@ const PostCard = ({
       </div>
 
       {isEditing ? (
-        <div className="post-edit-mode" style={{ padding: "10px" }}>
-          <textarea
-            value={editContent}
-            onChange={(e) => setEditContent(e.target.value)}
-            style={{
-              width: "100%",
-              minHeight: "80px",
-              padding: "10px",
-              borderRadius: "8px",
-              border: "1px solid #ccc",
-              resize: "vertical",
-            }}
-          />
+        <div
+          className="post-edit-mode"
+          style={{
+            padding: "15px",
+            backgroundColor: "#f7f8fa",
+            borderRadius: "8px",
+            marginTop: "10px",
+            border: "1px solid #e4e6eb",
+          }}
+        >
+          {/* NẾU LÀ BÀI HỎI BÁC SĨ (OBJECT) */}
+          {typeof editContent === "object" ? (
+            <div
+              className="medical-edit-form"
+              style={{ display: "flex", flexDirection: "column", gap: "15px" }}
+            >
+              {/* NHÓM 1: TRIỆU CHỨNG */}
+              <div
+                style={{
+                  backgroundColor: "#fff",
+                  padding: "12px",
+                  borderRadius: "8px",
+                  border: "1px solid #ddd",
+                }}
+              >
+                <h4
+                  style={{
+                    margin: "0 0 12px 0",
+                    color: "#1877f2",
+                    fontSize: "15px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                  }}
+                >
+                  {" "}
+                  {t("dashboard.medical_form.title_symptom") ||
+                    "Triệu chứng & Tình trạng"}
+                </h4>
+
+                <div style={{ marginBottom: "10px" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "13px",
+                      fontWeight: "bold",
+                      color: "#050505",
+                      marginBottom: "4px",
+                    }}
+                  >
+                    {t("dashboard.medical_form.symptom") ||
+                      "Về triệu chứng và tình trạng hiện tại:"}
+                  </label>
+                  <textarea
+                    value={editContent.symptom || ""}
+                    onChange={(e) =>
+                      setEditContent({
+                        ...editContent,
+                        symptom: e.target.value,
+                      })
+                    }
+                    style={{
+                      width: "100%",
+                      padding: "8px",
+                      borderRadius: "6px",
+                      border: "1px solid #ccc",
+                      minHeight: "60px",
+                      resize: "vertical",
+                      outline: "none",
+                    }}
+                  />
+                </div>
+
+                <div
+                  style={{ display: "flex", gap: "10px", marginBottom: "10px" }}
+                >
+                  <div style={{ flex: 1 }}>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: "13px",
+                        fontWeight: "bold",
+                        color: "#050505",
+                        marginBottom: "4px",
+                      }}
+                    >
+                      {t("dashboard.medical_form.duration") ||
+                        "Xuất hiện từ khi nào?"}
+                    </label>
+                    <input
+                      type="text"
+                      value={editContent.duration || ""}
+                      onChange={(e) =>
+                        setEditContent({
+                          ...editContent,
+                          duration: e.target.value,
+                        })
+                      }
+                      style={{
+                        width: "100%",
+                        padding: "8px",
+                        borderRadius: "6px",
+                        border: "1px solid #ccc",
+                        outline: "none",
+                      }}
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: "13px",
+                        fontWeight: "bold",
+                        color: "#050505",
+                        marginBottom: "4px",
+                      }}
+                    >
+                      {t("dashboard.medical_form.severity") ||
+                        "Mức độ nghiêm trọng:"}
+                    </label>
+                    <input
+                      type="text"
+                      value={editContent.severity || ""}
+                      onChange={(e) =>
+                        setEditContent({
+                          ...editContent,
+                          severity: e.target.value,
+                        })
+                      }
+                      style={{
+                        width: "100%",
+                        padding: "8px",
+                        borderRadius: "6px",
+                        border: "1px solid #ccc",
+                        outline: "none",
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "13px",
+                      fontWeight: "bold",
+                      color: "#050505",
+                      marginBottom: "4px",
+                    }}
+                  >
+                    {t("dashboard.medical_form.factors") ||
+                      "Yếu tố làm nặng/đỡ hơn:"}
+                  </label>
+                  <input
+                    type="text"
+                    value={editContent.factors || ""}
+                    onChange={(e) =>
+                      setEditContent({
+                        ...editContent,
+                        factors: e.target.value,
+                      })
+                    }
+                    style={{
+                      width: "100%",
+                      padding: "8px",
+                      borderRadius: "6px",
+                      border: "1px solid #ccc",
+                      outline: "none",
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* NHÓM 2: TIỀN SỬ & THUỐC */}
+              <div
+                style={{
+                  backgroundColor: "#fff",
+                  padding: "12px",
+                  borderRadius: "8px",
+                  border: "1px solid #ddd",
+                }}
+              >
+                <h4
+                  style={{
+                    margin: "0 0 12px 0",
+                    color: "#1877f2",
+                    fontSize: "15px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                  }}
+                >
+                  {" "}
+                  {t("dashboard.medical_form.title_history") ||
+                    "Tiền sử bệnh & Thuốc"}
+                </h4>
+
+                <div style={{ marginBottom: "10px" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "13px",
+                      fontWeight: "bold",
+                      color: "#050505",
+                      marginBottom: "4px",
+                    }}
+                  >
+                    {t("dashboard.medical_form.history_personal") ||
+                      "Tiền sử cá nhân (bệnh, phẫu thuật...):"}
+                  </label>
+                  <textarea
+                    value={editContent.historyPersonal || ""}
+                    onChange={(e) =>
+                      setEditContent({
+                        ...editContent,
+                        historyPersonal: e.target.value,
+                      })
+                    }
+                    style={{
+                      width: "100%",
+                      padding: "8px",
+                      borderRadius: "6px",
+                      border: "1px solid #ccc",
+                      minHeight: "50px",
+                      resize: "vertical",
+                      outline: "none",
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: "10px" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "13px",
+                      fontWeight: "bold",
+                      color: "#050505",
+                      marginBottom: "4px",
+                    }}
+                  >
+                    {t("dashboard.medical_form.history_family") ||
+                      "Tiền sử gia đình (di truyền, tim mạch...):"}
+                  </label>
+                  <textarea
+                    value={editContent.historyFamily || ""}
+                    onChange={(e) =>
+                      setEditContent({
+                        ...editContent,
+                        historyFamily: e.target.value,
+                      })
+                    }
+                    style={{
+                      width: "100%",
+                      padding: "8px",
+                      borderRadius: "6px",
+                      border: "1px solid #ccc",
+                      minHeight: "50px",
+                      resize: "vertical",
+                      outline: "none",
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "13px",
+                      fontWeight: "bold",
+                      color: "#050505",
+                      marginBottom: "4px",
+                    }}
+                  >
+                    {t("dashboard.medical_form.medication") ||
+                      "Thuốc bạn đang dùng hiện tại:"}
+                  </label>
+                  <textarea
+                    value={editContent.medication || ""}
+                    onChange={(e) =>
+                      setEditContent({
+                        ...editContent,
+                        medication: e.target.value,
+                      })
+                    }
+                    style={{
+                      width: "100%",
+                      padding: "8px",
+                      borderRadius: "6px",
+                      border: "1px solid #ccc",
+                      minHeight: "50px",
+                      resize: "vertical",
+                      outline: "none",
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* NHÓM 3: LỐI SỐNG */}
+              <div
+                style={{
+                  backgroundColor: "#fff",
+                  padding: "12px",
+                  borderRadius: "8px",
+                  border: "1px solid #ddd",
+                }}
+              >
+                <h4
+                  style={{
+                    margin: "0 0 12px 0",
+                    color: "#1877f2",
+                    fontSize: "15px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                  }}
+                >
+                  {" "}
+                  {t("dashboard.medical_form.title_lifestyle") ||
+                    "Lối sống sinh hoạt"}
+                </h4>
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "13px",
+                      fontWeight: "bold",
+                      color: "#050505",
+                      marginBottom: "4px",
+                    }}
+                  >
+                    {t("dashboard.medical_form.lifestyle") ||
+                      "Hút thuốc, rượu bia, thức khuya, căng thẳng?:"}
+                  </label>
+                  <textarea
+                    value={editContent.lifestyle || ""}
+                    onChange={(e) =>
+                      setEditContent({
+                        ...editContent,
+                        lifestyle: e.target.value,
+                      })
+                    }
+                    style={{
+                      width: "100%",
+                      padding: "8px",
+                      borderRadius: "6px",
+                      border: "1px solid #ccc",
+                      minHeight: "50px",
+                      resize: "vertical",
+                      outline: "none",
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* NẾU LÀ BÀI ĐĂNG BÌNH THƯỜNG (STRING) */
+            <textarea
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              style={{
+                width: "100%",
+                minHeight: "100px",
+                padding: "12px",
+                borderRadius: "8px",
+                border: "1px solid #ccc",
+                resize: "vertical",
+                outline: "none",
+                fontSize: "15px",
+              }}
+            />
+          )}
+
+          {/* CÁC NÚT LƯU / HỦY */}
           <div
             style={{
-              marginTop: "10px",
+              marginTop: "15px",
               display: "flex",
               gap: "10px",
               justifyContent: "flex-end",
@@ -731,27 +1300,40 @@ const PostCard = ({
             <button
               onClick={() => setIsEditing(false)}
               style={{
-                padding: "5px 15px",
-                borderRadius: "5px",
+                padding: "8px 16px",
+                borderRadius: "6px",
                 border: "none",
-                background: "#ccc",
+                background: "#e4e6eb",
+                color: "#050505",
+                fontWeight: "bold",
                 cursor: "pointer",
+                transition: "0.2s",
               }}
+              onMouseOver={(e) =>
+                (e.currentTarget.style.background = "#d8dadf")
+              }
+              onMouseOut={(e) => (e.currentTarget.style.background = "#e4e6eb")}
             >
-              {t("common.cancel")}
+              {t("common.cancel") || "Hủy"}
             </button>
             <button
               onClick={handleSaveEdit}
               style={{
-                padding: "5px 15px",
-                borderRadius: "5px",
+                padding: "8px 24px",
+                borderRadius: "6px",
                 border: "none",
                 background: "#1877f2",
                 color: "white",
+                fontWeight: "bold",
                 cursor: "pointer",
+                transition: "0.2s",
               }}
+              onMouseOver={(e) =>
+                (e.currentTarget.style.background = "#166fe5")
+              }
+              onMouseOut={(e) => (e.currentTarget.style.background = "#1877f2")}
             >
-              {t("common.save")}
+              {t("common.save") || "Lưu thay đổi"}
             </button>
           </div>
         </div>
@@ -901,7 +1483,7 @@ const PostCard = ({
                         ></i>
                         <span>
                           {p.shared_post.message ||
-                            "Nội dung này hiện không khả dụng."}
+                            t("post.content_unavailable")}
                         </span>
                       </div>
                     ) : (
@@ -949,7 +1531,8 @@ const PostCard = ({
                                 )
                               }
                             >
-                              {p.shared_post.author?.name || "Người dùng"}
+                              {p.shared_post.author?.name ||
+                                t("navbar.role_user")}
                             </strong>
                             <span
                               style={{ fontSize: "12px", color: "#65676b" }}
@@ -959,19 +1542,139 @@ const PostCard = ({
                           </div>
                         </div>
 
+                        {/* KHU VỰC HIỂN THỊ NỘI DUNG BÀI ĐƯỢC SHARE (Hiển thị đầy đủ tất cả các trường y khoa) */}
                         <div style={{ padding: "10px" }}>
-                          <p
-                            style={{
-                              fontSize: "14px",
-                              color: "#050505",
-                              margin: 0,
-                              whiteSpace: "pre-wrap",
-                            }}
-                          >
-                            {p.shared_post.content}
-                          </p>
-                        </div>
+                          {(() => {
+                            let spContent = p.shared_post.content;
+                            let isMedical = p.shared_post.kind === "medical";
 
+                            // 1. Ép kiểu an toàn tuyệt đối: Dịch chuỗi JSON thành Object
+                            if (
+                              typeof spContent === "string" &&
+                              spContent.trim().startsWith("{")
+                            ) {
+                              try {
+                                spContent = JSON.parse(spContent);
+                                isMedical = true; // Chắc chắn là y khoa nếu parse được
+                              } catch (e) {}
+                            }
+
+                            // 2. RENDER BÀI Y KHOA: Hiển thị toàn bộ các trường có dữ liệu
+                            if (
+                              isMedical &&
+                              typeof spContent === "object" &&
+                              spContent !== null
+                            ) {
+                              return (
+                                <div
+                                  className="post-content medical-post"
+                                  style={{ padding: "10px" }}
+                                >
+                                  <p>
+                                    <strong>
+                                      {t(
+                                        "dashboard.medical_form.title_symptom",
+                                      )}
+                                      :
+                                    </strong>{" "}
+                                    {spContent.symptom || "—"}
+                                  </p>
+                                  <p>
+                                    <strong>
+                                      {t("dashboard.medical_form.duration")}:
+                                    </strong>{" "}
+                                    {spContent.duration || "—"}
+                                  </p>
+                                  <p>
+                                    <strong>
+                                      {t("dashboard.medical_form.severity")}:
+                                    </strong>{" "}
+                                    {spContent.severity || "—"}
+                                  </p>
+                                  {spContent.factors && (
+                                    <p>
+                                      <strong>
+                                        {" "}
+                                        {t("dashboard.medical_form.factors")}:
+                                      </strong>{" "}
+                                      {spContent.factors}
+                                    </p>
+                                  )}
+                                  {(spContent.historyPersonal ||
+                                    spContent.historyFamily) && (
+                                    <div className="medical-divider">
+                                      {spContent.historyPersonal && (
+                                        <p>
+                                          <strong>
+                                            {t(
+                                              "dashboard.medical_form.history_personal",
+                                            )}
+                                            :
+                                          </strong>{" "}
+                                          {spContent.historyPersonal}
+                                        </p>
+                                      )}
+                                      {spContent.historyFamily && (
+                                        <p>
+                                          <strong>
+                                            {t(
+                                              "dashboard.medical_form.history_family",
+                                            )}
+                                            :
+                                          </strong>{" "}
+                                          {spContent.historyFamily}
+                                        </p>
+                                      )}
+                                    </div>
+                                  )}
+                                  {(spContent.medication ||
+                                    spContent.lifestyle) && (
+                                    <div className="medical-divider">
+                                      {spContent.medication && (
+                                        <p>
+                                          <strong>
+                                            {t(
+                                              "dashboard.medical_form.medication",
+                                            )}
+                                            :
+                                          </strong>{" "}
+                                          {spContent.medication}
+                                        </p>
+                                      )}
+                                      {spContent.lifestyle && (
+                                        <p>
+                                          <strong>
+                                            {t(
+                                              "dashboard.medical_form.lifestyle",
+                                            )}
+                                            :
+                                          </strong>{" "}
+                                          {spContent.lifestyle}
+                                        </p>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            }
+
+                            // 3. RENDER BÀI BÌNH THƯỜNG
+                            const textOutput =
+                              typeof spContent === "string" ? spContent : "";
+                            return (
+                              <p
+                                style={{
+                                  fontSize: "14px",
+                                  color: "#050505",
+                                  margin: 0,
+                                  whiteSpace: "pre-wrap",
+                                }}
+                              >
+                                {textOutput}
+                              </p>
+                            );
+                          })()}
+                        </div>
                         {p.shared_post.images &&
                           p.shared_post.images.length > 0 && (
                             <div
@@ -1033,7 +1736,7 @@ const PostCard = ({
                       fontStyle: "italic",
                     }}
                   >
-                    🚫 Bài viết gốc không còn tồn tại hoặc đã bị xóa.
+                    🚫{t("post.post_unavailable")}
                   </div>
                 )}
               </div>
@@ -1241,7 +1944,11 @@ const PostCard = ({
               ...prev,
               [p.id]: { ...prev[p.id], draft: "" },
             }));
-          } catch {}
+          } catch (err) {
+            const errorMessage =
+              err.response?.data?.error || t("error.reply_failed");
+            toast.error(errorMessage);
+          }
         }}
         MAX_REPLIES_VISIBLE={MAX_REPLIES_VISIBLE}
         MAX_NEST_LEVEL={MAX_NEST_LEVEL}

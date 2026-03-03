@@ -1,9 +1,8 @@
 import React from "react";
 import "../../styles/CreatePostBox.css";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom"; // Thêm hook này
+import { useNavigate } from "react-router-dom";
 
-// ✅ Helper: build full avatar URL
 const getAvatarUrl = (a) => {
   const defaultAvatar =
     "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
@@ -43,7 +42,7 @@ const CreatePostBox = ({ user, setIsModalOpen, setPostType }) => {
         <input
           type="text"
           placeholder={t("dashboard.what_thinking", {
-            name: user?.name || "Bạn",
+            name: user?.name || t("profile.you", "Bạn"),
           })}
           readOnly
           className="create-input"

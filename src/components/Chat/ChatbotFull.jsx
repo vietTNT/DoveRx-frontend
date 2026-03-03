@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import "../../styles/chat/ChatbotFull.css";
-
+import { useTranslation } from "react-i18next";
 const ChatbotFull = ({
   messages,
   input,
@@ -11,7 +11,6 @@ const ChatbotFull = ({
   handleKeyDown,
   isTyping,
   onCloseFull,
-
   conversationList = [],
   currentConversationId,
   onSelectConversation,
@@ -19,6 +18,7 @@ const ChatbotFull = ({
   onDeleteChat,
   botIcon,
 }) => {
+  const { t } = useTranslation();
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -31,7 +31,7 @@ const ChatbotFull = ({
   // Hàm xử lý xóa chat (chặn sự kiện click lan ra ngoài)
   const handleDeleteClick = (e, chatId) => {
     e.stopPropagation();
-    if (window.confirm("Bạn có chắc muốn xóa cuộc trò chuyện này?")) {
+    if (window.confirm(t("chat.delete_confirm"))) {
       onDeleteChat(chatId);
     }
   };
@@ -55,7 +55,7 @@ const ChatbotFull = ({
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
             className="menu-toggle-btn"
-            title={isCollapsed ? "Mở rộng" : "Thu gọn"}
+            title={isCollapsed ? t("chat.expand") : t("chat.collapse")}
           >
             <svg
               className="w-6 h-6"
@@ -71,14 +71,14 @@ const ChatbotFull = ({
               />
             </svg>
           </button>
-          <span className="sidebar-text-header">Lịch sử chat</span>
+          <span className="sidebar-text-header">{t("chat.history")}</span>
         </div>
 
         <div className="new-chat-container">
           <button
             onClick={onCreateNewChat}
             className="new-chat-btn"
-            title="Cuộc trò chuyện mới"
+            title={t("chat.new_conversation")}
           >
             <span className="icon-plus">
               <svg
@@ -95,14 +95,14 @@ const ChatbotFull = ({
                 />
               </svg>
             </span>
-            <span className="btn-text">Cuộc trò chuyện mới</span>
+            <span className="btn-text">{t("chat.new_conversation")}</span>
           </button>
         </div>
 
         <div className="sidebar-list">
           {conversationList.length === 0 ? (
             <div className="text-center text-gray-400 text-xs mt-4 italic sidebar-text">
-              Chưa có lịch sử
+              {t("chat.no_history")}
             </div>
           ) : (
             conversationList.map((chat) => (
@@ -128,7 +128,7 @@ const ChatbotFull = ({
                 </div>
                 <div className="history-info">
                   <div className="history-title truncate">
-                    {chat.title || `Cuộc hội thoại ${chat.id}`}
+                    {chat.title || `${t("chat.conversation")} ${chat.id}`}
                   </div>
                   <div className="history-preview truncate text-gray-400">
                     {chat.last_msg_content || "..."}
@@ -137,7 +137,7 @@ const ChatbotFull = ({
                 <button
                   className="delete-chat-btn"
                   onClick={(e) => handleDeleteClick(e, chat.id)}
-                  title="Xóa"
+                  title={t("common.delete")}
                 >
                   <svg
                     className="w-4 h-4"
@@ -177,7 +177,7 @@ const ChatbotFull = ({
               <div className="flex items-center gap-1.5 mt-0.5">
                 <span className="w-2 h-2 bg-green-500 rounded-full"></span>
                 <span className="text-xs text-gray-500 font-medium">
-                  Trực tuyến
+                  {t("chat.online")}
                 </span>
               </div>
             </div>
@@ -185,7 +185,7 @@ const ChatbotFull = ({
           <button
             onClick={onCloseFull}
             className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all"
-            title="Thu nhỏ"
+            title={t("chat.minimize")}
           >
             <svg
               className="w-5 h-5"
@@ -212,9 +212,7 @@ const ChatbotFull = ({
                 className="w-24 h-24 mb-6 grayscale opacity-50"
                 alt="Empty"
               />
-              <p className="text-lg font-medium">
-                Chào bạn, tôi có thể giúp gì về sức khỏe hôm nay?
-              </p>
+              <p className="text-lg font-medium">{t("chat.ai_greeting")}</p>
             </div>
           )}
 
@@ -330,7 +328,7 @@ const ChatbotFull = ({
               ref={inputRef}
               rows={1}
               className="chatbot-input custom-scroll"
-              placeholder="Nhập câu hỏi sức khỏe..."
+              placeholder={t("chat.type_question")}
               value={input}
               onChange={handleAutoResize}
               onKeyDown={(e) => {
@@ -378,8 +376,7 @@ const ChatbotFull = ({
             </button>
           </div>
           <p className="text-center text-[11px] text-gray-400 mt-2">
-            DoveRx AI có thể mắc lỗi. Vui lòng kiểm tra lại thông tin quan
-            trọng.
+            {t("chat.ai_warning")}
           </p>
         </div>
       </div>

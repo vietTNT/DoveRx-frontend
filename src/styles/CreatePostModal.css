@@ -55,9 +55,6 @@ body:has(.modal-overlay) {
   background: #d8dadf;
 }
 
-.modal-body {
-  /* Không cần margin-top vì đã có padding của modal-content */
-}
 .modal-user {
   display: flex;
   align-items: center;

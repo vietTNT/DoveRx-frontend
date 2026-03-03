@@ -79,10 +79,40 @@ export const getUserFriends = async (userId) => {
   try {
     // Lưu ý: Bạn cần đảm bảo Backend đã có endpoint này.
     // Nếu chưa, hãy dùng tạm hàm getFriends() nếu xem profile chính mình.
-    const { data } = await api.get(`/api/friends/list/${userId}/`);
+    const { data } = await api.get(`/api/accounts/friends/list/${userId}/`);
     return data;
   } catch (error) {
     console.error("Error fetching friends:", error);
+    throw error;
+  }
+};
+/**
+ * Hủy kết bạn
+ * @param {number} friendId
+ */
+export const unfriendUser = async (friendId) => {
+  try {
+    const response = await api.post("/api/accounts/friends/unfriend/", {
+      friend_id: friendId,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("❌ Error unfriending:", error);
+    throw error;
+  }
+};
+/**
+ * Hủy lời mời kết bạn mình ĐÃ GỬI
+ * @param {number} toUserId - ID của user mà mình đã gửi lời mời
+ */
+export const cancelFriendRequest = async (toUserId) => {
+  try {
+    const response = await api.post("/api/accounts/friends/cancel/", {
+      to_user_id: toUserId,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("❌ Error canceling friend request:", error);
     throw error;
   }
 };

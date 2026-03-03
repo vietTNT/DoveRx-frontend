@@ -3,8 +3,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import "../../styles/chat/chatbot.css";
 import ChatbotFull from "./ChatbotFull";
-
-// Import API
+import { useTranslation } from "react-i18next";
 import {
   fetchAiConversations,
   createAiConversation,
@@ -12,6 +11,7 @@ import {
 } from "../../services/chatApi";
 
 const Chatbot = ({ isOpen, onClose, botIcon }) => {
+  const { t } = useTranslation();
   const [messages, setMessages] = useState([]);
   const [isMinimized, setIsMinimized] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
@@ -49,7 +49,7 @@ const Chatbot = ({ isOpen, onClose, botIcon }) => {
     } catch (e) {
       console.error("Lỗi tải danh sách AI chat:", e);
     }
-  }, []); // Bỏ dependency thừa
+  }, []);
 
   // --- LOGIC WEBSOCKET ---
   const connectWebSocket = useCallback(
@@ -63,7 +63,7 @@ const Chatbot = ({ isOpen, onClose, botIcon }) => {
         return;
       }
 
-      // 🔥 FIX 2: Nếu đang kết nối tới đúng convId này rồi thì KHÔNG làm gì cả
+      // Nếu đang kết nối tới đúng convId này rồi thì KHÔNG làm gì cả
       if (
         socketRef.current &&
         socketRef.current.readyState === WebSocket.OPEN &&
@@ -92,23 +92,18 @@ const Chatbot = ({ isOpen, onClose, botIcon }) => {
       const newSocket = new WebSocket(wsUrl);
       socketRef.current = newSocket;
 
-      newSocket.onopen = () => {
-        console.log(`✅ [AI Chat] Connected: ID ${convId}`);
-      };
-
       newSocket.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
           if (data.type === "history") {
             setMessages(data.messages);
 
-            // 🔥 FIX 3: Nếu server trả về ID khác (VD: tạo mới), chỉ update state UI
+            // Nếu server trả về ID khác (VD: tạo mới), chỉ update state UI
             // KHÔNG gọi lại connectWebSocket ở đây
             if (
               data.conversation_id &&
               data.conversation_id !== activeConversationIdRef.current
             ) {
-              console.log("🔄 Sync ID từ Server:", data.conversation_id);
               setCurrentConversationId(data.conversation_id);
               activeConversationIdRef.current = data.conversation_id; // Update ref để chặn reconnect
               loadConversations();
@@ -124,17 +119,12 @@ const Chatbot = ({ isOpen, onClose, botIcon }) => {
             setIsTyping(false);
             loadConversations();
           }
-        } catch (err) {
-          console.error("Parse error:", err);
-        }
+        } catch (err) {}
       };
 
       newSocket.onclose = (e) => {
         // Chỉ reconnect nếu không phải do code chủ động đóng (1000) và Chatbot đang mở
         if (e.code !== 1000) {
-          console.log(
-            `❌ Socket closed (Code: ${e.code}). Reconnecting in 3s...`,
-          );
           reconnectTimeoutRef.current = setTimeout(() => {
             connectWebSocket(activeConversationIdRef.current); // Reconnect với ID hiện tại
           }, 3000);
@@ -142,7 +132,6 @@ const Chatbot = ({ isOpen, onClose, botIcon }) => {
       };
 
       newSocket.onerror = (err) => {
-        console.error("Socket error:", err);
         newSocket.close();
       };
     },
@@ -174,18 +163,13 @@ const Chatbot = ({ isOpen, onClose, botIcon }) => {
     }
   }, [isOpen, currentConversationId, connectWebSocket]);
 
-  // ... (Giữ nguyên các hàm handleSend, handleCreateNewChat, render UI như cũ)
-
-  // --- COPY LẠI CÁC HÀM CŨ VÀO DƯỚI ĐÂY ---
   const handleCreateNewChat = async () => {
     try {
       const newChat = await createAiConversation();
       setConversationList((prev) => [newChat, ...prev]);
       setCurrentConversationId(newChat.id); // Sẽ trigger useEffect -> connectWebSocket
       setMessages([]);
-    } catch (e) {
-      console.error("Lỗi tạo chat mới:", e);
-    }
+    } catch (e) {}
   };
 
   const handleDeleteChat = async (chatId) => {
@@ -200,16 +184,13 @@ const Chatbot = ({ isOpen, onClose, botIcon }) => {
         // Đóng socket nếu xóa cuộc hội thoại đang mở
         if (socketRef.current) socketRef.current.close();
       }
-    } catch (e) {
-      console.error("Lỗi xóa chat:", e);
-    }
+    } catch (e) {}
   };
 
   const handleSend = () => {
     if (!input.trim()) return;
 
     if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
-      console.log("Mất kết nối, đang thử lại...");
       connectWebSocket(currentConversationId);
       return;
     }
@@ -286,7 +267,7 @@ const Chatbot = ({ isOpen, onClose, botIcon }) => {
             <h3 className="font-bold text-lg">DoveRx AI</h3>
             <div className="flex items-center gap-1.5 text-xs text-blue-100">
               <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-              Online
+              {t("chat.online", "Online")}
             </div>
           </div>
         </div>
@@ -413,7 +394,7 @@ const Chatbot = ({ isOpen, onClose, botIcon }) => {
           <input
             type="text"
             className="flex-1 bg-transparent outline-none text-sm text-gray-700 placeholder-gray-400 min-w-0"
-            placeholder="Nhập câu hỏi..."
+            placeholder={t("chat.type_question")}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import AvatarEditorModal from "../components/avatar/AvatarEditor";
 import { resolveImageUrl } from "../utils/imageHelper";
@@ -7,6 +7,8 @@ import {
   sendFriendRequest,
   acceptFriendRequest,
   rejectFriendRequest,
+  unfriendUser,
+  cancelFriendRequest,
 } from "../services/friendApi";
 import { getOrCreateConversation } from "../services/chatApi";
 import api from "../api/api";
@@ -34,6 +36,7 @@ const getRgbFromHex = (hex) => {
 const UserProfilePage = ({ user: currentUser, onLogout, setAppUser }) => {
   const { t } = useTranslation();
   const { userId } = useParams();
+  const navigate = useNavigate();
 
   // --- STATE QUẢN LÝ DỮ LIỆU ---
   const [user, setUser] = useState(null);
@@ -77,9 +80,9 @@ const UserProfilePage = ({ user: currentUser, onLogout, setAppUser }) => {
   const apiToLabelGender = (g) => {
     if (!g) return "";
     const s = String(g).toLowerCase();
-    if (s.includes("male") || s === "nam") return "Nam";
-    if (s.includes("female") || s === "nữ") return "Nữ";
-    return "Khác";
+    if (s.includes("male") || s === "nam") return t("profile.gender_male");
+    if (s.includes("female") || s === "nữ") return t("profile.gender_female");
+    return t("profile.gender_other");
   };
 
   // --- LOAD DATA ---
@@ -110,13 +113,13 @@ const UserProfilePage = ({ user: currentUser, onLogout, setAppUser }) => {
         }
       } catch (error) {
         console.error("Error loading user:", error);
-        toast.error("Không thể tải thông tin người dùng");
+        toast.error(t("profile.error_load_user"));
       } finally {
         setLoading(false);
       }
     };
     loadUserProfile();
-  }, [targetId, isMe]);
+  }, [targetId, isMe, t]);
 
   // --- HANDLERS AVATAR ---
   const handleAvatarChange = (e) => {
@@ -147,9 +150,9 @@ const UserProfilePage = ({ user: currentUser, onLogout, setAppUser }) => {
       setUser(updatedUser);
       if (setAppUser) setAppUser(updatedUser);
       localStorage.setItem("user", JSON.stringify(updatedUser));
-      toast.success("Đã cập nhật ảnh đại diện!");
+      toast.success(t("profile.avatar_updated"));
     } catch (error) {
-      toast.error("Lỗi cập nhật ảnh!");
+      toast.error(t("profile.avatar_update_error"));
     }
   };
 
@@ -166,7 +169,11 @@ const UserProfilePage = ({ user: currentUser, onLogout, setAppUser }) => {
       const form = new FormData();
 
       // 1. Map giới tính (Code cũ của bạn)
-      const gMap = { Nam: "male", Nữ: "female", Khác: "other" };
+      const gMap = {
+        [t("profile.gender_male")]: "male",
+        [t("profile.gender_female")]: "female",
+        [t("profile.gender_other")]: "other",
+      };
 
       // 2. Thêm các trường cơ bản (Dùng snake_case cho chắc chắn khớp Backend)
       form.append("first_name", formData.first_name);
@@ -208,21 +215,77 @@ const UserProfilePage = ({ user: currentUser, onLogout, setAppUser }) => {
       if (setAppUser) setAppUser(finalUser);
       localStorage.setItem("user", JSON.stringify(finalUser));
 
-      toast.success("Lưu thông tin Bác sĩ thành công!");
+      toast.success(t("profile.save_doctor_success"));
       setIsEditing(false);
     } catch (error) {
       console.error(error);
-      toast.error("Cập nhật thất bại! Vui lòng kiểm tra kết nối.");
+      toast.error(t("profile.update_failed"));
     } finally {
       setSaving(false);
     }
   };
+  // --- HANDLERS KẾT BẠN & NHẮN TIN ---
+  const handleFriendAction = async (action) => {
+    try {
+      if (action === "add") {
+        await sendFriendRequest(targetId);
+        setFriendshipStatus("pending");
+        toast.success(t("user_profile.sent_success"));
+      } else if (action === "accept") {
+        await acceptFriendRequest(targetId);
+        setFriendshipStatus("accepted");
+        toast.success(t("user_profile.accepted_success"));
+      } else if (action === "reject") {
+        await rejectFriendRequest(targetId);
+        setFriendshipStatus(null);
+      } else if (action === "cancel") {
+        await cancelFriendRequest(targetId);
+        setFriendshipStatus(null);
+        toast.success(t("user_profile.cancel_request"));
+      } else if (action === "unfriend") {
+        const confirmDelete = window.confirm(
+          t("user_profile.confirm_unfriend"),
+        );
+        if (confirmDelete) {
+          await unfriendUser(targetId);
+          setFriendshipStatus(null);
+          toast.success(t("user_profile.unfriended"));
+        }
+      }
+    } catch (error) {
+      toast.error(t("common.error_try_again"));
+    }
+  };
 
+  const handleMessageClick = async () => {
+    try {
+      const conv = await getOrCreateConversation(targetId);
+      if (conv && conv.id) {
+        window.dispatchEvent(
+          new CustomEvent("OPEN_CHAT_POPUP", {
+            detail: {
+              conversationId: conv.id,
+              targetUser: {
+                ...user, // Spread toàn bộ dữ liệu profile đang có
+                id: targetId,
+                name: user.get_full_name || user.username,
+                avatar: user.avatar,
+                // Đảm bảo có trường online (tùy thuộc vào tên trường từ Backend của bạn)
+                online: user.is_online || user.online,
+              },
+            },
+          }),
+        );
+      }
+    } catch (error) {
+      toast.error(t("chat.cannot_open_chat"));
+    }
+  };
   // --- Styles ---
   const accentStyle = { color: accentColor };
   const accentBgStyle = {
     backgroundColor: accentColor,
-    color: "#fff", // Text trắng cho tương phản tốt trên nền màu đậm
+    color: "#fff",
     textShadow: "0 1px 2px rgba(0,0,0,0.1)",
     boxShadow: `0 4px 14px 0 rgba(0,0,0,0.15)`,
   };
@@ -240,7 +303,7 @@ const UserProfilePage = ({ user: currentUser, onLogout, setAppUser }) => {
   if (!user)
     return (
       <div className="h-screen bg-gray-50 text-gray-800 flex items-center justify-center">
-        Người dùng không tồn tại.
+        {t("user_profile.not_found")}
       </div>
     );
 
@@ -333,7 +396,7 @@ const UserProfilePage = ({ user: currentUser, onLogout, setAppUser }) => {
                   )}
                 </h1>
                 <p className="text-gray-500 font-medium mt-1 max-w-xl">
-                  {user.bio || "Chưa có giới thiệu"}
+                  {user.bio || t("profile.no_bio")}
                 </p>
               </div>
 
@@ -350,19 +413,78 @@ const UserProfilePage = ({ user: currentUser, onLogout, setAppUser }) => {
                     <i
                       className={`fas ${isEditing ? "fa-times" : "fa-pen"}`}
                     ></i>{" "}
-                    {isEditing ? "Hủy bỏ" : "Chỉnh sửa"}
+                    {isEditing ? t("common.cancel") : t("common.edit")}
                   </button>
                 ) : (
                   <>
-                    <button
-                      className="h-11 px-6 rounded-xl font-bold text-white flex items-center gap-2 shadow hover:brightness-110"
-                      style={accentBgStyle}
-                    >
-                      <i className="fas fa-user-plus"></i> Kết bạn
-                    </button>
-                    <button className="h-11 px-6 rounded-xl bg-white text-gray-700 border border-gray-300 font-bold hover:bg-gray-50 transition shadow-sm">
-                      Nhắn tin
-                    </button>
+                    <>
+                      {friendshipStatus === "friends" ||
+                      friendshipStatus === "accepted" ||
+                      friendshipStatus === "received_accepted" ? (
+                        <button
+                          onClick={() => handleFriendAction("unfriend")}
+                          className="group h-11 px-6 rounded-xl font-bold bg-gray-200 text-gray-800 flex items-center gap-2 shadow-sm hover:bg-red-50 hover:text-red-600 transition duration-200"
+                        >
+                          {/* Khi không hover */}
+                          <i className="fas fa-user-check group-hover:hidden"></i>
+                          <span className="group-hover:hidden">
+                            {t("user_profile.friend_status")}
+                          </span>
+
+                          {/* Khi đưa chuột vào (Hover) */}
+                          <i className="fas fa-user-times hidden group-hover:block"></i>
+                          <span className="hidden group-hover:block">
+                            {t("user_profile.unfriend")}
+                          </span>
+                        </button>
+                      ) : friendshipStatus === "pending" ? (
+                        <button
+                          onClick={() => handleFriendAction("cancel")}
+                          className="group h-11 px-6 rounded-xl font-bold bg-gray-200 text-gray-800 flex items-center gap-2 shadow-sm hover:bg-red-50 hover:text-red-600 transition duration-200"
+                        >
+                          {/* Trạng thái bình thường */}
+                          <i className="fas fa-user-clock group-hover:hidden"></i>
+                          <span className="group-hover:hidden">
+                            {t("user_profile.request_sent")}
+                          </span>
+
+                          {/* Khi di chuột vào (Hover) */}
+                          <i className="fas fa-user-times hidden group-hover:block"></i>
+                          <span className="hidden group-hover:block">
+                            {t("user_profile.cancel_request")}
+                          </span>
+                        </button>
+                      ) : friendshipStatus === "received_pending" ? (
+                        <button
+                          onClick={() => handleFriendAction("accept")}
+                          className="h-11 px-6 rounded-xl font-bold text-white flex items-center gap-2 shadow hover:brightness-110"
+                          style={accentBgStyle}
+                        >
+                          <i className="fas fa-user-check"></i>
+                          {t("user_profile.accept")}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleFriendAction("add")}
+                          className="h-11 px-6 rounded-xl font-bold text-white flex items-center gap-2 shadow hover:brightness-110"
+                          style={accentBgStyle}
+                        >
+                          <i className="fas fa-user-plus"></i>
+                          {t("user_profile.add_friend")}
+                        </button>
+                      )}
+
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleMessageClick();
+                        }}
+                        className="h-11 px-6 rounded-xl bg-white text-gray-700 border border-gray-300 font-bold hover:bg-gray-50 transition shadow-sm"
+                      >
+                        <i className="fab fa-facebook-messenger mr-2"></i>
+                        {t("user_profile.message")}
+                      </button>
+                    </>
                   </>
                 )}
               </div>
@@ -375,10 +497,26 @@ const UserProfilePage = ({ user: currentUser, onLogout, setAppUser }) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-2 border-b border-gray-200">
         <div className="flex gap-8 overflow-x-auto no-scrollbar">
           {[
-            { id: "posts", icon: "fas fa-newspaper", label: "Bài đăng" },
-            { id: "media", icon: "fas fa-images", label: "Hình ảnh" },
-            { id: "friends", icon: "fas fa-user-friends", label: "Bạn bè" },
-            { id: "about", icon: "fas fa-info-circle", label: "Giới thiệu" },
+            {
+              id: "posts",
+              icon: "fas fa-newspaper",
+              label: t("profile.tabs.posts"),
+            },
+            {
+              id: "media",
+              icon: "fas fa-images",
+              label: t("profile.tabs.media"),
+            },
+            {
+              id: "friends",
+              icon: "fas fa-user-friends",
+              label: t("profile.tabs.friends"),
+            },
+            {
+              id: "about",
+              icon: "fas fa-info-circle",
+              label: t("profile.tabs.about"),
+            },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -410,48 +548,46 @@ const UserProfilePage = ({ user: currentUser, onLogout, setAppUser }) => {
               <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2 border-b border-gray-100 pb-4">
                 <i className="fas fa-user-edit" style={accentStyle}></i>
                 {isEditing
-                  ? "Chỉnh sửa thông tin cá nhân"
-                  : "Thông tin chi tiết"}
+                  ? t("profile.edit_personal_info")
+                  : t("profile.detail_info")}
               </h3>
 
               {isEditing ? (
-                /* --- GIAO DIỆN CHỈNH SỬA (Giữ nguyên code form của bạn) --- */
                 <div className="animate-fade-in form-grid-container">
-                  {/* ... (Copy lại nội dung form từ file cũ vào đây nếu cần, hoặc giữ nguyên khối div này) ... */}
-                  {/* Để ngắn gọn, bạn giữ nguyên toàn bộ phần form input ở đây như file gốc */}
-                  {/* Bắt đầu từ <div className="grid grid-cols-2 gap-5"> đến hết phần button Lưu */}
-
                   {/* Hàng 1: Họ & Tên */}
                   <div className="grid grid-cols-2 gap-5">
                     <div>
-                      <label className="modern-label">Họ</label>
+                      <label className="modern-label">
+                        {t("profile.first_name")}
+                      </label>
                       <input
                         name="first_name"
                         value={formData.first_name}
                         onChange={handleInputChange}
                         className="modern-input"
-                        placeholder="Nhập họ..."
+                        placeholder={t("profile.placeholders.first_name")}
                       />
                     </div>
                     <div>
-                      <label className="modern-label">Tên</label>
+                      <label className="modern-label">
+                        {t("profile.last_name")}
+                      </label>
                       <input
                         name="last_name"
                         value={formData.last_name}
                         onChange={handleInputChange}
                         className="modern-input"
-                        placeholder="Nhập tên..."
+                        placeholder={t("profile.placeholders.last_name")}
                       />
                     </div>
                   </div>
 
-                  {/* ... (Các phần input khác giữ nguyên) ... */}
-                  {/* Copy lại toàn bộ code bên trong khối isEditing của file gốc */}
-
                   {/* Đoạn code form dài của bạn... */}
                   <div className="grid grid-cols-2 gap-5">
                     <div>
-                      <label className="modern-label">Giới tính</label>
+                      <label className="modern-label">
+                        {t("profile.gender")}
+                      </label>
                       <div className="relative">
                         <select
                           name="gender"
@@ -459,10 +595,16 @@ const UserProfilePage = ({ user: currentUser, onLogout, setAppUser }) => {
                           onChange={handleInputChange}
                           className="modern-input appearance-none cursor-pointer"
                         >
-                          <option value="">-- Chọn giới tính --</option>
-                          <option value="Nam">Nam</option>
-                          <option value="Nữ">Nữ</option>
-                          <option value="Khác">Khác</option>
+                          <option value="">-- {t("profile.gender")} --</option>
+                          <option value={t("profile.gender_male")}>
+                            {t("profile.gender_male")}
+                          </option>
+                          <option value={t("profile.gender_female")}>
+                            {t("profile.gender_female")}
+                          </option>
+                          <option value={t("profile.gender_other")}>
+                            {t("profile.gender_other")}
+                          </option>
                         </select>
                         <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
                           <i className="fas fa-chevron-down text-xs"></i>
@@ -470,49 +612,51 @@ const UserProfilePage = ({ user: currentUser, onLogout, setAppUser }) => {
                       </div>
                     </div>
                     <div>
-                      <label className="modern-label">Tuổi</label>
+                      <label className="modern-label">{t("profile.age")}</label>
                       <input
                         type="number"
                         name="age"
                         value={formData.age}
                         onChange={handleInputChange}
                         className="modern-input"
-                        placeholder="VD: 25"
+                        placeholder={t("profile.placeholders.age")}
                       />
                     </div>
                   </div>
 
                   {/* Thông tin liên hệ */}
                   <div>
-                    <label className="modern-label">Số điện thoại</label>
+                    <label className="modern-label">{t("profile.phone")}</label>
                     <input
                       name="phone"
                       value={formData.phone}
                       onChange={handleInputChange}
                       className="modern-input"
-                      placeholder="Nhập số điện thoại..."
+                      placeholder={t("profile.placeholders.phone")}
                     />
                   </div>
 
                   <div>
-                    <label className="modern-label">Địa chỉ hiện tại</label>
+                    <label className="modern-label">
+                      {t("profile.address")}
+                    </label>
                     <input
                       name="address"
                       value={formData.address}
                       onChange={handleInputChange}
                       className="modern-input"
-                      placeholder="VD: Hà Nội, Việt Nam"
+                      placeholder={t("profile.placeholders.address")}
                     />
                   </div>
 
                   <div>
-                    <label className="modern-label">Tiểu sử (Bio)</label>
+                    <label className="modern-label">{t("profile.bio")}</label>
                     <textarea
                       name="bio"
                       value={formData.bio}
                       onChange={handleInputChange}
                       className="modern-input"
-                      placeholder="Hãy viết một chút về bản thân bạn..."
+                      placeholder={t("profile.placeholders.bio")}
                     ></textarea>
                   </div>
 
@@ -520,15 +664,14 @@ const UserProfilePage = ({ user: currentUser, onLogout, setAppUser }) => {
                   {user.role === "doctor" && (
                     <div className="doctor-info-box">
                       <p className="doctor-title">
-                        <i className="fas fa-user-md text-lg"></i> Thông tin
-                        chuyên môn
+                        <i className="fas fa-user-md text-lg"></i>{" "}
+                        {t("profile.professional_info")}
                       </p>
                       <div className="space-y-5">
-                        {/* ... Các input bác sĩ giữ nguyên ... */}
                         <div className="grid grid-cols-2 gap-5">
                           <div>
                             <label className="modern-label text-blue-800">
-                              Chức danh
+                              {t("profile.job_title")}
                             </label>
                             <div className="relative">
                               <select
@@ -537,9 +680,15 @@ const UserProfilePage = ({ user: currentUser, onLogout, setAppUser }) => {
                                 onChange={handleInputChange}
                                 className="modern-input bg-white border-blue-200 focus:border-blue-500"
                               >
-                                <option value="doctor">Bác sĩ</option>
-                                <option value="student">Sinh viên Y</option>
-                                <option value="intern">Thực tập sinh</option>
+                                <option value="doctor">
+                                  {t("doctor_form.type_doctor")}
+                                </option>
+                                <option value="student">
+                                  {t("doctor_form.type_student")}
+                                </option>
+                                <option value="intern">
+                                  {t("doctor_form.type_intern")}
+                                </option>
                               </select>
                               <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-blue-500">
                                 <i className="fas fa-chevron-down text-xs"></i>
@@ -548,7 +697,7 @@ const UserProfilePage = ({ user: currentUser, onLogout, setAppUser }) => {
                           </div>
                           <div>
                             <label className="modern-label text-blue-800">
-                              Kinh nghiệm (năm)
+                              {t("profile.experience_years")}
                             </label>
                             <input
                               type="number"
@@ -561,39 +710,39 @@ const UserProfilePage = ({ user: currentUser, onLogout, setAppUser }) => {
                         </div>
                         <div>
                           <label className="modern-label text-blue-800">
-                            Nơi làm việc
+                            {t("profile.workplace")}
                           </label>
                           <input
                             name="workplace"
                             value={formData.workplace}
                             onChange={handleInputChange}
                             className="modern-input bg-white border-blue-200 focus:border-blue-500"
-                            placeholder="VD: Bệnh viện Bạch Mai"
+                            placeholder={t("profile.placeholders.workplace")}
                           />
                         </div>
                         <div className="grid grid-cols-2 gap-5">
                           <div>
                             <label className="modern-label text-blue-800">
-                              Chuyên khoa
+                              {t("profile.specialty")}
                             </label>
                             <input
                               name="specialty"
                               value={formData.specialty}
                               onChange={handleInputChange}
                               className="modern-input bg-white border-blue-200 focus:border-blue-500"
-                              placeholder="VD: Nội khoa"
+                              placeholder={t("profile.placeholders.specialty")}
                             />
                           </div>
                           <div>
                             <label className="modern-label text-blue-800">
-                              Số chứng chỉ
+                              {t("profile.license_number")}
                             </label>
                             <input
                               name="license_number"
                               value={formData.license_number}
                               onChange={handleInputChange}
                               className="modern-input bg-white border-blue-200 focus:border-blue-500"
-                              placeholder="CCHN..."
+                              placeholder={t("profile.placeholders.license")}
                             />
                           </div>
                         </div>
@@ -607,7 +756,7 @@ const UserProfilePage = ({ user: currentUser, onLogout, setAppUser }) => {
                       onClick={() => setIsEditing(false)}
                       className="px-6 py-3 rounded-xl bg-gray-100 text-gray-600 font-bold hover:bg-gray-200 transition"
                     >
-                      Hủy bỏ
+                      {t("common.cancel")}
                     </button>
                     <button
                       onClick={handleSaveProfile}
@@ -622,27 +771,27 @@ const UserProfilePage = ({ user: currentUser, onLogout, setAppUser }) => {
                       ) : (
                         <i className="fas fa-check"></i>
                       )}{" "}
-                      Lưu thay đổi
+                      {t("common.save")}
                     </button>
                   </div>
                 </div>
               ) : (
-                /* --- CHẾ ĐỘ XEM (VIEW MODE) - GIỮ NGUYÊN --- */
+                /* --- CHẾ ĐỘ XEM  --- */
                 <ul className="space-y-6">
                   {[
                     {
                       icon: "fas fa-venus-mars",
-                      label: "Giới tính",
+                      label: t("profile.gender"),
                       val: apiToLabelGender(user.gender),
                     },
                     {
                       icon: "fas fa-birthday-cake",
-                      label: "Tuổi",
+                      label: t("profile.age"),
                       val: user.age ? `${user.age} tuổi` : null,
                     },
                     {
                       icon: "fas fa-phone",
-                      label: "Điện thoại",
+                      label: t("profile.phone"),
                       val: user.phone,
                     },
                     {
@@ -652,7 +801,7 @@ const UserProfilePage = ({ user: currentUser, onLogout, setAppUser }) => {
                     },
                     {
                       icon: "fas fa-map-marker-alt",
-                      label: "Địa chỉ",
+                      label: t("profile.address"),
                       val: user.address,
                     },
                   ].map((item, idx) => (
@@ -668,7 +817,7 @@ const UserProfilePage = ({ user: currentUser, onLogout, setAppUser }) => {
                           {item.label}
                         </p>
                         <p className="text-gray-900 font-medium text-lg">
-                          {item.val || "Chưa cập nhật"}
+                          {item.val || t("profile.not_updated")}
                         </p>
                       </div>
                     </li>
@@ -677,14 +826,14 @@ const UserProfilePage = ({ user: currentUser, onLogout, setAppUser }) => {
                     <>
                       <li className="pt-6 border-t border-gray-100">
                         <span className="text-blue-600 font-bold text-sm uppercase flex items-center gap-2">
-                          <i className="fas fa-notes-medical"></i> Thông tin Y
-                          khoa
+                          <i className="fas fa-notes-medical"></i>
+                          {t("profile.professional_info")}
                         </span>
                       </li>
                       <li className="grid grid-cols-2 gap-4">
                         <div>
                           <p className="text-xs text-gray-500 uppercase font-semibold">
-                            Chuyên khoa
+                            {t("profile.specialty")}
                           </p>
                           <p className="font-medium">
                             {user.specialty || "---"}
@@ -692,7 +841,7 @@ const UserProfilePage = ({ user: currentUser, onLogout, setAppUser }) => {
                         </div>
                         <div>
                           <p className="text-xs text-gray-500 uppercase font-semibold">
-                            Kinh nghiệm
+                            {t("profile.experience_years")}
                           </p>
                           <p className="font-medium">
                             {user.experience_years
@@ -702,7 +851,7 @@ const UserProfilePage = ({ user: currentUser, onLogout, setAppUser }) => {
                         </div>
                         <div className="col-span-2">
                           <p className="text-xs text-gray-500 uppercase font-semibold">
-                            Nơi làm việc
+                            {t("profile.workplace")}
                           </p>
                           <p className="font-medium">
                             {user.workplace || "---"}

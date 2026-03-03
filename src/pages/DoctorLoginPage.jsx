@@ -21,7 +21,6 @@ const DoctorLoginPage = ({ onLoginSuccess }) => {
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
-    // ... (Giữ nguyên logic đăng nhập cũ) ...
     e.preventDefault();
     setLoading(true);
     try {
@@ -47,10 +46,7 @@ const DoctorLoginPage = ({ onLoginSuccess }) => {
 
   // Xử lý gửi yêu cầu OTP quên mật khẩu
   const handleForgotPasswordRequest = async () => {
-    if (!forgotEmail) {
-      alert("Vui lòng nhập email!");
-      return;
-    }
+    if (!forgotEmail) return alert(t("auth.please_enter_email"));
     setForgotLoading(true);
     try {
       await axios.post(
@@ -59,14 +55,13 @@ const DoctorLoginPage = ({ onLoginSuccess }) => {
           email: forgotEmail,
         },
       );
-      // Thành công -> Chuyển sang trang Verify để nhập OTP và Pass mới
-      // Truyền state mode='reset' để trang Verify biết
+
       setShowForgotModal(false);
       navigate("/doctor-verify", {
         state: { email: forgotEmail, mode: "reset" },
       });
     } catch (error) {
-      alert("Có lỗi xảy ra hoặc email không tồn tại.");
+      alert(error.response?.data?.error || t("common.error_try_again"));
     } finally {
       setForgotLoading(false);
     }
@@ -75,7 +70,6 @@ const DoctorLoginPage = ({ onLoginSuccess }) => {
   return (
     <div className="login-container">
       <div className="login-card" style={{ position: "relative" }}>
-        {/* ... (Logo và LanguageSwitcher giữ nguyên) ... */}
         <div style={{ position: "absolute", top: "15px", right: "15px" }}>
           <LanguageSwitcher />
         </div>
@@ -98,7 +92,6 @@ const DoctorLoginPage = ({ onLoginSuccess }) => {
             required
           />
 
-          {/* 👇 Thêm nút Quên mật khẩu ở đây */}
           <div
             style={{
               textAlign: "right",
@@ -142,12 +135,11 @@ const DoctorLoginPage = ({ onLoginSuccess }) => {
         </button>
       </div>
 
-      {/* 👇 MODAL NHẬP EMAIL QUÊN MẬT KHẨU (Tận dụng CSS otp-modal-overlay đã làm) */}
       {showForgotModal && (
         <div className="otp-modal-overlay">
           <div className="otp-modal-card">
-            <h3 className="modal-title">Khôi phục mật khẩu</h3>
-            <p className="modal-desc">Nhập email đã đăng ký để nhận mã OTP.</p>
+            <h3 className="modal-title">{t("auth.forgot_password_title")}</h3>
+            <p className="modal-desc">{t("auth.forgot_password_desc")}</p>
             <input
               type="email"
               className="otp-input-field"
@@ -156,7 +148,7 @@ const DoctorLoginPage = ({ onLoginSuccess }) => {
                 letterSpacing: "normal",
                 textAlign: "left",
               }}
-              placeholder="example@gmail.com"
+              placeholder={t("auth.placeholder_email_register")}
               value={forgotEmail}
               onChange={(e) => setForgotEmail(e.target.value)}
             />
@@ -166,13 +158,13 @@ const DoctorLoginPage = ({ onLoginSuccess }) => {
                 onClick={handleForgotPasswordRequest}
                 disabled={forgotLoading}
               >
-                {forgotLoading ? "Đang gửi..." : "Gửi mã xác nhận"}
+                {forgotLoading ? t("auth.sending") : t("auth.send_otp")}
               </button>
               <button
                 className="btn-otp-back"
                 onClick={() => setShowForgotModal(false)}
               >
-                Hủy bỏ
+                {t("auth.cancel_otp")}
               </button>
             </div>
           </div>
