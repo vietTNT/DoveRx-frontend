@@ -103,7 +103,11 @@
     "no_friend_req": "Không có lời mời kết bạn",
     "search_loading": "Đang tìm kiếm...",
     "search_result": "Kết quả tìm kiếm",
-    "search_not_found": "Không tìm thấy kết quả"
+    "search_not_found": "Không tìm thấy kết quả",
+    "admin": "Quản trị",
+    "admin_dashboard": "Bảng điều khiển Admin",
+    "health_map": "Bản đồ Y tế",
+    "ai_assistant": "Trợ lý ảo DoveRx"
   },
   "dashboard": {
     "post_normal": "Bài viết thường",
@@ -255,6 +259,7 @@
     "typing": "Đang soạn tin...",
     "sent_image": "Đã gửi một ảnh",
     "sent_video": "Đã gửi một video",
+    "shared_a_post": "Đã chia sẻ một bài viết",
     "sent_file": "Đã gửi một tệp",
     "active": "Đang hoạt động",
     "offline": "Không hoạt động",
@@ -281,7 +286,7 @@
     "confirm_recall": "Bạn có chắc muốn thu hồi tin nhắn này?",
     "recall_failed": "Không thể thu hồi tin nhắn.",
     "recall": "Thu hồi",
-    "shared_post": "Chia sẻ bài viết"
+    "share_post": "Chia sẻ bài viết"
   },
   "share": {
     "title": "Chia sẻ",
@@ -335,7 +340,8 @@
   "time": {
     "just_now": "Vừa xong",
     "mins_ago": "{{count}} phút trước",
-    "hours_ago": "{{count}} giờ trước"
+    "hours_ago": "{{count}} giờ trước",
+    "days_ago": "{{count}} ngày trước"
   },
   "avatarEditor": {
     "title": "Chỉnh sửa ảnh đại diện",
@@ -346,7 +352,8 @@
     "new_post": "{{name}} vừa đăng một bài viết mới.",
     "comment": "{{name}} đã bình luận về bài viết của bạn.",
     "like": "{{name}} đã thích bài viết của bạn.",
-    "new_post_alert": "📢 {{name}} vừa đăng bài mới!"
+    "new_post_alert": "📢 {{name}} vừa đăng bài mới!",
+    "share_post": "{{name}} đã chia sẻ bài viết của bạn."
   },
   "language": {
     "select_language": "Chọn ngôn ngữ"

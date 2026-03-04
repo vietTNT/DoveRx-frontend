@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { getPostsByUser } from "../../services/socialApi";
 import { resolveImageUrl } from "../../utils/imageHelper";
-
+import { useTranslation } from "react-i18next";
 const UserMediaTab = ({ userId }) => {
+  const { t } = useTranslation();
   const [mediaList, setMediaList] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -33,7 +34,9 @@ const UserMediaTab = ({ userId }) => {
   }, [userId]);
 
   if (loading)
-    return <div className="text-center py-8">Đang tải hình ảnh...</div>;
+    return (
+      <div className="text-center py-8">{t("profile.loading_images")}</div>
+    );
 
   if (mediaList.length === 0) {
     return (
@@ -41,7 +44,7 @@ const UserMediaTab = ({ userId }) => {
         <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400">
           <i className="fas fa-images text-2xl"></i>
         </div>
-        <p className="text-gray-500 font-medium">Chưa có hình ảnh nào.</p>
+        <p className="text-gray-500 font-medium">{t("profile.no_images")}</p>
       </div>
     );
   }

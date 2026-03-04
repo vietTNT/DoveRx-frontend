@@ -1,48 +1,48 @@
 import React, { useState, useEffect } from "react";
 import "../../styles/CreatePostModal.css";
 import { useTranslation } from "react-i18next";
-
+import { resolveImageUrl } from "../../utils/imageHelper";
 // Helper resolveAvatar (Giữ nguyên như cũ)
 const DEFAULT_AVATAR =
   "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
 
-const resolveAvatar = (avatar) => {
-  if (!avatar) return DEFAULT_AVATAR;
-  if (typeof avatar === "object") {
-    if (avatar.url) {
-      const u = avatar.url;
-      if (u.startsWith("/")) {
-        const base = (process.env.REACT_APP_API_BASE || "").replace(/\/$/, "");
-        return base + u;
-      }
-      return u;
-    }
-    if (avatar.path) {
-      const base = (process.env.REACT_APP_API_BASE || "").replace(/\/$/, "");
-      return (
-        base + (avatar.path.startsWith("/") ? avatar.path : "/" + avatar.path)
-      );
-    }
-    if (avatar instanceof File || avatar instanceof Blob) {
-      try {
-        return URL.createObjectURL(avatar);
-      } catch {
-        return DEFAULT_AVATAR;
-      }
-    }
-    return DEFAULT_AVATAR;
-  }
-  if (typeof avatar === "string") {
-    if (!avatar || avatar === "null" || avatar === "undefined")
-      return DEFAULT_AVATAR;
-    if (avatar.startsWith("/")) {
-      const base = (process.env.REACT_APP_API_BASE || "").replace(/\/$/, "");
-      return base + avatar;
-    }
-    return avatar;
-  }
-  return DEFAULT_AVATAR;
-};
+// const resolveAvatar = (avatar) => {
+//   if (!avatar) return DEFAULT_AVATAR;
+//   if (typeof avatar === "object") {
+//     if (avatar.url) {
+//       const u = avatar.url;
+//       if (u.startsWith("/")) {
+//         const base = (process.env.REACT_APP_API_BASE || "").replace(/\/$/, "");
+//         return base + u;
+//       }
+//       return u;
+//     }
+//     if (avatar.path) {
+//       const base = (process.env.REACT_APP_API_BASE || "").replace(/\/$/, "");
+//       return (
+//         base + (avatar.path.startsWith("/") ? avatar.path : "/" + avatar.path)
+//       );
+//     }
+//     if (avatar instanceof File || avatar instanceof Blob) {
+//       try {
+//         return URL.createObjectURL(avatar);
+//       } catch {
+//         return DEFAULT_AVATAR;
+//       }
+//     }
+//     return DEFAULT_AVATAR;
+//   }
+//   if (typeof avatar === "string") {
+//     if (!avatar || avatar === "null" || avatar === "undefined")
+//       return DEFAULT_AVATAR;
+//     if (avatar.startsWith("/")) {
+//       const base = (process.env.REACT_APP_API_BASE || "").replace(/\/$/, "");
+//       return base + avatar;
+//     }
+//     return avatar;
+//   }
+//   return DEFAULT_AVATAR;
+// };
 
 const CreatePostModal = ({
   isOpen,
@@ -66,11 +66,25 @@ const CreatePostModal = ({
   const { t } = useTranslation();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+
+  //STATE QUẢN LÝ AVATAR ĐỂ ĐỒNG BỘ REAL-TIME
+  const [displayAvatar, setDisplayAvatar] = useState(user?.avatar);
   useEffect(() => {
     if (postType === "medical") {
       setVisibility("public");
     }
   }, [postType, setVisibility]);
+
+  useEffect(() => {
+    const handleUpdate = (e) => {
+      if (e.detail?.user?.avatar) {
+        setDisplayAvatar(e.detail.user.avatar);
+      }
+    };
+    window.addEventListener("user:updated", handleUpdate);
+    return () => window.removeEventListener("user:updated", handleUpdate);
+  }, []);
+
   if (!isOpen) return null;
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -163,24 +177,12 @@ const CreatePostModal = ({
         </div>
         {/* Body */}
         <div className="modal-body">
-          {/* Thông tin người dùng */}
-          {/* <div className="modal-user">
-            <img
-              src={resolveAvatar(user?.avatar)}
-              alt="avatar"
-              onError={(e) => {
-                e.currentTarget.onerror = null;
-                e.currentTarget.src = DEFAULT_AVATAR;
-              }}
-            />
-            <strong>{user?.name || "Người dùng"}</strong>
-          </div> */}
-          {/* Vùng thông tin người dùng bọc ngoài cùng */}
+          {/* thông tin người dùng bọc ngoài cùng */}
           <div className="flex items-center justify-between w-full mb-4">
             {/* Nửa bên trái: Avatar + Tên */}
             <div className="flex items-center gap-3">
               <img
-                src={resolveAvatar(user?.avatar)}
+                src={resolveImageUrl(displayAvatar, 100)}
                 alt="avatar"
                 className="w-10 h-10 rounded-full object-cover border border-gray-200"
                 onError={(e) => {
@@ -361,7 +363,8 @@ const CreatePostModal = ({
           {selectedImages.length > 0 && (
             <div className="image-preview">
               {selectedImages.map((media, index) => {
-                const previewSrc =
+                {
+                  /* const previewSrc =
                   typeof media === "string"
                     ? media
                     : media?.url
@@ -376,16 +379,22 @@ const CreatePostModal = ({
                             (media.path.startsWith("/")
                               ? media.path
                               : "/" + media.path)
-                          : DEFAULT_AVATAR;
-
-                const isVideo =
+                          : DEFAULT_AVATAR; */
+                }
+                const previewSrc = resolveImageUrl(media);
+                {
+                  /* const isVideo =
                   (media?.type && media.type.startsWith("video/")) ||
                   (media?.file?.type && media.file.type.startsWith("video/")) ||
                   (typeof previewSrc === "string" &&
                     (previewSrc.includes("/video/") ||
                       previewSrc.endsWith(".mp4") ||
-                      previewSrc.endsWith(".webm")));
-
+                      previewSrc.endsWith(".webm"))); */
+                }
+                const isVideo =
+                  media?.type?.startsWith("video/") ||
+                  (typeof previewSrc === "string" &&
+                    previewSrc.endsWith(".mp4"));
                 return (
                   <div key={index} className="preview-item">
                     {isVideo ? (

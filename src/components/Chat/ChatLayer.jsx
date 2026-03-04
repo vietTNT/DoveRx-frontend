@@ -7,27 +7,37 @@ const ChatLayer = () => {
   useEffect(() => {
     const handleOpenChat = (event) => {
       const { conversationId, targetUser } = event.detail;
-      setOpenChats((prev) => {
-        const existing = prev.find((c) => c.id === conversationId);
-        if (existing) {
-          // Nếu đã mở, đưa lên đầu và mở rộng (maximize)
-          return [
-            ...prev.filter((c) => c.id !== conversationId),
-            { ...existing, isMinimized: false },
-          ];
+
+      setOpenChats((prevChats) => {
+        // KIỂM TRA TRÙNG LẶP CỰC KỲ NGHIÊM NGẶT (Ép kiểu String)
+        const existingIndex = prevChats.findIndex(
+          (chat) =>
+            // Trùng ID cuộc hội thoại
+            (conversationId && String(chat.id) === String(conversationId)) ||
+            // Hoặc trùng ID người dùng
+            (chat.contact && String(chat.contact.id) === String(targetUser.id)),
+        );
+
+        if (existingIndex !== -1) {
+          // NẾU ĐÃ MỞ RỒI -> Chỉ bật nó lên (nếu đang thu nhỏ) và KHÔNG tạo thêm
+          const updatedChats = [...prevChats];
+          // Đưa chat này lên đầu/cuối tùy logic của bạn, và bỏ thu nhỏ
+          const existingChat = updatedChats.splice(existingIndex, 1)[0];
+          existingChat.isMinimized = false;
+          return [...updatedChats, existingChat];
         }
-        // Thêm mới và giới hạn 4 cái
+
+        // NẾU CHƯA CÓ -> Thêm mới và giới hạn tối đa mở 3-4 cái cùng lúc
         return [
-          ...prev,
+          ...prevChats,
           { id: conversationId, contact: targetUser, isMinimized: false },
-        ].slice(-4);
+        ].slice(-3);
       });
     };
 
     window.addEventListener("OPEN_CHAT_POPUP", handleOpenChat);
     return () => window.removeEventListener("OPEN_CHAT_POPUP", handleOpenChat);
   }, []);
-
   const handleClose = useCallback((id) => {
     setOpenChats((prev) => prev.filter((c) => c.id !== id));
   }, []);
@@ -48,7 +58,7 @@ const ChatLayer = () => {
 
     let miniGap = 70;
     let expandedGap = 348;
-    let miniWidth = 80;
+    let miniWidth = 160;
     let rightMargin = 10;
 
     if (screenWidth <= 768) {

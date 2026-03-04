@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import AvatarEditorModal from "../components/avatar/AvatarEditor";
 import { resolveImageUrl } from "../utils/imageHelper";
@@ -12,7 +12,6 @@ import {
 } from "../services/friendApi";
 import { getOrCreateConversation } from "../services/chatApi";
 import api from "../api/api";
-import axios from "axios";
 import "../styles/userProfile/UserProfilepage.css";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
@@ -36,8 +35,8 @@ const getRgbFromHex = (hex) => {
 const UserProfilePage = ({ user: currentUser, onLogout, setAppUser }) => {
   const { t } = useTranslation();
   const { userId } = useParams();
-  const navigate = useNavigate();
 
+  const [isActionLoading, setIsActionLoading] = useState(false);
   // --- STATE QUẢN LÝ DỮ LIỆU ---
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -131,29 +130,94 @@ const UserProfilePage = ({ user: currentUser, onLogout, setAppUser }) => {
     }
   };
 
-  const handleSaveAvatar = async (croppedFile) => {
+  // const handleSaveAvatar = async (croppedFile) => {
+  //   setShowEditor(false);
+  //   setRawImage(null);
+  //   const tempUrl = URL.createObjectURL(croppedFile);
+  //   setUser((prev) => ({ ...prev, avatar: tempUrl }));
+
+  //   try {
+  //     const form = new FormData();
+  //     form.append("avatar", croppedFile);
+  //     // Sử dụng api instance để tự động đính kèm token và tự refresh
+  //     const res = await api.put("/api/accounts/update-profile/", form);
+  //     const updatedUser = res.data;
+  //     setUser(updatedUser);
+  //     if (setAppUser) setAppUser(updatedUser);
+  //     localStorage.setItem("user", JSON.stringify(updatedUser));
+  //     toast.success(t("profile.avatar_updated"));
+  //   } catch (error) {
+  //     toast.error(t("profile.avatar_update_error"));
+  //   }
+  // };
+
+  const handleSaveAvatar = (croppedFile) => {
+    // 1. TẠO URL ẢNH TẠM THỜI (BLOB)
+    const tempUrl = URL.createObjectURL(croppedFile);
+    const optimisticUser = { ...user, avatar: tempUrl };
+
+    // 2. CẬP NHẬT GIAO DIỆN KHẢ QUAN NGAY LẬP TỨC
+    setUser(optimisticUser); // Cập nhật nội bộ trang Profile (Không gây giật)
+
+    // Bắn sự kiện để Navbar và CreatePostBox đổi ảnh theo ngay lập tức
+    window.dispatchEvent(
+      new CustomEvent("user:updated", { detail: { user: optimisticUser } }),
+    );
+
+    // 3. ĐÓNG CỬA SỔ CẮT ẢNH NGAY TỨC KHẮC
     setShowEditor(false);
     setRawImage(null);
-    const tempUrl = URL.createObjectURL(croppedFile);
-    setUser((prev) => ({ ...prev, avatar: tempUrl }));
 
-    try {
-      const token = localStorage.getItem("access");
-      const form = new FormData();
-      form.append("avatar", croppedFile);
-      const res = await axios.put(
-        `${process.env.REACT_APP_API_BASE}/api/accounts/update-profile/`,
-        form,
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
-      const updatedUser = res.data;
-      setUser(updatedUser);
-      if (setAppUser) setAppUser(updatedUser);
-      localStorage.setItem("user", JSON.stringify(updatedUser));
-      toast.success(t("profile.avatar_updated"));
-    } catch (error) {
-      toast.error(t("profile.avatar_update_error"));
-    }
+    // 4. CHẠY NGẦM GỬI LÊN SERVER CLOUDINARY
+    const form = new FormData();
+    form.append("avatar", croppedFile);
+
+    // Tạo Promise để gọi API
+    const uploadPromise = api
+      .put("/api/accounts/update-profile/", form)
+      .then((res) => res.data);
+
+    // 5. HIỂN THỊ TOAST THÔNG BÁO VÀ CHỜ KẾT QUẢ NGẦM
+    toast
+      .promise(uploadPromise, {
+        pending: t("common.processing", "Đang lưu ảnh đại diện..."),
+        success: t(
+          "profile.avatar_updated",
+          "Cập nhật ảnh đại diện thành công!",
+        ),
+        error: t("profile.avatar_update_error", "Lỗi khi lưu ảnh lên Cloud!"),
+      })
+      .then((finalUser) => {
+        // 6. TẢI TRƯỚC ẢNH (PRELOAD) TỪ CLOUDINARY ĐỂ CHỐNG CHỚP TRẮNG
+        const imgPreload = new Image();
+        imgPreload.src = resolveImageUrl(finalUser.avatar, 600);
+
+        const applyFinalUser = () => {
+          // Lúc này ảnh đã tải ngầm xong, áp dụng vào UI chính thức
+          setUser(finalUser);
+
+          // LÚC NÀY MỚI UPDATE GLOBAL STATE (Tránh giật trang)
+          if (setAppUser) setAppUser(finalUser);
+          localStorage.setItem("user", JSON.stringify(finalUser));
+
+          window.dispatchEvent(
+            new CustomEvent("user:updated", { detail: { user: finalUser } }),
+          );
+          URL.revokeObjectURL(tempUrl); // Xóa URL tạm cho nhẹ RAM
+        };
+
+        imgPreload.onload = applyFinalUser;
+        imgPreload.onerror = applyFinalUser; // Nếu lỗi mạng lúc tải ảnh thì vẫn áp dụng
+      })
+      .catch((err) => {
+        console.error("Lỗi Upload:", err);
+        // Nếu lỗi tải lên server, phục hồi lại avatar cũ
+        setUser(user);
+        window.dispatchEvent(
+          new CustomEvent("user:updated", { detail: { user: user } }),
+        );
+        URL.revokeObjectURL(tempUrl);
+      });
   };
 
   const handleInputChange = (e) => {
@@ -165,7 +229,6 @@ const UserProfilePage = ({ user: currentUser, onLogout, setAppUser }) => {
   const handleSaveProfile = async () => {
     try {
       setSaving(true);
-      const token = localStorage.getItem("access");
       const form = new FormData();
 
       // 1. Map giới tính (Code cũ của bạn)
@@ -197,11 +260,7 @@ const UserProfilePage = ({ user: currentUser, onLogout, setAppUser }) => {
 
       // 4. Đổi PUT thành PATCH
       // PATCH an toàn hơn vì nó chỉ update những gì bạn gửi, không xóa những cái thiếu
-      const res = await axios.patch(
-        `${process.env.REACT_APP_API_BASE}/api/accounts/update-profile/`,
-        form,
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+      const res = await api.patch("/api/accounts/update-profile/", form);
 
       const finalUser = res.data;
       setUser(finalUser);
@@ -226,6 +285,8 @@ const UserProfilePage = ({ user: currentUser, onLogout, setAppUser }) => {
   };
   // --- HANDLERS KẾT BẠN & NHẮN TIN ---
   const handleFriendAction = async (action) => {
+    if (isActionLoading) return; // Chặn nếu đang xử lý
+    setIsActionLoading(true);
     try {
       if (action === "add") {
         await sendFriendRequest(targetId);
@@ -254,6 +315,8 @@ const UserProfilePage = ({ user: currentUser, onLogout, setAppUser }) => {
       }
     } catch (error) {
       toast.error(t("common.error_try_again"));
+    } finally {
+      setIsActionLoading(false); // Mở khóa nút sau khi API chạy xong (dù thành công hay thất bại)
     }
   };
 
@@ -417,74 +480,76 @@ const UserProfilePage = ({ user: currentUser, onLogout, setAppUser }) => {
                   </button>
                 ) : (
                   <>
-                    <>
-                      {friendshipStatus === "friends" ||
-                      friendshipStatus === "accepted" ||
-                      friendshipStatus === "received_accepted" ? (
-                        <button
-                          onClick={() => handleFriendAction("unfriend")}
-                          className="group h-11 px-6 rounded-xl font-bold bg-gray-200 text-gray-800 flex items-center gap-2 shadow-sm hover:bg-red-50 hover:text-red-600 transition duration-200"
-                        >
-                          {/* Khi không hover */}
-                          <i className="fas fa-user-check group-hover:hidden"></i>
-                          <span className="group-hover:hidden">
-                            {t("user_profile.friend_status")}
-                          </span>
-
-                          {/* Khi đưa chuột vào (Hover) */}
-                          <i className="fas fa-user-times hidden group-hover:block"></i>
-                          <span className="hidden group-hover:block">
-                            {t("user_profile.unfriend")}
-                          </span>
-                        </button>
-                      ) : friendshipStatus === "pending" ? (
-                        <button
-                          onClick={() => handleFriendAction("cancel")}
-                          className="group h-11 px-6 rounded-xl font-bold bg-gray-200 text-gray-800 flex items-center gap-2 shadow-sm hover:bg-red-50 hover:text-red-600 transition duration-200"
-                        >
-                          {/* Trạng thái bình thường */}
-                          <i className="fas fa-user-clock group-hover:hidden"></i>
-                          <span className="group-hover:hidden">
-                            {t("user_profile.request_sent")}
-                          </span>
-
-                          {/* Khi di chuột vào (Hover) */}
-                          <i className="fas fa-user-times hidden group-hover:block"></i>
-                          <span className="hidden group-hover:block">
-                            {t("user_profile.cancel_request")}
-                          </span>
-                        </button>
-                      ) : friendshipStatus === "received_pending" ? (
-                        <button
-                          onClick={() => handleFriendAction("accept")}
-                          className="h-11 px-6 rounded-xl font-bold text-white flex items-center gap-2 shadow hover:brightness-110"
-                          style={accentBgStyle}
-                        >
-                          <i className="fas fa-user-check"></i>
-                          {t("user_profile.accept")}
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleFriendAction("add")}
-                          className="h-11 px-6 rounded-xl font-bold text-white flex items-center gap-2 shadow hover:brightness-110"
-                          style={accentBgStyle}
-                        >
-                          <i className="fas fa-user-plus"></i>
-                          {t("user_profile.add_friend")}
-                        </button>
-                      )}
-
+                    {friendshipStatus === "friends" ||
+                    friendshipStatus === "accepted" ||
+                    friendshipStatus === "received_accepted" ? (
                       <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handleMessageClick();
-                        }}
-                        className="h-11 px-6 rounded-xl bg-white text-gray-700 border border-gray-300 font-bold hover:bg-gray-50 transition shadow-sm"
+                        onClick={() => handleFriendAction("unfriend")}
+                        disabled={isActionLoading}
+                        className="group h-11 px-6 rounded-xl font-bold bg-gray-200 text-gray-800 flex items-center gap-2 shadow-sm hover:bg-red-50 hover:text-red-600 transition duration-200"
                       >
-                        <i className="fab fa-facebook-messenger mr-2"></i>
-                        {t("user_profile.message")}
+                        {/* Khi không hover */}
+                        <i className="fas fa-user-check group-hover:hidden"></i>
+                        <span className="group-hover:hidden">
+                          {t("user_profile.friend_status")}
+                        </span>
+
+                        {/* Khi đưa chuột vào (Hover) */}
+                        <i className="fas fa-user-times hidden group-hover:block"></i>
+                        <span className="hidden group-hover:block">
+                          {t("user_profile.unfriend")}
+                        </span>
                       </button>
-                    </>
+                    ) : friendshipStatus === "pending" ? (
+                      <button
+                        onClick={() => handleFriendAction("cancel")}
+                        disabled={isActionLoading}
+                        className="group h-11 px-6 rounded-xl font-bold bg-gray-200 text-gray-800 flex items-center gap-2 shadow-sm hover:bg-red-50 hover:text-red-600 transition duration-200"
+                      >
+                        {/* Trạng thái bình thường */}
+                        <i className="fas fa-user-clock group-hover:hidden"></i>
+                        <span className="group-hover:hidden">
+                          {t("user_profile.request_sent")}
+                        </span>
+
+                        {/* Khi di chuột vào (Hover) */}
+                        <i className="fas fa-user-times hidden group-hover:block"></i>
+                        <span className="hidden group-hover:block">
+                          {t("user_profile.cancel_request")}
+                        </span>
+                      </button>
+                    ) : friendshipStatus === "received_pending" ? (
+                      <button
+                        onClick={() => handleFriendAction("accept")}
+                        disabled={isActionLoading}
+                        className="h-11 px-6 rounded-xl font-bold text-white flex items-center gap-2 shadow hover:brightness-110"
+                        style={accentBgStyle}
+                      >
+                        <i className="fas fa-user-check"></i>
+                        {t("user_profile.accept")}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleFriendAction("add")}
+                        disabled={isActionLoading}
+                        className="h-11 px-6 rounded-xl font-bold text-white flex items-center gap-2 shadow hover:brightness-110"
+                        style={accentBgStyle}
+                      >
+                        <i className="fas fa-user-plus"></i>
+                        {t("user_profile.add_friend")}
+                      </button>
+                    )}
+
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleMessageClick();
+                      }}
+                      className="h-11 px-6 rounded-xl bg-white text-gray-700 border border-gray-300 font-bold hover:bg-gray-50 transition shadow-sm"
+                    >
+                      <i className="fab fa-facebook-messenger mr-2"></i>
+                      {t("user_profile.message")}
+                    </button>
                   </>
                 )}
               </div>

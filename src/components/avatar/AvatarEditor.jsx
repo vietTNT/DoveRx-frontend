@@ -2,11 +2,14 @@ import React, { useState, useCallback } from "react";
 import Cropper from "react-easy-crop";
 import "../../styles/AvatarEditor.css";
 import { useTranslation } from "react-i18next";
+import { toast } from "react-toastify";
 const AvatarEditorModal = ({ image, onSave, onCancel }) => {
   const { t } = useTranslation();
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const onCropComplete = useCallback((croppedArea, croppedAreaPixels) => {
     setCroppedAreaPixels(croppedAreaPixels);
@@ -33,10 +36,18 @@ const AvatarEditorModal = ({ image, onSave, onCancel }) => {
 
       ctx.drawImage(imageObj, x, y, width, height, 0, 0, width, height);
 
+      // return new Promise((resolve) => {
+      //   canvas.toBlob((blob) => {
+      //     resolve(new File([blob], "avatar.png", { type: "image/png" }));
+      //   }, "image/png");
+      // });
       return new Promise((resolve) => {
-        canvas.toBlob((blob) => {
-          resolve(new File([blob], "avatar.png", { type: "image/png" }));
-        }, "image/png");
+        canvas.toBlob(
+          (blob) =>
+            resolve(new File([blob], "avatar.jpg", { type: "image/jpeg" })),
+          "image/jpeg",
+          0.85,
+        );
       });
     } catch (e) {
       console.error("❌ Lỗi khi crop ảnh:", e);
@@ -44,13 +55,42 @@ const AvatarEditorModal = ({ image, onSave, onCancel }) => {
     }
   };
 
+  // const handleSave = async () => {
+  //   if (isProcessing) return; // Chặn spam click
+  //   setIsProcessing(true);
+  //   if (isSaving) return;
+  //   setIsSaving(true);
+  //   try {
+  //     const croppedImage = await getCroppedImg();
+  //     if (croppedImage) {
+  //       await onSave(croppedImage);
+  //       toast.success(t("profile.avatar_updated", "Đã cập nhật ảnh đại diện!"));
+  //       onCancel();
+  //     }
+  //   } catch (error) {
+  //     console.error(error);
+  //     toast.error(t("profile.avatar_update_error"));
+  //   } finally {
+  //     setIsProcessing(false);
+  //     setIsSaving(false);
+  //   }
+  // };
   const handleSave = async () => {
-    const croppedImage = await getCroppedImg();
-    if (croppedImage) {
-      onSave(croppedImage);
+    if (isProcessing) return;
+    setIsProcessing(true); // Bật icon loading xoay tròn trên nút
+
+    try {
+      const croppedImage = await getCroppedImg(); // Xử lý cắt siêu tốc
+      if (croppedImage) {
+        // Chỉ truyền file ra ngoài, trang Profile sẽ tự lo việc đóng Modal và Upload
+        onSave(croppedImage);
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error(t("profile.avatar_update_error", "Lỗi cắt ảnh!"));
+      setIsProcessing(false); // Chỉ tắt loading khi bị lỗi
     }
   };
-
   return (
     <div className="avatar-editor-overlay" onClick={onCancel}>
       <div className="avatar-editor-modal" onClick={(e) => e.stopPropagation()}>
@@ -100,8 +140,23 @@ const AvatarEditorModal = ({ image, onSave, onCancel }) => {
           <button onClick={onCancel} className="btn-cancel" type="button">
             <i className="fas fa-times"></i> {t("common.cancel")}
           </button>
-          <button onClick={handleSave} className="btn-save" type="button">
-            <i className="fas fa-check"></i> {t("avatarEditor.save_changes")}
+          <button
+            onClick={handleSave}
+            disabled={isProcessing}
+            className="btn-save"
+            type="button"
+          >
+            {isProcessing ? (
+              <>
+                <i className="fas fa-spinner fa-spin mr-2"></i>{" "}
+                {t("common.processing")}
+              </>
+            ) : (
+              <>
+                <i className="fas fa-check mr-2"></i>{" "}
+                {t("avatarEditor.save_changes")}
+              </>
+            )}
           </button>
         </div>
       </div>

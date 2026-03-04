@@ -103,7 +103,11 @@
     "no_friend_req": "友達リクエストはありません",
     "search_loading": "検索中...",
     "search_result": "検索結果",
-    "search_not_found": "結果が見つかりません"
+    "search_not_found": "結果が見つかりません",
+    "admin": "管理者",
+    "admin_dashboard": "管理ダッシュボード",
+    "health_map": "医療マップ",
+    "ai_assistant": "DoveRx AIアシスタント"
   },
   "dashboard": {
     "post_normal": "通常投稿",
@@ -256,6 +260,7 @@
     "sent_image": "写真を送信しました",
     "sent_video": "動画を送信しました",
     "sent_file": "ファイルを送信しました",
+    "shared_a_post": "投稿を共有しました",
     "active": "オンライン",
     "offline": "オフライン",
     "no_friends": "友達がいません",
@@ -281,7 +286,7 @@
     "confirm_recall": "本当にこのメッセージを取り消しますか？",
     "recall_failed": "メッセージを取り消せませんでした。",
     "recall": "取り消し",
-    "shared_post": "投稿をシェアしました"
+    "share_post": "投稿を共有"
   },
   "share": {
     "title": "シェア",
@@ -335,7 +340,8 @@
   "time": {
     "just_now": "たった今",
     "mins_ago": "{{count}}分前",
-    "hours_ago": "{{count}}時間前"
+    "hours_ago": "{{count}}時間前",
+    "days_ago": "{{count}}日前"
   },
   "avatarEditor": {
     "title": "プロフィール写真の編集",
@@ -346,7 +352,8 @@
     "new_post": "{{name}}さんが新しい投稿をしました。",
     "comment": "{{name}}さんがあなたの投稿にコメントしました。",
     "like": "{{name}}さんがあなたの投稿に「いいね」しました。",
-    "new_post_alert": "📢 {{name}}さんが新しい投稿を公開しました！"
+    "new_post_alert": "📢 {{name}}さんが新しい投稿を公開しました！",
+    "share_post": "{{name}}さんがあなたの投稿をシェアしました。"
   },
   "language": {
     "select_language": "言語を選択"

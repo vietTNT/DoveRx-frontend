@@ -52,7 +52,7 @@ class ChatWebSocketService {
         // this.notifyListeners("message", data);
         if (data.type === "new_message" || data.type === "send_message") {
           window.dispatchEvent(
-            new CustomEvent("chat:new_message", { detail: data })
+            new CustomEvent("chat:new_message", { detail: data }),
           );
         }
       } catch (err) {
@@ -79,7 +79,7 @@ class ChatWebSocketService {
   processMessageQueue() {
     if (this.messageQueue.length > 0) {
       console.log(
-        `🔄 [chatWebSocket] Resending ${this.messageQueue.length} queued messages...`
+        ` [chatWebSocket] Resending ${this.messageQueue.length} queued messages...`,
       );
       while (this.messageQueue.length > 0) {
         const msg = this.messageQueue.shift();
@@ -91,7 +91,7 @@ class ChatWebSocketService {
   reconnect(token) {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
-      console.log(`🔄 Reconnecting attempt ${this.reconnectAttempts}...`);
+      console.log(` Reconnecting attempt ${this.reconnectAttempts}...`);
       setTimeout(() => this.connect(token), 3000);
     }
   }
@@ -102,8 +102,8 @@ class ChatWebSocketService {
     } else {
       // Nếu chưa kết nối, lưu vào hàng đợi
       console.warn(
-        "⚠️ [chatWebSocket] Connection lost. Queuing message...",
-        message
+        " [chatWebSocket] Connection lost. Queuing message...",
+        message,
       );
       this.messageQueue.push(message);
 
@@ -150,7 +150,7 @@ class ChatWebSocketService {
     if (callbacks) {
       this.listeners.set(
         eventType,
-        callbacks.filter((cb) => cb !== callback)
+        callbacks.filter((cb) => cb !== callback),
       );
     }
   }

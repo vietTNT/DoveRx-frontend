@@ -28,6 +28,7 @@ import thongbaosound from "../assets/MP3/thongbao.mp3";
 import searchIconImg from "../assets/icons/search.png";
 import mapIcon from "../assets/icons/map.png";
 import aiIcon from "../assets/icons/dove-ai.png";
+import { resolveImageUrl } from "../utils/imageHelper";
 const NOTIF_SOUND_URL = thongbaosound;
 
 const Navbar = ({ user, onLogout }) => {
@@ -37,7 +38,7 @@ const Navbar = ({ user, onLogout }) => {
   const [notifOpen, setNotifOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
 
-  // ---  AVATAR: Thêm state riêng để quản lý ảnh đại diện ---
+  // ---  AVATAR: state riêng để quản lý ảnh đại diện ---
   const [currentAvatar, setCurrentAvatar] = useState(user?.avatar);
 
   // State Tìm kiếm
@@ -64,6 +65,9 @@ const Navbar = ({ user, onLogout }) => {
   const [friends, setFriends] = useState([]);
   const friendsRef = useRef([]);
 
+  // state khóa nút bấm tránh double-click
+  const [isActionLoading, setIsActionLoading] = useState(false);
+
   // Audio Ref
   const audioRef = useRef(new Audio(NOTIF_SOUND_URL));
 
@@ -71,14 +75,14 @@ const Navbar = ({ user, onLogout }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const resolveAvatar = (url) => {
-    if (!url) return "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
-    if (url.startsWith("http")) return url;
-    const base = (process.env.REACT_APP_API_BASE || "").replace(/\/$/, "");
-    return `${base}${url.startsWith("/") ? url : `/${url}`}`;
-  };
+  // const resolveAvatar = (url) => {
+  //   if (!url) return "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
+  //   if (url.startsWith("http")) return url;
+  //   const base = (process.env.REACT_APP_API_BASE || "").replace(/\/$/, "");
+  //   return `${base}${url.startsWith("/") ? url : `/${url}`}`;
+  // };
 
-  const avatarUrl = resolveAvatar(currentAvatar);
+  const avatarUrl = resolveImageUrl(currentAvatar);
 
   // ===========================
   // AI CHATBOT
@@ -86,7 +90,7 @@ const Navbar = ({ user, onLogout }) => {
   useEffect(() => {
     if (location.pathname === "/dashboard") setActiveTab("home");
     else if (location.pathname === "/health-map") setActiveTab("map");
-    else if (location.pathname === "/friends") setActiveTab("friend"); // Ví dụ thêm
+    else if (location.pathname === "/friends") setActiveTab("friend");
   }, [location.pathname]);
   // 1. Cập nhật khi props user thay đổi (lúc mới login hoặc F5)
   useEffect(() => {
@@ -147,7 +151,7 @@ const Navbar = ({ user, onLogout }) => {
           id: n.id,
           type: n.notification_type,
           text: n.text,
-          avatar: resolveAvatar(n.sender.avatar),
+          avatar: resolveImageUrl(n.sender.avatar),
           time: new Date(n.created_at).toLocaleString("vi-VN"),
           isRead: n.is_read,
           postId: n.post,
@@ -203,7 +207,7 @@ const Navbar = ({ user, onLogout }) => {
             // Xử lý nội dung hiển thị
             let previewText = msg.text;
             if (!previewText && (msg.post || msg.post_data)) {
-              previewText = "Đã chia sẻ một bài viết";
+              previewText = t("chat.shared_a_post", "Đã chia sẻ một bài viết");
             }
             if (!previewText && msg.attachment) {
               if (msg.attachment.type === "image")
@@ -241,7 +245,7 @@ const Navbar = ({ user, onLogout }) => {
                 sender_name: isAi
                   ? "DoveRx AI"
                   : partner.name || t("user_profile.not_updated"),
-                avatar: isAi ? aiIcon : resolveAvatar(partner.avatar),
+                avatar: isAi ? aiIcon : resolveImageUrl(partner.avatar),
                 text: previewText || t("chat.sent_message"),
                 time: new Date(msg.created_at).toLocaleString("vi-VN"),
                 originalTime: msg.created_at, // Dùng để so sánh
@@ -368,7 +372,7 @@ const Navbar = ({ user, onLogout }) => {
           id: payload.id,
           type: payload.type,
           text: payload.text,
-          avatar: resolveAvatar(payload.sender.avatar),
+          avatar: resolveImageUrl(payload.sender.avatar),
           time: t("time.just_now"),
           isRead: false,
           postId: payload.post_id,
@@ -403,7 +407,7 @@ const Navbar = ({ user, onLogout }) => {
             id: `new_post_${incomingPost.id}`,
             type: "new_post",
             text: "...",
-            avatar: resolveAvatar(incomingPost.author?.avatar),
+            avatar: resolveImageUrl(incomingPost.author?.avatar),
             time: t("time.just_now"),
             link: `/dashboard`,
             isRead: false,
@@ -449,15 +453,20 @@ const Navbar = ({ user, onLogout }) => {
             (n) => String(n.senderId) === senderId,
           );
           const existingChat = prev[existingIndex];
-
-          // 2. Tính số lượng mới (Cộng dồn)
+          // 2. Lấy conversationId từ dữ liệu websocket trả về HOẶC từ lịch sử chat cũ
+          const convId =
+            msg.conversation ||
+            data.conversation_id ||
+            existingChat?.conversationId;
+          const isAiUser = existingChat?.isAi || false;
+          // 3. Tính số lượng mới (Cộng dồn)
           const newCount = (existingChat?.unreadCount || 0) + 1;
           if (!existingChat || existingChat.unreadCount === 0) {
             setUnreadChatCount((c) => c + 1);
           }
           let previewText = msg.text;
           if (!previewText && (msg.post || msg.post_data)) {
-            previewText = "Đã chia sẻ một bài viết";
+            previewText = t("chat.shared_a_post", "Đã chia sẻ một bài viết");
           }
           if (!previewText && msg.attachment) {
             if (msg.attachment.type === "image")
@@ -470,8 +479,10 @@ const Navbar = ({ user, onLogout }) => {
           const newChatNotif = {
             id: `msg_${msg.id || Date.now()}`,
             senderId: senderId,
+            conversationId: convId,
+            isAi: isAiUser,
             sender_name: senderObj.name || t("user_profile.not_updated"),
-            avatar: resolveAvatar(senderObj.avatar),
+            avatar: resolveImageUrl(senderObj.avatar),
             text: msg.text || t("chat.sent_message"),
             time: new Date().toLocaleTimeString("vi-VN", {
               hour: "2-digit",
@@ -554,22 +565,69 @@ const Navbar = ({ user, onLogout }) => {
         .then((r) => setFriendRequests(r))
         .catch((e) => {});
   }, [user]);
-
+  // ===========================
+  // CHẤP NHẬN & TỪ CHỐI KẾT BẠN
+  // ===========================
   const handleAccept = async (id, e) => {
     if (e) e.stopPropagation();
-    await acceptFriendRequest(id);
-    setFriendRequests((p) => p.filter((r) => r.from_user.id !== id));
-    const f = await getFriends();
-    setFriends(f);
-    window.dispatchEvent(
-      new CustomEvent("friendsUpdated", { detail: { friends: f } }),
-    );
-    alert("✅ " + t("user_profile.accepted_success"));
+    if (isActionLoading) return; // Chặn double click
+
+    setIsActionLoading(true);
+    try {
+      await acceptFriendRequest(id);
+
+      // Xóa thành công khỏi giao diện
+      setFriendRequests((p) =>
+        p.filter((r) => String(r.from_user.id) !== String(id)),
+      );
+
+      // Cập nhật lại danh sách bạn bè
+      const f = await getFriends();
+      const uniqueFriends = f.filter(
+        (friend, index, self) =>
+          index ===
+          self.findIndex((item) => String(item.id) === String(friend.id)),
+      );
+      setFriends(uniqueFriends);
+      window.dispatchEvent(
+        new CustomEvent("friendsUpdated", {
+          detail: { friends: uniqueFriends },
+        }),
+      );
+    } catch (error) {
+      console.error(error);
+      // Bắt lỗi 404 nếu lời mời không còn tồn tại
+      if (error.response && error.response.status === 404) {
+        setFriendRequests((p) =>
+          p.filter((r) => String(r.from_user.id) !== String(id)),
+        );
+      } else {
+        alert(t("common.error_try_again"));
+      }
+    } finally {
+      setIsActionLoading(false);
+    }
   };
   const handleReject = async (id, e) => {
     if (e) e.stopPropagation();
-    await rejectFriendRequest(id);
-    setFriendRequests((p) => p.filter((r) => r.from_user.id !== id));
+    if (isActionLoading) return; // Chặn double click
+
+    setIsActionLoading(true);
+    try {
+      await rejectFriendRequest(id);
+      setFriendRequests((p) =>
+        p.filter((r) => String(r.from_user.id) !== String(id)),
+      );
+    } catch (error) {
+      console.error(error);
+      if (error.response && error.response.status === 404) {
+        setFriendRequests((p) =>
+          p.filter((r) => String(r.from_user.id) !== String(id)),
+        );
+      }
+    } finally {
+      setIsActionLoading(false);
+    }
   };
   const handleUserClick = (id) => {
     navigate(`/profile/${id}`);
@@ -598,54 +656,7 @@ const Navbar = ({ user, onLogout }) => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-  // const handleChatClick = async (chatItem) => {
-  //   setChatOpen(false);
-  //   if (chatItem.unreadCount > 0) {
-  //     // Trừ badge tổng đi 1 (vì tính theo số người nhắn)
-  //     setUnreadChatCount((prev) => Math.max(0, prev - 1));
 
-  //     // Reset số lượng của người này về 0 trong danh sách hiển thị
-  //     setChatNotifications((prev) =>
-  //       prev.map((item) =>
-  //         String(item.senderId) === String(chatItem.senderId)
-  //           ? { ...item, isRead: true, unreadCount: 0 }
-  //           : item,
-  //       ),
-  //     );
-  //   }
-
-  //   // --- XỬ LÝ LOGIC MỞ CHAT ---
-  //   const friendInfo = friendsRef.current.find(
-  //     (f) =>
-  //       String(f.id) === String(chatItem.senderId) ||
-  //       String(f.user?.id) === String(chatItem.senderId),
-  //   );
-
-  //   const contactToOpen = friendInfo || {
-  //     id: chatItem.senderId,
-  //     name: chatItem.sender_name,
-  //     avatar: chatItem.avatar,
-  //   };
-
-  //   window.dispatchEvent(
-  //     new CustomEvent("open_chat_with_contact", {
-  //       detail: contactToOpen,
-  //     }),
-  //   );
-
-  //   // Gọi API báo cho Backend biết là "Tôi đã đọc tin nhắn của người này rồi"
-  //   if (chatItem.unreadCount > 0 && chatItem.conversationId) {
-  //     try {
-  //       await markAsRead(chatItem.conversationId);
-  //       console.log(
-  //         "✅ Đã đánh dấu đã đọc conversation:",
-  //         chatItem.conversationId,
-  //       );
-  //     } catch (error) {
-  //       console.error("❌ Lỗi khi đánh dấu đã đọc:", error);
-  //     }
-  //   }
-  // };
   const handleChatClick = async (chatItem) => {
     setChatOpen(false); // Đóng dropdown
 
@@ -709,7 +720,7 @@ const Navbar = ({ user, onLogout }) => {
       return t("notification_msg.like", { name: senderName });
     if (n.type === "friend_request") return t("navbar.friend_request");
     if (n.type === "share_post")
-      return `${senderName} đã chia sẻ bài viết của bạn.`;
+      return t("notification_msg.share_post", { name: senderName });
     return n.text;
   };
 
@@ -781,7 +792,7 @@ const Navbar = ({ user, onLogout }) => {
                         className="search-result-item"
                         onClick={() => handleUserClick(u.id)}
                       >
-                        <img src={resolveAvatar(u.avatar)} alt={u.name} />
+                        <img src={resolveImageUrl(u.avatar)} alt={u.name} />
                         <div className="search-result-info">
                           <div
                             style={{
@@ -857,7 +868,7 @@ const Navbar = ({ user, onLogout }) => {
               setActiveTab("map");
               navigate("/health-map");
             }}
-            title="Bản đồ Y tế"
+            title={t("navbar.health_map", "Bản đồ Y tế")}
           >
             <img
               src={mapIcon}
@@ -871,7 +882,7 @@ const Navbar = ({ user, onLogout }) => {
       {/* RIGHT */}
       {!isSearchActive && (
         <div className="navbar-right" ref={dropdownRef}>
-          {/* ✅ THÊM NÚT ADMIN */}
+          {/*  THÊM NÚT ADMIN */}
           {user?.role === "admin" && (
             <button
               className="nav-icon"
@@ -885,9 +896,10 @@ const Navbar = ({ user, onLogout }) => {
                 border: "none",
                 cursor: "pointer",
               }}
-              title="Admin Dashboard"
+              title={t("navbar.admin_dashboard", "Bảng điều khiển Admin")}
             >
-              <i className="fas fa-user-shield"></i> Admin
+              <i className="fas fa-user-shield"></i>
+              {t("navbar.admin", "Quản trị")}
             </button>
           )}
           {user && (
@@ -895,7 +907,7 @@ const Navbar = ({ user, onLogout }) => {
               <div
                 className="icon-wrapper"
                 style={{ marginRight: "15px" }}
-                title="Trợ lý ảo DoveRx"
+                title={t("navbar.ai_assistant", "Trợ lý ảo DoveRx")}
               >
                 <img
                   src={aiIcon}
@@ -949,7 +961,7 @@ const Navbar = ({ user, onLogout }) => {
                   friendRequests.map((req) => (
                     <div key={req.id} className="friend-request-item">
                       <img
-                        src={resolveAvatar(req.from_user.avatar)}
+                        src={resolveImageUrl(req.from_user.avatar)}
                         alt={req.from_user.name}
                         onClick={(e) => {
                           e.stopPropagation();
