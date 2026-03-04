@@ -1,5 +1,5 @@
 /* ================================================= */
-/* 🎨 VARIABLES (BIẾN MÀU SẮC)                       */
+/*  VARIABLES (BIẾN MÀU SẮC)                       */
 /* ================================================= */
 :root {
   --chat-primary: #0084ff; /* Màu xanh Messenger */
@@ -18,7 +18,7 @@
 }
 
 /* ================================================= */
-/* 💬 CHAT POPUP CONTAINER                           */
+/*  CHAT POPUP CONTAINER                           */
 /* ================================================= */
 .chat-popup {
   position: fixed;
@@ -125,7 +125,7 @@
 }
 
 /* ================================================= */
-/* 📩 BODY (MESSAGE LIST)                            */
+/*  BODY (MESSAGE LIST)                            */
 /* ================================================= */
 .chat-popup-body {
   flex: 1;
@@ -308,7 +308,7 @@
 }
 
 /* ================================================= */
-/* ⌨️ FOOTER (INPUT AREA)                            */
+/*  FOOTER (INPUT AREA)                            */
 /* ================================================= */
 .chat-popup-footer {
   padding: 10px;
@@ -370,10 +370,10 @@
 }
 
 /* ================================================= */
-/* 🔽 MINIMIZED STATE (THU NHỎ)                      */
+/*  MINIMIZED STATE (THU NHỎ)                      */
 /* ================================================= */
 .chat-popup.minimized {
-  width: auto;
+  width: 150px;
   height: auto;
   bottom: 20px;
   right: 80px;
@@ -394,6 +394,8 @@
   cursor: pointer;
   border: 1px solid var(--chat-border);
   transition: transform 0.2s;
+  width: 100%; /* Chiếm trọn 220px của thẻ cha */
+  overflow: hidden;
 }
 
 .minimized-header:hover {
@@ -405,6 +407,7 @@
   height: 40px;
   border-radius: 50%;
   object-fit: cover;
+  flex-shrink: 0;
 }
 
 .minimized-name {
@@ -416,6 +419,13 @@
   overflow: hidden;
   text-overflow: ellipsis;
   color: #050505;
+  flex: 1; /* Tự động giãn ra chiếm hết khoảng trống còn lại */
+  min-width: 0; /* Cho phép thẻ thu nhỏ lại bé hơn nội dung thực tế của nó */
+  display: block; /* Chuyển span thành block để nhận text-overflow */
+
+  white-space: nowrap; /* Không cho rớt dòng */
+  overflow: hidden; /* Che đi phần chữ bị lố */
+  text-overflow: ellipsis; /* Hiển thị dấu "..." khi chữ bị lố */
 }
 
 .close-btn-mini {
@@ -431,13 +441,14 @@
   justify-content: center;
   color: var(--chat-text-secondary);
   margin-right: 5px;
+  flex-shrink: 0;
 }
 .close-btn-mini:hover {
   background-color: #ddd;
 }
 
 /* ================================================= */
-/* 🌀 UTILITIES (LOADING, EMPTY, PREVIEW)            */
+/* UTILITIES (LOADING, EMPTY, PREVIEW)            */
 /* ================================================= */
 
 /* Loading & Sending Overlay */

@@ -4,6 +4,7 @@ class WebSocketService {
     this.listeners = new Map();
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 5;
+    this.pingInterval = null;
   }
 
   connect(token) {
@@ -73,7 +74,7 @@ class WebSocketService {
         JSON.stringify({
           type,
           ...payload,
-        })
+        }),
       );
     }
   }
@@ -87,7 +88,7 @@ class WebSocketService {
     callbacks.push(callback);
 
     console.log(
-      `👂 [WebSocket] Registered listener for "${eventType}". Total: ${callbacks.length}`
+      `👂 [WebSocket] Registered listener for "${eventType}". Total: ${callbacks.length}`,
     );
   }
 
@@ -105,7 +106,7 @@ class WebSocketService {
       }
 
       console.log(
-        `🧹 [WebSocket] Removed listener for "${eventType}". Remaining: ${filtered.length}`
+        `🧹 [WebSocket] Removed listener for "${eventType}". Remaining: ${filtered.length}`,
       );
     }
   }
@@ -114,7 +115,7 @@ class WebSocketService {
     const callbacks = this.listeners.get(eventType);
     if (callbacks) {
       console.log(
-        `📢 [WebSocket] Notifying ${callbacks.length} listeners for "${eventType}"`
+        `📢 [WebSocket] Notifying ${callbacks.length} listeners for "${eventType}"`,
       );
       callbacks.forEach((cb) => cb(data));
     }

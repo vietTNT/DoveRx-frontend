@@ -2,32 +2,36 @@ import React, { useEffect, useState } from "react";
 import PostCard from "../dashboard/PostCard";
 import { getPostsByUser } from "../../services/socialApi";
 import { mapPostToUI } from "../../utils/mapPost";
-const emojiList = [
-  { type: "like", icon: "👍", label: "Thích" },
-  { type: "love", icon: "❤️", label: "Yêu thích" },
-  { type: "haha", icon: "😂", label: "Haha" },
-  { type: "wow", icon: "😮", label: "Wow" },
-  { type: "sad", icon: "😢", label: "Buồn" },
-  { type: "angry", icon: "😡", label: "Phẫn nộ" },
-];
-
-//1. Hàm tính thời gian (Thêm vào đây)
-const getTimeAgo = (dateInput) => {
-  if (!dateInput) return "";
-  const date = new Date(dateInput);
-  const now = new Date();
-  const seconds = Math.floor((now - date) / 1000);
-
-  if (seconds < 60) return "Vừa xong";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes} phút trước`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} giờ trước`;
-  const days = Math.floor(hours / 24);
-  return `${days} ngày trước`;
-};
+import { useTranslation } from "react-i18next";
 
 const UserPostsTab = ({ userId, currentUser }) => {
+  const { t } = useTranslation();
+
+  const emojiList = [
+    { type: "like", icon: "👍", label: t("reactions.like") },
+    { type: "love", icon: "❤️", label: t("reactions.love") },
+    { type: "haha", icon: "😂", label: t("reactions.haha") },
+    { type: "wow", icon: "😮", label: t("reactions.wow") },
+    { type: "sad", icon: "😢", label: t("reactions.sad") },
+    { type: "angry", icon: "😡", label: t("reactions.angry") },
+  ];
+
+  //1. Hàm tính thời gian
+  const getTimeAgo = (dateInput) => {
+    if (!dateInput) return "";
+    const date = new Date(dateInput);
+    const now = new Date();
+    const seconds = Math.floor((now - date) / 1000);
+
+    if (seconds < 60) return t("time.just_now");
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return t("time.mins_ago", { count: minutes });
+    const hours = Math.floor(seconds / 3600);
+    if (hours < 24) return t("time.hours_ago", { count: hours });
+    const days = Math.floor(hours / 24);
+    return t("time.days_ago", { count: days });
+  };
+
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [reactions, setReactions] = useState({});
@@ -59,7 +63,7 @@ const UserPostsTab = ({ userId, currentUser }) => {
     fetchPosts();
   }, [userId]);
 
-  // ✅ 3. Hàm xử lý khi click vào ảnh (Lightbox)
+  // 3. Hàm xử lý khi click vào ảnh (Lightbox)
   // Nếu bạn chưa có component Lightbox ở đây, ta có thể để hàm trống hoặc alert tạm
   const openLightbox = (images, index) => {
     console.log("Open lightbox:", images, index);
@@ -80,8 +84,10 @@ const UserPostsTab = ({ userId, currentUser }) => {
         <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400">
           <i className="fas fa-newspaper text-2xl"></i>
         </div>
-        <h3 className="text-lg font-bold text-gray-900">Chưa có bài viết</h3>
-        <p className="text-gray-500">Người dùng này chưa đăng bài viết nào.</p>
+        <h3 className="text-lg font-bold text-gray-900">
+          {t("profile.no_posts_title")}
+        </h3>
+        <p className="text-gray-500">{t("profile.no_posts_desc")}</p>
       </div>
     );
   }

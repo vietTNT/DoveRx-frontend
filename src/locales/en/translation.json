@@ -103,7 +103,11 @@
     "no_friend_req": "No friend requests",
     "search_loading": "Searching...",
     "search_result": "Search Results",
-    "search_not_found": "No results found"
+    "search_not_found": "No results found",
+    "admin": "Admin",
+    "admin_dashboard": "Admin Dashboard",
+    "health_map": "Health Map",
+    "ai_assistant": "DoveRx AI Assistant"
   },
   "dashboard": {
     "post_normal": "Regular Post",
@@ -256,6 +260,7 @@
     "sent_image": "Sent a photo",
     "sent_video": "Sent a video",
     "sent_file": "Sent a file",
+    "shared_a_post": "Shared a post",
     "active": "Active now",
     "offline": "Offline",
     "no_friends": "No friends yet",
@@ -281,7 +286,7 @@
     "confirm_recall": "Are you sure you want to recall this message?",
     "recall_failed": "Cannot recall the message.",
     "recall": "Recall",
-    "shared_post": "Shared a post"
+    "share_post": "Share a post"
   },
   "share": {
     "title": "Share",
@@ -335,7 +340,8 @@
   "time": {
     "just_now": "Just now",
     "mins_ago": "{{count}} mins ago",
-    "hours_ago": "{{count}} hours ago"
+    "hours_ago": "{{count}} hours ago",
+    "days_ago": "{{count}} days ago"
   },
   "avatarEditor": {
     "title": "Edit Profile Picture",
@@ -346,7 +352,8 @@
     "new_post": "{{name}} published a new post.",
     "comment": "{{name}} commented on your post.",
     "like": "{{name}} liked your post.",
-    "new_post_alert": "📢 {{name}} just published a new post!"
+    "new_post_alert": "📢 {{name}} just published a new post!",
+    "share_post": "{{name}} shared your post."
   },
   "language": {
     "select_language": "Select Language"

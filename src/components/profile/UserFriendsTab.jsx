@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { getUserFriends, getFriends } from "../../services/friendApi";
 import { Link } from "react-router-dom";
 import { resolveImageUrl } from "../../utils/imageHelper";
-
+import { useTranslation } from "react-i18next";
 // Component Skeleton tinh gọn
 const FriendSkeleton = () => (
   <div className="flex items-center gap-4 p-4 bg-white border border-gray-100 rounded-2xl animate-pulse">
@@ -15,6 +15,7 @@ const FriendSkeleton = () => (
 );
 
 const UserFriendsTab = ({ userId, currentUser }) => {
+  const { t } = useTranslation();
   const [friends, setFriends] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -58,7 +59,7 @@ const UserFriendsTab = ({ userId, currentUser }) => {
   if (friends.length === 0) {
     return (
       <div className="bg-white p-12 rounded-3xl text-center border border-gray-100 shadow-sm">
-        <p className="text-gray-400 font-medium">Chưa có bạn bè nào.</p>
+        <p className="text-gray-400 font-medium">{t("profile.no_friends")}</p>
       </div>
     );
   }
@@ -68,7 +69,7 @@ const UserFriendsTab = ({ userId, currentUser }) => {
       {friends.map((item) => {
         const friend = item.user || item;
         const fId = friend.id || item.id;
-        const fName = friend.name || friend.username || "Người dùng";
+        const fName = friend.name || friend.username || t("navbar.role_user");
         const fAvatar = friend.avatar;
 
         if (!fId) return null;
@@ -103,7 +104,7 @@ const UserFriendsTab = ({ userId, currentUser }) => {
               {/* Chỉ hiện bạn chung nếu có, không hiện text thừa */}
               {item.mutual_friends > 0 && (
                 <p className="text-xs text-indigo-500 font-medium mt-0.5">
-                  {item.mutual_friends} bạn chung
+                  {item.mutual_friends} {t("profile.mutual_friends")}
                 </p>
               )}
             </div>

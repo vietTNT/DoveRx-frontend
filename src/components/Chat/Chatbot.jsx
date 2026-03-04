@@ -240,7 +240,7 @@ const Chatbot = ({ isOpen, onClose, botIcon }) => {
     return (
       <div
         onClick={() => setIsMinimized(false)}
-        className="fixed bottom-6 right-6 z-[60] w-16 h-16 bg-white rounded-full shadow-2xl flex items-center justify-center cursor-pointer transition-all duration-200 hover:brightness-110 border-2 border-blue-500 animate-bounce-in"
+        className="fixed bottom-6 left-6 z-[60] w-16 h-16 bg-white rounded-full shadow-2xl flex items-center justify-center cursor-pointer transition-all duration-200 hover:brightness-110 border-2 border-blue-500 animate-bounce-in"
       >
         <img
           src={botIcon}
@@ -253,7 +253,7 @@ const Chatbot = ({ isOpen, onClose, botIcon }) => {
   }
 
   return (
-    <div className="fixed z-[55] flex flex-col bg-white shadow-2xl overflow-hidden font-sans border border-gray-200 animate-slide-up bottom-6 right-6 w-full h-full sm:w-[400px] sm:h-[600px] sm:rounded-2xl">
+    <div className="fixed z-[55] flex flex-col bg-white shadow-2xl overflow-hidden font-sans border border-gray-200 animate-slide-up bottom-6 left-6 w-full h-full sm:w-[400px] sm:h-[600px] sm:rounded-2xl">
       <div className="bg-gradient-to-r from-blue-600 to-blue-500 p-4 flex justify-between items-center text-white shadow-md flex-shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm p-1">

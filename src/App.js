@@ -8,7 +8,7 @@ import chatWebSocketService from "./services/chatWebSocket";
 
 import LoginPage from "./pages/LoginPage";
 import Dashboard from "./pages/DashBoard";
-import ProfilePage from "./pages/ProfilePage";
+
 import DoctorLoginPage from "./pages/DoctorLoginPage";
 import DoctorRegisterPage from "./pages/DoctorRegisterPage";
 import DoctorVerifyPage from "./pages/DoctorVerifyPage";
@@ -16,7 +16,6 @@ import UserProfilePage from "./pages/UserProfilepage";
 import { refreshTokenIfNeeded } from "./services/auth";
 import AdminDashboard from "./components/dashboard/admin/AdminDashboard";
 import HealthMap from "./pages/HealthMap";
-import ChatPopup from "./components/Chat/Chatpopup";
 import ChatLayer from "./components/Chat/ChatLayer";
 function App() {
   const [user, setUser] = useState(null);
@@ -49,12 +48,12 @@ function App() {
       try {
         const token = await refreshTokenIfNeeded();
         if (token) {
-          console.log("✅ Token còn hạn hoặc đã được làm mới.");
+          console.log(" Token còn hạn hoặc đã được làm mới.");
         } else {
-          console.log("⚠️ Token hết hạn, cần đăng nhập lại.");
+          console.log(" Token hết hạn, cần đăng nhập lại.");
         }
       } catch (error) {
-        console.error("❌ Refresh token error:", error);
+        console.error(" Refresh token error:", error);
       }
     })();
   }, [isInitialized]);
@@ -258,18 +257,6 @@ function App() {
               ) : (
                 <Navigate to="/" />
               )
-            }
-          />
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <ProfilePage
-                  user={user}
-                  setUser={setUser}
-                  onLogout={handleLogout}
-                />
-              </ProtectedRoute>
             }
           />
 
